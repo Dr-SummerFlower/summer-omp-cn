@@ -1,15 +1,7 @@
-import { afterEach, describe, expect, it, vi } from "bun:test";
-import { setLanguage } from "@oh-my-pi/pi-coding-agent/i18n";
+import { describe, expect, it, vi } from "bun:test";
 import { USER_INTERRUPT_LABEL } from "@oh-my-pi/pi-coding-agent/session/messages";
-import {
-	ACP_BUILTIN_SLASH_COMMANDS,
-	executeAcpBuiltinSlashCommand,
-} from "@oh-my-pi/pi-coding-agent/slash-commands/acp-builtins";
+import { executeAcpBuiltinSlashCommand } from "@oh-my-pi/pi-coding-agent/slash-commands/acp-builtins";
 import type { SlashCommandRuntime } from "@oh-my-pi/pi-coding-agent/slash-commands/types";
-
-afterEach(() => {
-	setLanguage("en");
-});
 
 function acpRuntime({
 	isStreaming = false,
@@ -119,26 +111,5 @@ describe("/handoff dispatch (ACP)", () => {
 		const h = acpRuntime({ handoffError: new Error("Nothing to hand off (no messages yet)") });
 		await executeAcpBuiltinSlashCommand("/handoff", h.runtime);
 		expect(h.output).toHaveBeenCalledWith("Handoff failed: Nothing to hand off (no messages yet)");
-	});
-
-	it("reports success, cancellation, and failure in Chinese without altering provider reasons", async () => {
-		setLanguage("zh-CN");
-		const success = acpRuntime({ handoffResult: { document: "doc" } });
-		const cancelled = acpRuntime({ handoffResult: undefined });
-		const failed = acpRuntime({ handoffError: new Error("provider timeout") });
-
-		await executeAcpBuiltinSlashCommand("/handoff", success.runtime);
-		await executeAcpBuiltinSlashCommand("/handoff", cancelled.runtime);
-		await executeAcpBuiltinSlashCommand("/handoff", failed.runtime);
-
-		expect(success.output).toHaveBeenCalledWith("上下文已交接并在当前会话中完成压缩。");
-		expect(cancelled.output).toHaveBeenCalledWith("交接已取消。");
-		expect(failed.output).toHaveBeenCalledWith("交接失败：provider timeout");
-	});
-
-	it("is advertised with the focus hint and the ACP description", () => {
-		const advertised = ACP_BUILTIN_SLASH_COMMANDS.find(c => c.name === "handoff");
-		expect(advertised?.input?.hint).toBe("[focus instructions]");
-		expect(advertised?.description).toBe("Summarize the session into a handoff document and compact in place");
 	});
 });

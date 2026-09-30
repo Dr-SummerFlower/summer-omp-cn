@@ -3,7 +3,7 @@
  * daemon broker from outside the harness.
  *
  * A bare `omp ps` on a TTY opens the interactive alt-screen monitor
- * (`ps-tui.ts`); `--plain`, `--json`, and non-TTY outputs use the static
+ * (`pi-tui/apps/ps-top`); `--plain`, `--json`, and non-TTY outputs use the static
  * listing. Actions (`stop`, `kill`, `restart`, `logs`, `info`) connect through
  * the regular client, which revives a dead broker so it can re-adopt detached
  * daemons before acting on them.
@@ -12,26 +12,25 @@
 import { truncateToWidth } from "@oh-my-pi/pi-tui";
 import { formatDuration, getProjectDir } from "@oh-my-pi/pi-utils";
 import chalk from "@oh-my-pi/pi-utils/chalk";
-import { t } from "../i18n";
 import {
 	closeDaemonClients,
 	type DaemonBrokerClient,
 	daemonClientForGlobal,
 	daemonClientForProject,
 } from "../launch/client";
-import type { DaemonSnapshot } from "../launch/protocol";
+import type { DaemonSnapshot } from "@oh-my-pi/pi-tui/tools/daemon";
 import {
-	collectReports,
 	daemonLabel,
 	formatCommand,
-	KILL_GRACE_MS,
 	type PsDaemonRow,
+	type PsScope,
 	scopeHeader,
+	TABLE_HEADER,
 	TERMINAL_STATES,
 	tableCells,
-	tableHeader,
-} from "./ps-data";
-import { runPsTop } from "./ps-tui";
+} from "@oh-my-pi/pi-tui/apps/ps-data";
+import { runPsTop, type PsTopHost } from "@oh-my-pi/pi-tui/apps/ps-top";
+import { collectReports, KILL_GRACE_MS, scopeClient } from "./ps-data";
 
 export type PsAction = "list" | "info" | "logs" | "stop" | "kill" | "restart";
 
@@ -40,7 +39,7 @@ export interface PsCommandArgs {
 	/** Daemon name; required for every action except `list`. */
 	name?: string;
 	flags: {
-		/** list: include every project and global service scope on this machine. */
+		/** list: include every project scope and exited global services (live global services always show). */
 		all: boolean;
 		json: boolean;
 		/** list: force the static listing instead of the interactive monitor. */
@@ -62,17 +61,73 @@ export interface PsCommandArgs {
 	};
 }
 
+function createPsTopHost(): PsTopHost {
+	const clients = new Map<string, DaemonBrokerClient>();
+	let closed = false;
+	const clientFor = async (scope: PsScope): Promise<DaemonBrokerClient> => {
+		const cached = clients.get(scope.runtimeDir);
+		if (cached) return cached;
+		const client = await scopeClient(scope);
+		if (!client) throw new Error("Scope is not addressable from this machine");
+		if (closed) {
+			client.close();
+			throw new Error("Process monitor closed");
+		}
+		clients.set(scope.runtimeDir, client);
+		return client;
+	};
+	return {
+		collectReports,
+		async act(scope, name, verb) {
+			const client = await clientFor(scope);
+			const result = await client.request(
+				verb === "restart"
+					? { op: "restart", name }
+					: { op: "stop", name, timeoutMs: verb === "kill" ? KILL_GRACE_MS : 5_000 },
+			);
+			if (result.op !== "restart" && result.op !== "stop") throw new Error(`Unexpected response ${result.op}`);
+			return result.daemon;
+		},
+		async describe(scope, name) {
+			const client = await clientFor(scope);
+			const result = await client.request({ op: "describe", name });
+			if (result.op !== "describe") throw new Error(`Unexpected response ${result.op}`);
+			return { daemon: result.daemon, spec: result.spec };
+		},
+		async logs(scope, name, lines) {
+			const client = await clientFor(scope);
+			const result = await client.request({
+				op: "logs",
+				name,
+				lines,
+				head: false,
+				follow: false,
+				renderTerminalRows: true,
+				timeoutMs: 10_000,
+			});
+			if (result.op !== "logs") throw new Error(`Unexpected response ${result.op}`);
+			return result;
+		},
+		close() {
+			closed = true;
+			for (const client of clients.values()) client.close();
+			clients.clear();
+		},
+	};
+}
+
+/** Run process listing or a named broker action. */
 export async function runPsCommand(cmd: PsCommandArgs): Promise<void> {
 	try {
 		if (cmd.action === "list") {
 			const interactive =
 				!cmd.flags.json && !cmd.flags.plain && process.stdout.isTTY === true && process.stdin.isTTY === true;
-			if (interactive) await runPsTop(cmd.flags);
+			if (interactive) await runPsTop(cmd.flags, createPsTopHost());
 			else await runList(cmd);
 			return;
 		}
 		if (!cmd.name) {
-			console.error(chalk.red(t("ps.nameRequired", { action: cmd.action })));
+			console.error(chalk.red(`${cmd.action} requires a process name. Run \`omp ps\` to list processes.`));
 			process.exitCode = 1;
 			return;
 		}
@@ -111,7 +166,7 @@ async function runList(cmd: PsCommandArgs): Promise<void> {
 		return;
 	}
 	if (reports.length === 0) {
-		console.log(chalk.dim(t("ps.noScopes")));
+		console.log(chalk.dim("No daemon broker scopes found."));
 		return;
 	}
 	let first = true;
@@ -120,13 +175,13 @@ async function runList(cmd: PsCommandArgs): Promise<void> {
 		first = false;
 		console.log(scopeHeader(report.scope));
 		if (report.daemons.length === 0) {
-			console.log(chalk.dim(`  ${t("ps.noProcesses")}`));
+			console.log(chalk.dim("  no processes"));
 			continue;
 		}
 		printTable(report.daemons);
 	}
 	if (!cmd.flags.all) {
-		console.log(chalk.dim(`\n${t("ps.includeAllHint")}`));
+		console.log(chalk.dim("\nUse --all to include other projects and exited global services."));
 	}
 }
 
@@ -134,16 +189,15 @@ function printTable(rows: PsDaemonRow[]): void {
 	// Truncate to the terminal on a TTY; keep full lines when piped.
 	const maxWidth = process.stdout.isTTY ? (process.stdout.columns ?? 120) : Number.POSITIVE_INFINITY;
 	const cells = rows.map(tableCells);
-	const header = tableHeader();
-	const widths = header.map((title, column) =>
-		Math.max(Bun.stringWidth(title), ...cells.map(row => Bun.stringWidth(row[column]))),
+	const widths = TABLE_HEADER.map((title, column) =>
+		Math.max(title.length, ...cells.map(row => Bun.stringWidth(row[column]))),
 	);
 	const render = (row: string[]): string => {
 		const line =
 			`  ${row.map((cell, column) => cell + " ".repeat(Math.max(0, widths[column] - Bun.stringWidth(cell)))).join("  ")}`.trimEnd();
 		return Number.isFinite(maxWidth) ? truncateToWidth(line, maxWidth) : line;
 	};
-	console.log(chalk.dim(render(header)));
+	console.log(chalk.dim(render([...TABLE_HEADER])));
 	for (const [index, row] of cells.entries()) {
 		const line = render(row);
 		console.log(TERMINAL_STATES[rows[index].snapshot.state] ? chalk.dim(line) : line);
@@ -165,23 +219,21 @@ async function runAction(cmd: PsCommandArgs, name: string): Promise<void> {
 		switch (cmd.action) {
 			case "info": {
 				const result = await client.request({ op: "describe", name });
-				if (result.op !== "describe") throw new Error(t("ps.unexpectedResponse", { response: result.op }));
+				if (result.op !== "describe") throw new Error(`Unexpected broker response ${result.op}`);
 				if (cmd.flags.json) {
 					console.log(JSON.stringify({ ...result.daemon, spec: result.spec }, null, 2));
 					return;
 				}
 				const daemon = result.daemon;
 				console.log(daemonLabel(daemon));
-				console.log(`  ${t("ps.info.command").padEnd(10)}${formatCommand(result.spec)}`);
-				console.log(`  ${t("ps.info.cwd").padEnd(10)}${result.spec.cwd}`);
+				console.log(`  command:  ${formatCommand(result.spec)}`);
+				console.log(`  cwd:      ${result.spec.cwd}`);
 				if (!TERMINAL_STATES[daemon.state])
-					console.log(`  ${t("ps.info.uptime")} ${formatDuration(Date.now() - daemon.startedAt)}`);
-				if (daemon.exitReason) console.log(`  ${t("ps.info.exit")} ${daemon.exitReason}`);
+					console.log(`  uptime:   ${formatDuration(Date.now() - daemon.startedAt)}`);
+				if (daemon.exitReason) console.log(`  exit:     ${daemon.exitReason}`);
+				console.log(`  restarts: ${daemon.restartCount} (policy: ${result.spec.restart})`);
 				console.log(
-					`  ${t("ps.info.restarts")} ${daemon.restartCount} (${t("ps.info.policy", { policy: result.spec.restart })})`,
-				);
-				console.log(
-					`  ${t("ps.info.pty", { value: result.spec.pty })}  ${t("ps.info.persist", { value: result.spec.persist })}  ${t("ps.info.detached", { value: result.spec.detached })}  ${t("ps.info.owner", { owner: daemon.owner ?? "-" })}`,
+					`  pty: ${result.spec.pty}  persist: ${result.spec.persist}  detached: ${result.spec.detached}  owner: ${daemon.owner ?? "-"}`,
 				);
 				return;
 			}
@@ -192,14 +244,14 @@ async function runAction(cmd: PsCommandArgs, name: string): Promise<void> {
 			case "kill": {
 				const timeoutMs = cmd.action === "kill" ? KILL_GRACE_MS : Math.round((cmd.flags.timeout ?? 5) * 1000);
 				const result = await client.request({ op: "stop", name, timeoutMs });
-				if (result.op !== "stop") throw new Error(t("ps.unexpectedResponse", { response: result.op }));
-				printDaemonResult(cmd, t(cmd.action === "kill" ? "ps.verb.killed" : "ps.verb.stopped"), result.daemon);
+				if (result.op !== "stop") throw new Error(`Unexpected broker response ${result.op}`);
+				printDaemonResult(cmd, cmd.action === "kill" ? "Killed" : "Stopped", result.daemon);
 				return;
 			}
 			case "restart": {
 				const result = await client.request({ op: "restart", name });
-				if (result.op !== "restart") throw new Error(t("ps.unexpectedResponse", { response: result.op }));
-				printDaemonResult(cmd, t("ps.verb.restarted"), result.daemon);
+				if (result.op !== "restart") throw new Error(`Unexpected broker response ${result.op}`);
+				printDaemonResult(cmd, "Restarted", result.daemon);
 				return;
 			}
 			default:

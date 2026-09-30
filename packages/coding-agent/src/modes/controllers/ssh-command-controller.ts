@@ -9,8 +9,8 @@ import { type SSHHost, sshCapability } from "../../capability/ssh";
 import { loadCapability } from "../../discovery";
 import { localizeUiText } from "../../i18n";
 import { addSSHHost, readSSHConfigFile, removeSSHHost, type SSHHostConfig } from "../../ssh/config-writer";
-import { parseCommandArgs } from "../shared";
-import { theme } from "../theme/theme";
+import { parseCommandArgs } from "../../utils/command-args";
+import { theme } from "@oh-my-pi/pi-tui/theme";
 import type { InteractiveModeContext } from "../types";
 import {
 	groupBySource,

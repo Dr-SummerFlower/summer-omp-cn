@@ -5,7 +5,6 @@
 import { Args, Command, Flags } from "@oh-my-pi/pi-utils/cli";
 import { psHelp as commandHelp } from "../cli/command-help";
 import { type PsAction, type PsCommandArgs, runPsCommand } from "../cli/ps-cli";
-import { t } from "../i18n";
 
 const ACTIONS: PsAction[] = ["list", "info", "logs", "stop", "kill", "restart"];
 
@@ -14,27 +13,27 @@ export default class Ps extends Command {
 
 	static args = {
 		action: Args.string({
-			description: t("ps.action.description"),
+			description: "list (default), info, logs, stop, kill, or restart",
 			required: false,
 			options: ACTIONS,
 		}),
 		name: Args.string({
-			description: t("ps.name.description"),
+			description: "Process name (required for every action except list)",
 			required: false,
 		}),
 	};
 
 	static flags = {
-		all: Flags.boolean({ char: "a", description: t("ps.all.description") }),
-		json: Flags.boolean({ char: "j", description: t("ps.json.description") }),
-		plain: Flags.boolean({ description: t("ps.plain.description") }),
-		dir: Flags.string({ description: t("ps.dir.description") }),
-		global: Flags.string({ description: t("ps.global.description") }),
-		follow: Flags.boolean({ char: "f", description: t("ps.follow.description") }),
-		head: Flags.boolean({ description: t("ps.head.description") }),
-		lines: Flags.integer({ char: "n", description: t("ps.lines.description") }),
-		grep: Flags.string({ description: t("ps.grep.description") }),
-		timeout: Flags.integer({ description: t("ps.timeout.description") }),
+		all: Flags.boolean({ char: "a", description: "Also list other projects and exited global services (list)" }),
+		json: Flags.boolean({ char: "j", description: "Emit machine-readable JSON" }),
+		plain: Flags.boolean({ description: "Static listing instead of the interactive monitor (list)" }),
+		dir: Flags.string({ description: "Target another project directory instead of the current one" }),
+		global: Flags.string({ description: "Target a machine-global service scope (e.g. browser-relay)" }),
+		follow: Flags.boolean({ char: "f", description: "Keep streaming new output (logs)" }),
+		head: Flags.boolean({ description: "Read from the beginning instead of the tail (logs)" }),
+		lines: Flags.integer({ char: "n", description: "Number of log lines, max 1000 (logs)" }),
+		grep: Flags.string({ description: "Regex filter applied to log lines (logs)" }),
+		timeout: Flags.integer({ description: "Grace period in seconds before hard kill (stop)" }),
 	};
 
 	static examples = [

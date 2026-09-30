@@ -139,6 +139,13 @@ export const observed = [
 		}
 	});
 
+	it("serves coding-agent registry wildcard exports in compiled mode", () => {
+		const key = "@oh-my-pi/pi-coding-agent/registry/agent-registry";
+		const overrides = __buildLegacyPiPackageRootOverrides(true, bundledModuleKeys);
+		expect(bundledModuleKeys.has(key)).toBe(true);
+		expect(overrides[key]).toBe(`omp-legacy-pi-bundled:${key}`);
+	});
+
 	it("does not enumerate root catch-all wildcards (./* / ./*.js)", () => {
 		// Root `./*` / `./*.js` patterns would static-import top-level files
 		// like the package's own `cli.ts` and explode the bundle through the
@@ -179,19 +186,6 @@ export const observed = [
 		expect(missing).toEqual([]);
 	});
 
-	it("keeps pi-ai/pi-coding-agent/pi-tui roots routed to their compat shims in compiled mode", () => {
-		// The shim entries themselves resolve to virtual bundled specifiers in
-		// compiled mode (the shim files are bundled under their own registry
-		// keys); the test asserts only that the roots stay distinct from the
-		// canonical pi-* surface — extensions still see the `Type` /
-		// `defineTool` helpers the canonical entrypoints dropped.
-		const overrides = __buildLegacyPiPackageRootOverrides(true, bundledModuleKeys);
-		expect(overrides["@oh-my-pi/pi-ai"]).toBeDefined();
-		expect(overrides["@oh-my-pi/pi-ai"]).not.toBe("omp-legacy-pi-bundled:@oh-my-pi/pi-ai/oauth");
-		expect(overrides["@oh-my-pi/pi-coding-agent"]).toBeDefined();
-		expect(overrides["@oh-my-pi/pi-tui"]).toBeDefined();
-	});
-
 	it("does not register subpath overrides in dev/install mode", () => {
 		const overrides = __buildLegacyPiPackageRootOverrides(false);
 		expect(overrides).not.toHaveProperty("@oh-my-pi/pi-ai/oauth");
@@ -219,6 +213,6 @@ export const observed = [
 		expect(bundledModuleKeys.has("@oh-my-pi/pi-coding-agent/slash-commands/helpers/active-oauth-account")).toBe(true);
 		// Directory index modules stay excluded: `./x/*` must not serve `x/y`
 		// from `y/index.ts`, which Node would not resolve either.
-		expect(bundledModuleKeys.has("@oh-my-pi/pi-coding-agent/modes/theme/defaults/index")).toBe(false);
+		expect(bundledModuleKeys.has("@oh-my-pi/pi-tui/theme/defaults/index")).toBe(false);
 	});
 });

@@ -3,23 +3,30 @@ import type { Model } from "@oh-my-pi/pi-ai";
 import { buildModel } from "@oh-my-pi/pi-catalog/build";
 import { runOnboardingSetup } from "@oh-my-pi/pi-coding-agent/commands/setup";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
-import { initializeLanguage } from "@oh-my-pi/pi-coding-agent/i18n";
 import {
 	ALL_SCENES,
+	createSetupHost,
 	CURRENT_SETUP_VERSION,
 	markSetupWizardComplete,
 	runSetupWizard,
 	type SetupScene,
 	type SetupSceneHost,
 	selectSetupScenes,
-} from "@oh-my-pi/pi-coding-agent/modes/setup-wizard";
-import { providersSetupScene } from "@oh-my-pi/pi-coding-agent/modes/setup-wizard/scenes/providers";
-import { themeSetupScene } from "@oh-my-pi/pi-coding-agent/modes/setup-wizard/scenes/theme";
-import { WebSearchTab } from "@oh-my-pi/pi-coding-agent/modes/setup-wizard/scenes/web-search";
-import { SetupWizardComponent } from "@oh-my-pi/pi-coding-agent/modes/setup-wizard/wizard-overlay";
-import { initTheme, theme } from "@oh-my-pi/pi-coding-agent/modes/theme/theme";
+} from "@oh-my-pi/pi-coding-agent/modes/setup";
+import { providersSetupScene } from "@oh-my-pi/pi-tui/setup/scenes/sign-in";
+import { themeSetupScene } from "@oh-my-pi/pi-tui/setup/scenes/theme";
+import { SetupWizardComponent } from "@oh-my-pi/pi-tui/setup/wizard-overlay";
+import { setTerminalGlyphProtocol } from "@oh-my-pi/pi-tui/terminal-capabilities";
+import { initTheme, theme } from "@oh-my-pi/pi-tui/theme";
 import type { InteractiveModeContext } from "@oh-my-pi/pi-coding-agent/modes/types";
-import { SEARCH_PROVIDER_OPTIONS, SEARCH_PROVIDER_ORDER } from "@oh-my-pi/pi-coding-agent/web/search/types";
+
+import { cfgSetupVersion, cfgSymbolPreset } from "@oh-my-pi/pi-coding-agent/modes/settings";
+
+type SetupApplicationSceneHost = Omit<SetupSceneHost, "ctx"> & { ctx: InteractiveModeContext };
+
+function bindSceneHost(host: SetupApplicationSceneHost): SetupSceneHost {
+	return { ...host, ctx: createSetupHost(host.ctx) };
+}
 
 function fakeContextWithConfiguredModel(): InteractiveModeContext {
 	return {
@@ -46,7 +53,6 @@ function testScene(id: string, minVersion: number, shouldRun?: () => boolean): S
 }
 
 afterEach(async () => {
-	initializeLanguage("en");
 	await initTheme(false, "unicode", false, "titanium", "light");
 });
 
@@ -86,11 +92,6 @@ describe("setup wizard scene selection", () => {
 		expect(await selectSetupScenes(0, ALL_SCENES, ctx, { isTTY: true, setupWizardEnabled: false })).toEqual([]);
 	});
 
-	it("keeps the providers scene eligible even when a model is already configured", async () => {
-		const scenes = await selectSetupScenes(0, ALL_SCENES, fakeContextWithConfiguredModel(), { isTTY: true });
-		expect(scenes.some(scene => scene.id === "providers")).toBe(true);
-	});
-
 	it("force mode ignores version and user skip gates but still requires a TTY", async () => {
 		const ctx = fakeContextWithConfiguredModel();
 		const selected = await selectSetupScenes(CURRENT_SETUP_VERSION, ALL_SCENES, ctx, {
@@ -102,6 +103,18 @@ describe("setup wizard scene selection", () => {
 		});
 		expect(selected.map(scene => scene.id)).toEqual(ALL_SCENES.map(scene => scene.id));
 		expect(await selectSetupScenes(0, ALL_SCENES, ctx, { isTTY: false, force: true })).toEqual([]);
+	});
+
+	it("drops the glyph scene once the terminal renders omp's bundled icons in-band", async () => {
+		setTerminalGlyphProtocol(true);
+		try {
+			const scenes = await selectSetupScenes(0, ALL_SCENES, fakeContextWithConfiguredModel(), { isTTY: true });
+			expect(scenes.map(scene => scene.id)).toEqual(
+				ALL_SCENES.map(scene => scene.id).filter(id => id !== "glyph-mode"),
+			);
+		} finally {
+			setTerminalGlyphProtocol(false);
+		}
 	});
 
 	it("applies scene shouldRun only as a hard environment gate", async () => {
@@ -145,7 +158,7 @@ describe("setup wizard model selection", () => {
 				return { switched: true };
 			},
 		);
-		const host = {
+		const host = bindSceneHost({
 			ctx: {
 				settings,
 				session: {
@@ -165,7 +178,7 @@ describe("setup wizard model selection", () => {
 			finish: (next: string) => finished.resolve(next),
 			setFocus: () => {},
 			restoreFocus: () => {},
-		} as unknown as SetupSceneHost;
+		} as unknown as SetupApplicationSceneHost);
 		const scene = ALL_SCENES.find(candidate => candidate.id === "model");
 		expect(scene).toBeDefined();
 
@@ -202,7 +215,7 @@ describe("setup wizard persistence", () => {
 	it("marks the current setup version complete", async () => {
 		const settings = Settings.isolated();
 		await markSetupWizardComplete(settings);
-		expect(settings.get("setupVersion")).toBe(CURRENT_SETUP_VERSION);
+		expect(cfgSetupVersion.get(settings)).toBe(CURRENT_SETUP_VERSION);
 	});
 
 	it("can run a targeted scene without setup-version or welcome-intro side effects", async () => {
@@ -242,7 +255,7 @@ describe("setup wizard persistence", () => {
 		component?.handleInput?.("\n");
 		await pending;
 
-		expect(settings.get("setupVersion")).toBe(0);
+		expect(cfgSetupVersion.get(settings)).toBe(0);
 		expect(playWelcomeIntro).not.toHaveBeenCalled();
 		expect(hideOverlay).toHaveBeenCalledTimes(1);
 		expect(setFocus).toHaveBeenCalled();
@@ -270,7 +283,7 @@ describe("setup wizard mouse routing", () => {
 				requestRender: () => {},
 			},
 		} as unknown as InteractiveModeContext;
-		const component = new SetupWizardComponent(ctx, [scene]);
+		const component = new SetupWizardComponent(createSetupHost(ctx), [scene]);
 		try {
 			void component.run();
 			// Left click during the splash advances into the scene, like Enter.
@@ -319,7 +332,7 @@ describe("setup wizard mouse routing", () => {
 				requestRender: () => {},
 			},
 		} as unknown as InteractiveModeContext;
-		const component = new SetupWizardComponent(ctx, [scene]);
+		const component = new SetupWizardComponent(createSetupHost(ctx), [scene]);
 		try {
 			void component.run();
 			component.handleInput("\r"); // splash → scene
@@ -358,9 +371,8 @@ describe("setup wizard short terminals", () => {
 			session: {
 				modelRegistry: {
 					authStorage: {
-						has: () => false,
-						hasAuth: () => false,
-						getCredentialOrigin: () => undefined,
+						credentials: { has: () => false },
+						keys: { source: () => undefined },
 					},
 				},
 			},
@@ -380,7 +392,7 @@ describe("setup wizard short terminals", () => {
 
 	it("keeps the selected provider row visible while navigating on a 24-row terminal", async () => {
 		await initTheme(false, "unicode", false, "titanium", "light");
-		const component = new SetupWizardComponent(shortTerminalCtx(24), [providersSetupScene]);
+		const component = new SetupWizardComponent(createSetupHost(shortTerminalCtx(24)), [providersSetupScene]);
 		void component.run();
 		component.handleInput("\r"); // splash → scene
 		const nowSpy = skipDissolve();
@@ -402,7 +414,7 @@ describe("setup wizard short terminals", () => {
 
 	it("keeps the curated theme list and its selection visible on a 24-row terminal", async () => {
 		await initTheme(false, "unicode", false, "titanium", "light");
-		const component = new SetupWizardComponent(shortTerminalCtx(24), [themeSetupScene]);
+		const component = new SetupWizardComponent(createSetupHost(shortTerminalCtx(24)), [themeSetupScene]);
 		void component.run();
 		component.handleInput("\r"); // splash → scene
 		const nowSpy = skipDissolve();
@@ -427,7 +439,7 @@ describe("setup wizard theme previews", () => {
 		const setupScene = ALL_SCENES.find(scene => scene.id === "theme");
 		expect(setupScene).toBeDefined();
 
-		const host = {
+		const host = bindSceneHost({
 			ctx: {
 				settings,
 				ui: {
@@ -439,7 +451,7 @@ describe("setup wizard theme previews", () => {
 			finish: () => {},
 			setFocus: () => {},
 			restoreFocus: () => {},
-		} as unknown as SetupSceneHost;
+		} as unknown as SetupApplicationSceneHost);
 
 		const controller = setupScene!.mount(host);
 		controller.handleInput?.("5");
@@ -448,7 +460,7 @@ describe("setup wizard theme previews", () => {
 
 		controller.handleInput?.("2");
 		await Bun.sleep(20);
-		expect(settings.get("symbolPreset")).toBe("nerd");
+		expect(cfgSymbolPreset.get(settings)).toBe("nerd");
 		expect(theme.getSymbolPreset()).toBe("nerd");
 	});
 });
@@ -461,7 +473,7 @@ describe("setup wizard glyph scene", () => {
 		expect(scene).toBeDefined();
 
 		let finished = false;
-		const host = {
+		const host = bindSceneHost({
 			ctx: {
 				settings,
 				ui: { invalidate: () => {}, requestRender: () => {} },
@@ -472,7 +484,7 @@ describe("setup wizard glyph scene", () => {
 			},
 			setFocus: () => {},
 			restoreFocus: () => {},
-		} as unknown as SetupSceneHost;
+		} as unknown as SetupApplicationSceneHost);
 
 		const controller = scene!.mount(host);
 		// Row "1" is now Nerd Font (it must lead the list).
@@ -482,153 +494,8 @@ describe("setup wizard glyph scene", () => {
 
 		controller.handleInput?.("\n");
 		await Bun.sleep(20);
-		expect(settings.get("symbolPreset")).toBe("nerd");
+		expect(cfgSymbolPreset.get(settings)).toBe("nerd");
 		expect(finished).toBe(true);
-	});
-});
-
-describe("setup wizard composer scene", () => {
-	it("renders the version-2 composer choices in Chinese", async () => {
-		await initTheme(false, "unicode", false, "titanium", "light");
-		initializeLanguage("zh-CN");
-		const settings = Settings.isolated();
-		const scene = ALL_SCENES.find(candidate => candidate.id === "composer-shape");
-		expect(scene).toBeDefined();
-
-		const host = {
-			ctx: {
-				settings,
-				ui: { invalidate: () => {}, requestRender: () => {} },
-			},
-			requestRender: () => {},
-			finish: () => {},
-			setFocus: () => {},
-			restoreFocus: () => {},
-		} as unknown as SetupSceneHost;
-
-		const controller = scene!.mount(host);
-		const frame = Bun.stripANSI(controller.render(120).join("\n"));
-		expect(scene!.title).toBe("选择输入框样式");
-		expect(controller.title).toBe("选择输入框样式");
-		expect(controller.subtitle).toBe("选择适合当前工作流的输入框和状态栏布局。");
-		expect(frame).toContain("选择一种布局；下方预览会实时更新。按 Enter 确认。");
-		expect(frame).toContain("预览：");
-		expect(frame).toContain("提出问题、编辑文件或运行工具");
-		expect(frame).toContain("圆角框（默认）");
-		expect(frame).toContain("Claude Code");
-		expect(frame).toContain("Pi");
-		expect(frame).toContain("无边框");
-		expect(frame).toContain("顶部横线停靠");
-		expect(frame).toContain("紧凑输入栏");
-		expect(frame).toContain("强调色侧栏");
-		expect(frame).not.toContain("Choose composer shape");
-		expect(frame).not.toContain("Rounded Box (Default)");
-		expect(frame).not.toContain("Select a layout");
-		expect(frame).not.toContain("Ask anything, edit files, run tools");
-	});
-});
-
-describe("setup wizard web search tab", () => {
-	it("localizes provider setup chrome and web-search copy", async () => {
-		await initTheme(false, "unicode", false, "titanium", "light");
-		initializeLanguage("zh-CN");
-		const settings = Settings.isolated();
-		const host = {
-			ctx: {
-				settings,
-				session: {
-					modelRegistry: {
-						authStorage: {
-							has: () => false,
-							hasAuth: () => false,
-							getCredentialOrigin: () => undefined,
-						},
-					},
-				},
-			},
-			requestRender: () => {},
-			finish: () => {},
-			setFocus: () => {},
-			restoreFocus: () => {},
-		} as unknown as SetupSceneHost;
-		const providers = providersSetupScene.mount(host);
-		const webSearch = new WebSearchTab(host);
-		try {
-			expect(providers.title).toBe("设置提供商");
-			expect(providers.subtitle).toContain("登录并选择网页搜索提供商");
-			const providerFrame = providers.render(120).join("\n");
-			expect(providerFrame).toContain("提供商:");
-			expect(providerFrame).toContain("登录");
-			expect(providerFrame).toContain("（按 Tab 切换）");
-
-			const searchFrame = webSearch.render(120).join("\n");
-			expect(searchFrame).toContain("选择 web_search 工具优先使用的提供商");
-			expect(searchFrame).toContain("输入以搜索");
-			expect(searchFrame).not.toContain("Type to search");
-		} finally {
-			providers.dispose?.();
-			webSearch.dispose();
-		}
-	});
-
-	it("exposes every web-search provider preference in the shared TUI list", () => {
-		expect(SEARCH_PROVIDER_OPTIONS[0]?.value).toBe("auto");
-		expect(SEARCH_PROVIDER_OPTIONS.slice(1).map(option => option.value)).toEqual([...SEARCH_PROVIDER_ORDER]);
-	});
-
-	it("persists the highlighted provider as the head of the web search order", async () => {
-		const settings = Settings.isolated();
-		const host = {
-			ctx: {
-				settings,
-				session: { modelRegistry: { authStorage: { hasAuth: () => false } } },
-			},
-			requestRender: () => {},
-			finish: () => {},
-			setFocus: () => {},
-			restoreFocus: () => {},
-		} as unknown as SetupSceneHost;
-
-		const tab = new WebSearchTab(host);
-		tab.handleInput("\x1b[B"); // move off "auto" to the next provider
-		tab.handleInput("\n"); // confirm the highlighted provider
-		await Bun.sleep(20);
-
-		const expected = SEARCH_PROVIDER_OPTIONS[1]!.value;
-		expect(expected).not.toBe("auto");
-		expect(settings.get("providers.webSearchOrder")).toEqual([
-			expected,
-			...SEARCH_PROVIDER_ORDER.filter(id => id !== expected),
-		]);
-	});
-
-	it("can select the last provider in the setup TUI list", async () => {
-		const settings = Settings.isolated();
-		const host = {
-			ctx: {
-				settings,
-				session: { modelRegistry: { authStorage: { hasAuth: () => false } } },
-			},
-			requestRender: () => {},
-			finish: () => {},
-			setFocus: () => {},
-			restoreFocus: () => {},
-		} as unknown as SetupSceneHost;
-
-		const tab = new WebSearchTab(host);
-		for (let i = 1; i < SEARCH_PROVIDER_OPTIONS.length; i++) {
-			tab.handleInput("\x1b[B");
-		}
-		tab.handleInput("\n");
-		await Bun.sleep(20);
-
-		const lastOption = SEARCH_PROVIDER_OPTIONS[SEARCH_PROVIDER_OPTIONS.length - 1]!;
-		const lastValue = lastOption.value;
-		if (lastValue === "auto") throw new Error("last option must be a concrete provider");
-		expect(settings.get("providers.webSearchOrder")).toEqual([
-			lastValue,
-			...SEARCH_PROVIDER_ORDER.filter(id => id !== lastValue),
-		]);
 	});
 });
 

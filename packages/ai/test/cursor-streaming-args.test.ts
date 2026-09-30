@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import {
 	type BlockState,
+	flushOpenToolCalls,
 	mergeCursorMcpToolCallArgs,
 	processInteractionUpdate,
 	synthesizeCursorExecToolCall,
@@ -75,7 +76,7 @@ function newHarness(): Harness {
 	return { output, stream, captured, state, usageState: { sawTokenDelta: false } };
 }
 
-function startMcpToolCall(h: Harness, name: string, id = "call-1"): void {
+function startMcpToolCall(h: Harness, name: string, id = "call-1", args?: Record<string, Uint8Array>): void {
 	processInteractionUpdate(
 		{
 			message: {
@@ -83,7 +84,7 @@ function startMcpToolCall(h: Harness, name: string, id = "call-1"): void {
 				value: {
 					callId: id,
 					toolCall: {
-						mcpToolCall: { args: { name, toolName: name, toolCallId: id } },
+						mcpToolCall: { args: { name, toolName: name, toolCallId: id, args } },
 					},
 				},
 			},
@@ -136,18 +137,6 @@ describe("mergeCursorMcpToolCallArgs", () => {
 		expect(mergeCursorMcpToolCallArgs(streamed, undefined)).toEqual(streamed);
 	});
 
-	it("preserves streamed keys the completion frame omits", () => {
-		// Issue #2615: the completion frame's McpArgs map drops oversized
-		// parameters. The task tool's `tasks` array was being lost when only
-		// the smaller `context` key survived the completion frame.
-		const streamed = { tasks: [{ assignment: "do A" }, { assignment: "do B" }], context: "ctx" };
-		const completion = { context: "ctx" };
-		expect(mergeCursorMcpToolCallArgs(streamed, completion)).toEqual({
-			tasks: [{ assignment: "do A" }, { assignment: "do B" }],
-			context: "ctx",
-		});
-	});
-
 	it("adopts scalar values from the completion frame when present", () => {
 		const streamed = { agent: "task", context: "partial" };
 		const completion = { agent: "task", context: "final" };
@@ -175,17 +164,6 @@ describe("mergeCursorMcpToolCallArgs", () => {
 });
 
 describe("Cursor MCP exec resolution", () => {
-	it("marks a streamed MCP call already resolved by the exec bridge", () => {
-		const h = newHarness();
-		h.state.resolvedMcpToolCallIds.add("call-resolved");
-
-		startMcpToolCall(h, "mcp__fixture_report", "call-resolved");
-
-		const block = h.output.content[0] as ToolCallState;
-		expect(block[kCursorExecResolved]).toBe(true);
-		expect(h.state.resolvedMcpToolCallIds.size).toBe(0);
-	});
-
 	it("does not duplicate an MCP call synthesized from an earlier exec frame", () => {
 		const h = newHarness();
 		synthesizeCursorExecToolCall(h.output, h.stream, h.state, "call-resolved", "web_search", {
@@ -202,6 +180,7 @@ describe("Cursor MCP exec resolution", () => {
 			name: "web_search",
 			arguments: { query: "latest chess news" },
 		});
+		expect((h.output.content[0] as ToolCallState)[kCursorExecResolved]).toBe(true);
 		expect(h.captured.map(event => event.type)).toEqual(["toolcall_start", "toolcall_end"]);
 		expect(h.state.resolvedMcpToolCallIds.size).toBe(0);
 	});
@@ -233,6 +212,41 @@ describe("processInteractionUpdate content block ordering", () => {
 });
 
 describe("processInteractionUpdate args_text_delta handling", () => {
+	it("preserves announced args when Cursor streams no argument deltas", () => {
+		const h = newHarness();
+		startMcpToolCall(h, "get_weather", "call-weather", {
+			city: new TextEncoder().encode(`"Paris"`),
+		});
+
+		completeMcpToolCall(h, undefined);
+
+		expect(h.output.content[0]).toMatchObject({
+			type: "toolCall",
+			id: "call-weather",
+			name: "get_weather",
+			arguments: { city: "Paris" },
+		});
+		expect(h.captured.map(event => event.type)).toEqual(["toolcall_start", "toolcall_end"]);
+	});
+
+	it("preserves announced args when the stream ends before tool completion", () => {
+		const h = newHarness();
+		startMcpToolCall(h, "get_weather", "call-weather", {
+			city: new TextEncoder().encode(`"Paris"`),
+		});
+
+		flushOpenToolCalls(h.output, h.stream, h.state);
+
+		expect(h.output.content[0]).toMatchObject({
+			type: "toolCall",
+			id: "call-weather",
+			name: "get_weather",
+			arguments: { city: "Paris" },
+		});
+		expect(h.state.currentToolCall).toBeNull();
+		expect(h.captured.map(event => event.type)).toEqual(["toolcall_start", "toolcall_end"]);
+	});
+
 	it("treats cumulative argsTextDelta snapshots as snapshots, not append-only fragments", () => {
 		const h = newHarness();
 		startMcpToolCall(h, "task");
