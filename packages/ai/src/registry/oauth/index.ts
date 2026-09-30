@@ -23,7 +23,6 @@ const builtInOAuthProviders: OAuthProviderInfo[] = PROVIDER_REGISTRY.filter(
 	name: provider.name,
 	available: provider.available ?? true,
 	storeCredentialsAs: provider.storeCredentialsAs,
-	loginLocalOnly: provider.loginLocalOnly,
 }));
 
 const customOAuthProviders = new Map<string, OAuthProviderInterface>();
@@ -183,13 +182,6 @@ export function getOAuthProviders(): OAuthProviderInfo[] {
 		name: provider.name,
 		available: true,
 		storeCredentialsAs: provider.storeCredentialsAs,
-		loginLocalOnly: provider.loginLocalOnly,
 	}));
 	return [...builtInOAuthProviders, ...customProviders];
-}
-
-/** Resolve a login-only alias to the model provider that owns its credentials. */
-export function resolveOAuthCredentialProvider(provider: OAuthProviderId): string {
-	const definition = getProviderDefinition(provider) ?? getOAuthProvider(provider);
-	return definition?.storeCredentialsAs ?? provider;
 }

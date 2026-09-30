@@ -2,9 +2,6 @@
 
 ## [Unreleased]
 
-### Added
-
-- Added a local-only Codex CLI login bridge that reuses the installed Codex app-server's current ChatGPT access token while leaving refresh-token storage and rotation entirely under Codex ownership.
 ## [17.4.1] - 2026-08-21
 
 ### Added

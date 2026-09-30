@@ -1177,7 +1177,6 @@ function authCredentialEquals(left: AuthCredential, right: AuthCredential): bool
 		left.access === right.access &&
 		left.refresh === right.refresh &&
 		left.expires === right.expires &&
-		left.credentialSource === right.credentialSource &&
 		left.accountId === right.accountId &&
 		left.email === right.email &&
 		left.projectId === right.projectId &&
@@ -2395,7 +2394,6 @@ export class AuthStorage {
 	 */
 	async set(provider: string, credential: AuthCredentialEntry): Promise<void> {
 		const normalized = Array.isArray(credential) ? credential : [credential];
-		this.#assertCredentialStoreCompatibility(normalized);
 		const deduped = this.#dedupeOAuthCredentials(provider, normalized);
 		const stored = this.#store.replaceAuthCredentialsRemote
 			? await this.#store.replaceAuthCredentialsRemote(provider, deduped)
@@ -2405,20 +2403,6 @@ export class AuthStorage {
 			stored.map(record => ({ id: record.id, credential: record.credential })),
 		);
 		this.#resetProviderAssignments(provider);
-	}
-
-	#assertCredentialStoreCompatibility(credentials: readonly AuthCredential[]): void {
-		const hasMachineLocalSource = credentials.some(
-			credential => credential.type === "oauth" && credential.credentialSource === "codex-cli",
-		);
-		if (
-			hasMachineLocalSource &&
-			(this.#store.upsertAuthCredentialRemote || this.#store.replaceAuthCredentialsRemote)
-		) {
-			throw new AIError.ConfigurationError(
-				"Existing Codex CLI login is local-only and cannot be uploaded to a remote auth broker",
-			);
-		}
 	}
 
 	/**
@@ -2683,7 +2667,6 @@ export class AuthStorage {
 	}
 
 	async #upsertOAuthCredential(provider: string, credential: OAuthCredential): Promise<void> {
-		this.#assertCredentialStoreCompatibility([credential]);
 		const stored = this.#store.upsertAuthCredentialRemote
 			? await this.#store.upsertAuthCredentialRemote(provider, credential)
 			: this.#store.upsertAuthCredentialForProvider(provider, credential);
@@ -2989,30 +2972,10 @@ export class AuthStorage {
 		// lifetime (Anthropic) need it to surface re-login deadlines, and token
 		// refreshes only ever merge over this credential without clearing it.
 		const newCredential: OAuthCredential = { type: "oauth", ...result, authorizedAt: Date.now() };
-		const credentialProvider = def.storeCredentialsAs ?? provider;
 		// Use #upsertOAuthCredential to upsert the new credential.
 		// Any legacy api_key rows from older versions will be cleaned up so they do not
 		// shadow the new OAuth row, while preserving other active OAuth credentials.
-		await this.#upsertOAuthCredential(credentialProvider, newCredential);
-		if (newCredential.credentialSource === "codex-cli") {
-			const linked = this.#getStoredCredentials(credentialProvider);
-			const staleLinks = linked.filter(
-				entry =>
-					entry.credential.type === "oauth" &&
-					entry.credential.credentialSource === "codex-cli" &&
-					entry.credential.accountId !== newCredential.accountId,
-			);
-			for (const entry of staleLinks) {
-				this.#store.deleteAuthCredential(entry.id, "Codex CLI account binding replaced by user");
-			}
-			if (staleLinks.length > 0) {
-				const staleIds = new Set(staleLinks.map(entry => entry.id));
-				this.#setStoredCredentials(
-					credentialProvider,
-					linked.filter(entry => !staleIds.has(entry.id)),
-				);
-			}
-		}
+		await this.#upsertOAuthCredential(def.storeCredentialsAs ?? provider, newCredential);
 		return {
 			type: "oauth",
 			email: newCredential.email,
@@ -3046,7 +3009,6 @@ export class AuthStorage {
 			accessToken: credential.access,
 			refreshToken: credential.refresh,
 			expiresAt: credential.expires,
-			credentialSource: credential.credentialSource,
 			accountId: credential.accountId,
 			projectId: credential.projectId,
 			email: credential.email,
@@ -3176,7 +3138,6 @@ export class AuthStorage {
 			access: credential.accessToken,
 			refresh: credential.refreshToken,
 			expires: credential.expiresAt,
-			credentialSource: credential.credentialSource,
 			accountId: credential.accountId,
 			projectId: credential.projectId,
 			email: credential.email,
@@ -3217,7 +3178,6 @@ export class AuthStorage {
 			accessToken: refreshed.access,
 			refreshToken: refreshed.refresh,
 			expiresAt: refreshed.expires,
-			credentialSource: refreshed.credentialSource ?? credential.credentialSource,
 			accountId: refreshed.accountId ?? credential.accountId,
 			projectId: refreshed.projectId ?? credential.projectId,
 			email: refreshed.email ?? credential.email,
@@ -3268,7 +3228,6 @@ export class AuthStorage {
 			access: next.accessToken ?? entry.credential.access,
 			refresh: next.refreshToken ?? entry.credential.refresh,
 			expires: next.expiresAt ?? entry.credential.expires,
-			credentialSource: next.credentialSource ?? entry.credential.credentialSource,
 			accountId: next.accountId,
 			projectId: next.projectId,
 			email: next.email,
@@ -5256,11 +5215,6 @@ export class AuthStorage {
 		// routes refresh through the broker without explicit wiring.
 		const storeRefresh = this.#store.refreshOAuthCredential?.bind(this.#store);
 		const overrideRefresh = this.#refreshOAuthCredentialOverride ?? storeRefresh;
-		if (credential.credentialSource === "codex-cli" && overrideRefresh) {
-			throw new AIError.ConfigurationError(
-				"Existing Codex CLI login must be refreshed by the local Codex provider on the source machine",
-			);
-		}
 		if (overrideRefresh && credentialId !== undefined) {
 			refreshPromise = overrideRefresh(provider, credentialId, credential, signal);
 		} else {
@@ -5467,7 +5421,6 @@ export class AuthStorage {
 				access: result.newCredentials.access,
 				refresh: result.newCredentials.refresh,
 				expires: result.newCredentials.expires,
-				credentialSource: result.newCredentials.credentialSource ?? selection.credential.credentialSource,
 				accountId: result.newCredentials.accountId ?? selection.credential.accountId,
 				email: result.newCredentials.email ?? selection.credential.email,
 				projectId: result.newCredentials.projectId ?? selection.credential.projectId,
@@ -6600,7 +6553,6 @@ export class AuthStorage {
 		for (const [provider, stored] of this.#data) {
 			for (const entry of stored) {
 				const credential = entry.credential;
-				if (credential.type === "oauth" && credential.credentialSource === "codex-cli") continue;
 				const redacted: SnapshotCredential =
 					credential.type === "api_key" ? credential : { ...credential, refresh: REMOTE_REFRESH_SENTINEL };
 				entries.push({
@@ -6719,7 +6671,6 @@ export class AuthStorage {
 				access: refreshed.access,
 				refresh: refreshed.refresh,
 				expires: refreshed.expires,
-				credentialSource: refreshed.credentialSource ?? attempted.credentialSource,
 				accountId: refreshed.accountId ?? attempted.accountId,
 				email: refreshed.email ?? attempted.email,
 				projectId: refreshed.projectId ?? attempted.projectId,
@@ -6775,11 +6726,6 @@ export class AuthStorage {
 	 * the existing row instead of inserting a duplicate.
 	 */
 	upsertCredential(provider: string, credential: AuthCredential): AuthCredentialSnapshotEntry[] {
-		if (credential.type === "oauth" && credential.credentialSource === "codex-cli") {
-			throw new AIError.ConfigurationError(
-				"Existing Codex CLI login is local-only and cannot be uploaded to an auth broker",
-			);
-		}
 		const stored = this.#store.upsertAuthCredentialForProvider(provider, credential);
 		this.#setStoredCredentials(
 			provider,

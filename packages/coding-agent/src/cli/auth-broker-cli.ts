@@ -35,11 +35,10 @@ import {
 import { AuthBrokerClient, DEFAULT_AUTH_BROKER_BIND, startAuthBroker } from "@oh-my-pi/pi-ai/auth-broker";
 import { refreshOAuthToken } from "@oh-my-pi/pi-ai/oauth";
 import type { OAuthCredentials } from "@oh-my-pi/pi-ai/oauth/types";
-import { $which, APP_NAME, getAgentDbPath, getConfigRootDir, isEnoent, logger } from "@oh-my-pi/pi-utils";
+import { $which, APP_NAME, getAgentDbPath, getConfigRootDir, isEnoent, logger, VERSION } from "@oh-my-pi/pi-utils";
 import chalk from "@oh-my-pi/pi-utils/chalk";
 import { setTransports as setLoggerTransports } from "@oh-my-pi/pi-utils/logger";
 import { $ } from "bun";
-import { VERSION } from "../distribution";
 import { refreshManagedMcpOAuthCredential } from "../mcp/oauth-credentials";
 import { isManagedMCPOAuthCredentialId, mcpOAuthServerUrlFromCredentialId } from "../mcp/oauth-flow";
 import { resolveAuthBrokerConfig } from "../session/auth-broker-config";
@@ -214,8 +213,7 @@ async function runToken(flags: AuthBrokerCommandArgs["flags"]): Promise<void> {
 }
 
 async function runLogin(flags: AuthBrokerCommandArgs["flags"]): Promise<void> {
-	const allProviders = getOAuthProviders();
-	const providers = allProviders.filter(provider => provider.loginLocalOnly !== true);
+	const providers = getOAuthProviders();
 	let providerArg = flags.provider;
 	if (!providerArg) {
 		if (flags.via) {
@@ -225,18 +223,12 @@ async function runLogin(flags: AuthBrokerCommandArgs["flags"]): Promise<void> {
 		}
 		providerArg = await pickProviderInteractively(providers);
 	}
-	const selectedProvider = allProviders.find(provider => provider.id === providerArg);
-	if (!selectedProvider) {
+	if (!providers.some(p => p.id === providerArg)) {
 		throw new Error(
-			`Unknown OAuth provider '${providerArg}'. Known: ${allProviders
+			`Unknown OAuth provider '${providerArg}'. Known: ${providers
 				.map(p => p.id)
 				.sort()
 				.join(", ")}`,
-		);
-	}
-	if (selectedProvider.loginLocalOnly) {
-		throw new Error(
-			`OAuth provider '${providerArg}' is local-only. Use OMP /login on the Codex source machine; auth-broker cannot transfer this login.`,
 		);
 	}
 	if (flags.via) {
@@ -452,7 +444,7 @@ async function pickStoredProviderInteractively(providers: string[]): Promise<str
 }
 
 async function runList(flags: AuthBrokerCommandArgs["flags"]): Promise<void> {
-	const providers = getOAuthProviders().filter(provider => provider.loginLocalOnly !== true);
+	const providers = getOAuthProviders();
 	if (flags.json) {
 		process.stdout.write(`${JSON.stringify(providers.map(p => ({ id: p.id, name: p.name })))}\n`);
 		return;
@@ -803,15 +795,6 @@ async function runMigrate(flags: AuthBrokerCommandArgs["flags"]): Promise<void> 
 				continue;
 			}
 			const identity = credentialIdentity(row.provider, row.credential);
-			if (row.credential.type === "oauth" && row.credential.credentialSource === "codex-cli") {
-				skipped.push({
-					source: "local-sqlite",
-					provider: row.provider,
-					identity,
-					reason: "machine-local Codex login cannot be migrated to auth-broker",
-				});
-				continue;
-			}
 			if (row.credential.type === "oauth" && flags.includeOauth !== true) {
 				skipped.push({
 					source: "local-sqlite",

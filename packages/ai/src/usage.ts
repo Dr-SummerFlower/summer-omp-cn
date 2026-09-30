@@ -5,7 +5,6 @@
  * and shared quotas across providers.
  */
 import { type } from "@oh-my-pi/omptype";
-import type { OAuthCredentials } from "./registry/oauth/types";
 import type { FetchImpl, Provider } from "./types";
 export type UsageUnit = "percent" | "tokens" | "requests" | "usd" | "minutes" | "bytes" | "unknown";
 
@@ -302,8 +301,6 @@ export interface UsageCredential {
 	accessToken?: string;
 	refreshToken?: string;
 	expiresAt?: number;
-	/** External owner that must handle refresh-token rotation. */
-	credentialSource?: OAuthCredentials["credentialSource"];
 	accountId?: string;
 	projectId?: string;
 	email?: string;

@@ -337,16 +337,7 @@ export async function inspectPackedTarball(tarballPath: string): Promise<PackedT
 	return { name: manifest.name, version: manifest.version, path: tarballPath };
 }
 
-async function publishTarballInteractively(tarballPath: string): Promise<number> {
-	const process = Bun.spawn(["npm", "publish", tarballPath, "--access", "public"], {
-		stdin: "inherit",
-		stdout: "inherit",
-		stderr: "inherit",
-	});
-	return await process.exited;
-}
-
-export async function packAndPublish(dir: string, name: string): Promise<void> {
+async function packAndPublish(dir: string, name: string): Promise<void> {
 	if (isDryRun) {
 		console.log(`DRY RUN bun pm pack && npm publish --access public (${path.relative(repoRoot, dir)})`);
 		return;
@@ -358,7 +349,7 @@ export async function packAndPublish(dir: string, name: string): Promise<void> {
 		const packOutput = `${packed.stdout.toString()}${packed.stderr.toString()}`.trim();
 		if (packed.exitCode !== 0) {
 			if (packOutput) console.log(packOutput);
-			throw new Error(`bun pm pack failed for ${name} with exit code ${packed.exitCode ?? 1}`);
+			process.exit(packed.exitCode ?? 1);
 		}
 		const tarball = (await fs.readdir(packDir)).find(entry => entry.endsWith(".tgz"));
 		if (!tarball) throw new Error(`bun pm pack produced no tarball for ${name} (${path.relative(repoRoot, dir)})`);
@@ -370,26 +361,31 @@ export async function packAndPublish(dir: string, name: string): Promise<void> {
 			console.log(`Skipping ${packedTarball.name} (version already published)`);
 			return;
 		}
-		// Keep npm attached to the caller's terminal so auth-and-writes can prompt
-		// for an OTP. Quiet subprocesses are not TTYs and surface EOTP instead.
-		const exitCode = await publishTarballInteractively(packedTarball.path);
-		if (exitCode !== 0) {
-			// A concurrent publisher may win after the preflight. Check the exact
-			// version because the interactive process does not capture npm output.
-			const published = await $`npm view ${`${packedTarball.name}@${packedTarball.version}`} version`
-				.quiet()
-				.nothrow();
-			if (published.exitCode === 0 && published.stdout.toString().trim() === packedTarball.version) {
+		const result = await $`npm publish ${packedTarball.path} --access public`.quiet().nothrow();
+		const output = `${result.stdout.toString()}${result.stderr.toString()}`.trim();
+		if (output) console.log(output);
+		if (result.exitCode !== 0) {
+			// A concurrent publisher may win after the preflight.
+			if (isVersionAlreadyPublished(output)) {
 				console.log(`Skipping ${packedTarball.name} (version already published)`);
 				return;
 			}
-			throw new Error(
-				`npm publish failed for ${packedTarball.name}@${packedTarball.version} with exit code ${exitCode}`,
-			);
+			process.exit(result.exitCode ?? 1);
 		}
 	} finally {
 		await fs.rm(packDir, { recursive: true, force: true });
 	}
+}
+
+/**
+ * npm's existing-version machine codes across supported CLI generations, plus
+ * npm 11's registry-precheck prose when it emits no machine code.
+ */
+export function isVersionAlreadyPublished(output: string): boolean {
+	return (
+		/npm (?:error|err!) code (E409|EPUBLISHCONFLICT)\b/i.test(output) ||
+		/you cannot publish over (?:the )?previously published versions?\b/i.test(output)
+	);
 }
 
 async function publishGeneratedLeafPackage(leaf: GeneratedLeafPackage): Promise<void> {

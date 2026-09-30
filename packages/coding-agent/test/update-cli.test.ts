@@ -8,12 +8,10 @@ import * as pluginCli from "@oh-my-pi/pi-coding-agent/cli/plugin-cli";
 import * as updateCli from "@oh-my-pi/pi-coding-agent/cli/update-cli";
 import {
 	buildBunInstallArgs,
-	buildBunInstallArgsForRelease,
 	buildHomebrewUpdateArgs,
 	buildMiseForceInstallArgs,
 	buildMiseUpgradeArgs,
 	buildNpmInstallArgs,
-	buildNpmInstallArgsForRelease,
 	buildRenameCleanupPackages,
 	downloadVerifiedBinary,
 	isMuslLinuxForTest,
@@ -24,7 +22,6 @@ import {
 	type RenameMigrationSteps,
 	replaceBinaryForUpdate,
 	resolveBunGlobalNodeModulesDirFromLocations,
-	resolveRegistryRelease,
 	resolveReleaseBinaryAsset,
 	resolveReleaseDist,
 	resolveReleaseRename,
@@ -149,7 +146,6 @@ describe("update-cli install target detection", () => {
 		const method = resolveUpdateMethodForTest("/home/u/.local/bin/omp", undefined, {
 			npmBinDir: "/home/u/.local/bin",
 			ompIsRegularFile: true,
-			platform: "linux",
 		});
 
 		expect(method).toBe("binary");
@@ -158,7 +154,6 @@ describe("update-cli install target detection", () => {
 	it("uses binary update when a plain file in the bun global bin dir is the standalone binary", () => {
 		const method = resolveUpdateMethodForTest("/home/u/.local/bin/omp", "/home/u/.local/bin", {
 			ompIsRegularFile: true,
-			platform: "linux",
 		});
 
 		expect(method).toBe("binary");
@@ -170,12 +165,18 @@ describe("update-cli install target detection", () => {
 		// apply there — it would clobber the shim with a raw binary. Paths use
 		// forward slashes so the lexical containment check works on the POSIX
 		// host running this suite; the platform gate is what is under test.
-		const method = resolveUpdateMethodForTest("C:/Users/test/.bun/bin/omp.exe", "C:/Users/test/.bun/bin", {
-			ompIsRegularFile: true,
-			platform: "win32",
-		});
+		const platformDescriptor = Object.getOwnPropertyDescriptor(process, "platform");
+		if (!platformDescriptor) throw new Error("process.platform descriptor missing");
+		Object.defineProperty(process, "platform", { ...platformDescriptor, value: "win32" });
+		try {
+			const method = resolveUpdateMethodForTest("C:/Users/test/.bun/bin/omp.exe", "C:/Users/test/.bun/bin", {
+				ompIsRegularFile: true,
+			});
 
-		expect(method).toBe("bun");
+			expect(method).toBe("bun");
+		} finally {
+			Object.defineProperty(process, "platform", platformDescriptor);
+		}
 	});
 
 	it("still uses npm update when the npm global bin entry is a package-manager symlink, not a plain file", () => {
@@ -199,7 +200,6 @@ describe("update-cli install target detection", () => {
 		const target = resolveUpdateTargetFromPath(aliasPath, undefined, {
 			allowPackageManagers: true,
 			npmBinDir,
-			platform: "linux",
 		});
 
 		expect(target).toEqual({ method: "binary", path: standalonePath, replacesSymlink: false });
@@ -210,7 +210,7 @@ describe("update-cli install target detection", () => {
 		const dir = await makeTempDir();
 		const npmPrefix = path.join(dir, ".npm-global");
 		const npmBinDir = path.join(npmPrefix, "bin");
-		const packagePath = path.join(npmPrefix, "lib", "node_modules", "omp-cn");
+		const packagePath = path.join(npmPrefix, "lib", "node_modules", "@oh-my-pi", "pi-coding-agent");
 		const checkoutPath = path.join(dir, "checkout");
 		const checkoutCli = path.join(checkoutPath, "dist", "cli.js");
 		const aliasPath = path.join(npmBinDir, "omp");
@@ -223,7 +223,6 @@ describe("update-cli install target detection", () => {
 		const target = resolveUpdateTargetFromPath(aliasPath, undefined, {
 			allowPackageManagers: true,
 			npmBinDir,
-			platform: "linux",
 		});
 
 		expect(await fs.realpath(aliasPath)).toBe(checkoutCli);
@@ -289,7 +288,6 @@ describe("update-cli install target detection", () => {
 		const target = resolveUpdateTargetFromPath(aliasPath, undefined, {
 			allowPackageManagers: false,
 			npmBinDir,
-			platform: "linux",
 		});
 
 		expect(target).toEqual({ method: "binary", path: aliasPath, replacesSymlink: true });
@@ -370,21 +368,13 @@ describe("update-cli install target detection", () => {
 
 describe("update-cli package manager commands", () => {
 	it("targets the Homebrew tap formula and switches to reinstall for forced updates", () => {
-		expect(buildHomebrewUpdateArgs(false)).toEqual(["upgrade", "yequ172672/tap/omp-cn"]);
-		expect(buildHomebrewUpdateArgs(true)).toEqual(["reinstall", "yequ172672/tap/omp-cn"]);
+		expect(buildHomebrewUpdateArgs(false)).toEqual(["upgrade", "can1357/tap/omp"]);
+		expect(buildHomebrewUpdateArgs(true)).toEqual(["reinstall", "can1357/tap/omp"]);
 	});
 
 	it("targets the mise GitHub backend tool and force-reinstalls the checked version when requested", () => {
-		expect(buildMiseUpgradeArgs()).toEqual([
-			"upgrade",
-			"github:yequ172672/oh-my-pi-cn[version_prefix=omp-cn-v]",
-			"--bump",
-		]);
-		expect(buildMiseForceInstallArgs("15.10.5")).toEqual([
-			"install",
-			"--force",
-			"github:yequ172672/oh-my-pi-cn[version_prefix=omp-cn-v]@15.10.5",
-		]);
+		expect(buildMiseUpgradeArgs()).toEqual(["upgrade", "github:can1357/oh-my-pi", "--bump"]);
+		expect(buildMiseForceInstallArgs("15.10.5")).toEqual(["install", "--force", "github:can1357/oh-my-pi@15.10.5"]);
 	});
 
 	it("pins npm package installs to the official registry and the checked native package versions", () => {
@@ -392,78 +382,9 @@ describe("update-cli package manager commands", () => {
 
 		expect(args.slice(0, 2)).toEqual(["install", "-g"]);
 		expect(args).toContain("--registry=https://registry.npmjs.org/");
-		expect(args).toContain("omp-cn@16.3.15");
+		expect(args).toContain("@oh-my-pi/pi-coding-agent@16.3.15");
 		expect(args).toContain("@oh-my-pi/pi-natives@16.3.15");
 		expect(args).toContain("@oh-my-pi/pi-natives-win32-x64@16.3.15");
-	});
-
-	it("installs an independently versioned fork package with its declared native core and leaf", () => {
-		const release = { version: "17.2.12", nativeVersion: "17.2.11" };
-		const npmArgs = buildNpmInstallArgsForRelease(release, "win32-x64");
-		const bunArgs = buildBunInstallArgsForRelease(release, "linux-x64");
-
-		expect(npmArgs).toContain("omp-cn@17.2.12");
-		expect(npmArgs).toContain("@oh-my-pi/pi-natives@17.2.11");
-		expect(npmArgs).toContain("@oh-my-pi/pi-natives-win32-x64@17.2.11");
-		expect(bunArgs).toContain("omp-cn@17.2.12");
-		expect(bunArgs).toContain("@oh-my-pi/pi-natives@17.2.11");
-		expect(bunArgs).toContain("@oh-my-pi/pi-natives-linux-x64@17.2.11");
-	});
-});
-
-describe("update-cli registry release metadata", () => {
-	it("maps the published legacy 17.2.11 package to its original same-version native packages and v-tag", () => {
-		expect(resolveRegistryRelease({ version: "17.2.11" })).toEqual({
-			schemaVersion: 0,
-			tag: "v17.2.11",
-			version: "17.2.11",
-			upstreamVersion: "17.2.11",
-			nativeVersion: "17.2.11",
-			upstreamCommit: null,
-			dist: undefined,
-			packages: { pkg: "omp-cn", natives: "@oh-my-pi/pi-natives" },
-		});
-	});
-
-	it("uses schema 1 metadata to separate the fork, native, upstream, and GitHub release identities", () => {
-		expect(
-			resolveRegistryRelease({
-				version: "17.2.12",
-				ompFork: {
-					schemaVersion: 1,
-					forkVersion: "17.2.12",
-					upstreamVersion: "17.2.11",
-					nativeVersion: "17.2.11",
-					upstreamCommit: "08819b279cf02ae2545e69dad7111ab48d91d35e",
-				},
-			}),
-		).toEqual({
-			schemaVersion: 1,
-			tag: "omp-cn-v17.2.12",
-			version: "17.2.12",
-			upstreamVersion: "17.2.11",
-			nativeVersion: "17.2.11",
-			upstreamCommit: "08819b279cf02ae2545e69dad7111ab48d91d35e",
-			dist: undefined,
-			packages: { pkg: "omp-cn", natives: "@oh-my-pi/pi-natives" },
-		});
-	});
-
-	it("rejects malformed schema metadata and a fork version that disagrees with npm", () => {
-		const metadata = {
-			schemaVersion: 1,
-			forkVersion: "17.2.12",
-			upstreamVersion: "17.2.11",
-			nativeVersion: "17.2.11",
-			upstreamCommit: "08819b279cf02ae2545e69dad7111ab48d91d35e",
-		};
-
-		expect(() => resolveRegistryRelease({ version: "17.2.12", ompFork: { ...metadata, schemaVersion: 2 } })).toThrow(
-			"schemaVersion must be 1",
-		);
-		expect(() => resolveRegistryRelease({ version: "17.2.13", ompFork: metadata })).toThrow(
-			"does not match package version 17.2.13",
-		);
 	});
 });
 
@@ -504,28 +425,27 @@ describe("update-cli npm rename contract", () => {
 	it("removes the old agent package and its natives companions when both names moved", () => {
 		const packages = { pkg: "@new/omp", natives: "@new/natives" };
 		expect(buildRenameCleanupPackages(packages, "darwin-arm64")).toEqual([
-			"omp-cn",
+			"@oh-my-pi/pi-coding-agent",
 			"@oh-my-pi/pi-natives",
 			"@oh-my-pi/pi-natives-darwin-arm64",
 		]);
-		expect(buildRenameCleanupPackages(packages, "linux-arm")).toEqual(["omp-cn", "@oh-my-pi/pi-natives"]);
+		expect(buildRenameCleanupPackages(packages, "linux-arm")).toEqual([
+			"@oh-my-pi/pi-coding-agent",
+			"@oh-my-pi/pi-natives",
+		]);
 	});
 
 	it("keeps the natives packages on an agent-only rename so cleanup cannot strip the addon the new install pinned", () => {
 		const packages = { pkg: "@new/omp", natives: "@oh-my-pi/pi-natives" };
-		expect(buildRenameCleanupPackages(packages, "darwin-arm64")).toEqual(["omp-cn"]);
-		expect(buildRenameCleanupPackages(packages, "linux-arm")).toEqual(["omp-cn"]);
+		expect(buildRenameCleanupPackages(packages, "darwin-arm64")).toEqual(["@oh-my-pi/pi-coding-agent"]);
+		expect(buildRenameCleanupPackages(packages, "linux-arm")).toEqual(["@oh-my-pi/pi-coding-agent"]);
 	});
 });
 
 describe("migrateRenamedInstall transaction", () => {
 	const release: ReleaseInfo = {
-		schemaVersion: 0,
 		tag: "v999.1.0",
 		version: "999.1.0",
-		upstreamVersion: "999.1.0",
-		nativeVersion: "999.1.0",
-		upstreamCommit: null,
 		packages: { pkg: "@new/omp", natives: "@new/natives" },
 	};
 
@@ -618,7 +538,7 @@ describe("update-cli bun install command", () => {
 			"-g",
 			"--no-cache",
 			"--registry=https://registry.npmjs.org/",
-			"omp-cn@15.7.6",
+			"@oh-my-pi/pi-coding-agent@15.7.6",
 		]);
 	});
 
@@ -781,7 +701,7 @@ describe("update-cli bun cache pruning", () => {
 describe("update-cli release binary integrity", () => {
 	const tag = "v17.1.2";
 	const binaryName = "omp-linux-x64";
-	const url = `https://github.com/yequ172672/oh-my-pi-cn/releases/download/${tag}/${binaryName}`;
+	const url = `https://github.com/can1357/oh-my-pi/releases/download/${tag}/${binaryName}`;
 	const content = "verified binary";
 	const digest = `sha256:${createHash("sha256").update(content).digest("hex")}`;
 
@@ -854,7 +774,7 @@ describe("update-cli release binary integrity", () => {
 		});
 
 		expect(await Bun.file(targetPath).text()).toBe(content);
-		if (process.platform !== "win32") expect((await fs.stat(targetPath)).mode & 0o777).toBe(0o755);
+		expect((await fs.stat(targetPath)).mode & 0o777).toBe(0o755);
 	});
 
 	it("aborts the response stream as soon as it exceeds the expected size", async () => {
@@ -978,7 +898,7 @@ describe("update-cli release binary integrity", () => {
 			).rejects.toThrow("digest mismatch");
 			expect(metadataAuthorizations).toEqual(["Bearer test-token"]);
 			expect(await Bun.file(targetPath).text()).toBe(installed);
-			if (process.platform !== "win32") expect((await fs.stat(targetPath)).mode & 0o777).toBe(0o755);
+			expect((await fs.stat(targetPath)).mode & 0o777).toBe(0o755);
 			const newResidue = (await fs.readdir(dir)).filter(name => name.endsWith(".new"));
 			expect(newResidue).toEqual([]);
 		} finally {
@@ -1166,9 +1086,8 @@ describe("update-cli binary-only release gating", () => {
 
 describe("update-cli script-shim takeover", () => {
 	const version = "18.0.0";
-	const tag = `omp-cn-v${version}`;
 	const binaryName = "omp-windows-x64.exe";
-	const url = `https://github.com/yequ172672/oh-my-pi-cn/releases/download/${tag}/${binaryName}`;
+	const url = `https://github.com/can1357/oh-my-pi/releases/download/v${version}/${binaryName}`;
 
 	function makeFetch(content: string): (input: string | URL | Request) => Promise<Response> {
 		const digest = `sha256:${createHash("sha256").update(content).digest("hex")}`;
@@ -1177,7 +1096,7 @@ describe("update-cli script-shim takeover", () => {
 			if (requestUrl.startsWith("https://api.github.com/")) {
 				return new Response(
 					JSON.stringify({
-						tag_name: tag,
+						tag_name: `v${version}`,
 						draft: false,
 						prerelease: false,
 						assets: [
@@ -1209,27 +1128,18 @@ describe("update-cli script-shim takeover", () => {
 		}
 	}
 
-	function verifyDownloadedExe(dir: string, content: string, reportedVersion: string) {
-		return async (binaryPath: string, expectedVersion: string) => {
-			expect(binaryPath).toBe(path.join(dir, "omp.exe"));
-			expect(await Bun.file(binaryPath).text()).toBe(content);
-			return { ok: reportedVersion === expectedVersion, actual: reportedVersion, path: binaryPath };
-		};
-	}
-
 	it("installs omp.exe beside the shims and retires them", async () => {
 		const dir = await makeTempDir();
 		await writeShims(dir);
-		// The verifier asserts the explicit exe path. Executing a POSIX fixture
-		// named omp.exe is not portable to Windows test hosts.
+		// Real executable, no injected verifier: the takeover must verify the
+		// exe by explicit path — $which cached the shim path before it was
+		// renamed away, so a PATH re-resolution would fail here.
 		const exe = `#!/bin/sh\necho omp/${version}\n`;
 
 		await updateViaShimTakeover(path.join(dir, "omp.cmd"), version, {
 			binaryName,
 			fetchImpl: makeFetch(exe),
 			githubToken: "test-token",
-			releaseTag: tag,
-			verifyBinary: verifyDownloadedExe(dir, exe, version),
 		});
 
 		expect(await Bun.file(path.join(dir, "omp.exe")).text()).toBe(exe);
@@ -1251,8 +1161,6 @@ describe("update-cli script-shim takeover", () => {
 				binaryName,
 				fetchImpl: makeFetch(exe),
 				githubToken: "test-token",
-				releaseTag: tag,
-				verifyBinary: verifyDownloadedExe(dir, exe, "17.2.12"),
 			}),
 		).rejects.toThrow(/still reports 17\.2\.12 \(expected 18\.0\.0\); restored previous omp launcher/);
 
@@ -1284,8 +1192,6 @@ describe("update-cli script-shim takeover", () => {
 				binaryName,
 				fetchImpl: makeFetch(exe),
 				githubToken: "test-token",
-				releaseTag: tag,
-				verifyBinary: verifyDownloadedExe(dir, exe, version),
 			});
 		} finally {
 			renameSpy.mockRestore();
@@ -1310,8 +1216,6 @@ describe("update-cli script-shim takeover", () => {
 					binaryName,
 					fetchImpl: makeFetch(exe),
 					githubToken: "test-token",
-					releaseTag: tag,
-					verifyBinary: verifyDownloadedExe(dir, exe, "17.2.12"),
 				}),
 			).rejects.toThrow("restored previous omp launcher");
 		} finally {
@@ -1328,7 +1232,7 @@ describe("update-cli script-shim takeover", () => {
 describe("update-cli concurrent binary updates", () => {
 	const version = "999.0.0";
 	const binaryName = "omp-linux-x64";
-	const url = `https://github.com/yequ172672/oh-my-pi-cn/releases/download/v${version}/${binaryName}`;
+	const url = `https://github.com/can1357/oh-my-pi/releases/download/v${version}/${binaryName}`;
 	const payload = Buffer.alloc(2048, 0x41);
 	const digest = `sha256:${createHash("sha256").update(payload).digest("hex")}`;
 

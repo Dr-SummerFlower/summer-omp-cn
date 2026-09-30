@@ -1,18 +1,13 @@
 <p align="center">
-  <img src="https://github.com/yequ172672/oh-my-pi-cn/blob/main/assets/hero.png?raw=true" alt="omp">
+  <img src="https://github.com/can1357/oh-my-pi/blob/main/assets/hero.png?raw=true" alt="omp">
 </p>
 
 <p align="center">
   <strong>面向中文用户的终端 AI 编程代理。</strong>
-  <strong><a href="https://github.com/yequ172672/oh-my-pi-cn">oh-my-pi-cn</a></strong>
+  <strong><a href="https://github.com/can1357/oh-my-pi">oh-my-pi</a></strong>
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/omp-cn"><img src="https://img.shields.io/npm/v/omp-cn?style=flat&colorA=222222&colorB=CB3837" alt="npm 版本"></a>
-  <a href="https://yequ172672.github.io/oh-my-pi-cn/"><img src="https://img.shields.io/badge/website-访问-9F6BF4?style=flat&colorA=222222" alt="项目网站"></a>
-  <a href="https://github.com/yequ172672/oh-my-pi-cn/blob/main/docs/FORK_CHANGELOG.md"><img src="https://img.shields.io/badge/changelog-keep-E05735?style=flat&colorA=222222" alt="变更日志"></a>
-  <a href="https://github.com/yequ172672/oh-my-pi-cn/actions"><img src="https://img.shields.io/github/actions/workflow/status/yequ172672/oh-my-pi-cn/ci.yml?style=flat&colorA=222222&colorB=3FB950" alt="持续集成"></a>
-  <a href="https://github.com/yequ172672/oh-my-pi-cn/blob/main/LICENSE"><img src="https://img.shields.io/github/license/yequ172672/oh-my-pi-cn?style=flat&colorA=222222&colorB=58A6FF" alt="许可证"></a>
   <a href="https://www.typescriptlang.org"><img src="https://img.shields.io/badge/TypeScript-3178C6?style=flat&colorA=222222&logo=typescript&logoColor=white" alt="TypeScript"></a>
   <a href="https://www.rust-lang.org"><img src="https://img.shields.io/badge/Rust-DEA584?style=flat&colorA=222222&logo=rust&logoColor=white" alt="Rust"></a>
   <a href="https://bun.sh"><img src="https://img.shields.io/badge/runtime-Bun-f472b6?style=flat&colorA=222222" alt="Bun"></a>
@@ -21,81 +16,74 @@
 
 <p align="center">
   基于 <a href="https://github.com/badlogic/pi-mono">Pi</a> 与
-  <a href="https://github.com/can1357/oh-my-pi">oh-my-pi</a> 的简体中文本地化分支
+  <a href="https://github.com/can1357/oh-my-pi">oh-my-pi</a> 的个人自用简体中文本地化版本
 </p>
 
-## 中文本地化分支
+## 中文本地化版本
 
-本仓库是 [can1357/oh-my-pi](https://github.com/can1357/oh-my-pi) 的简体中文本地化分支，
-由 yequ172672 维护，B 站 ID：夜曲_flac。分支在保留上游核心能力和提交历史的基础上，
-持续同步上游更新，并将中文用户实际使用到的界面、提示和安装体验作为重点维护范围。
-项目也可通过 `ohmypi-cn`、`omp-cn` 或“Oh My Pi 中文版”搜索；完整介绍见
-[项目网站](https://yequ172672.github.io/oh-my-pi-cn/)。
+本仓库是 [can1357/oh-my-pi](https://github.com/can1357/oh-my-pi) 的个人自用简体中文本地化版本，
+在保留上游核心能力和提交历史的基础上，持续同步上游更新，并将中文用户实际使用到的界面、
+提示和安装体验作为维护重点。
 
-当前分支的特色包括：
+当前版本的特色包括：
 
 - 设置中心的中文界面，覆盖外观、模型、交互、上下文、记忆、文件、终端等栏目及其选项提示；
 - 供应商配置和首次启动向导的中文说明，降低模型登录与 Web 搜索配置门槛；
 - 主界面随机 tip 提示、模型思考等级和常用操作说明的中文本地化；
 - 语言设置持久化，重启后继续使用已选择的语言；
-- 独立的 omp-cn 安装、更新和 npm 发布路径，避免覆盖官方 omp 安装；
-- 以上游仓库 can1357/oh-my-pi 为基础，保留上游功能演进，同时持续维护中文翻译和本分支体验。
+- 以上游仓库 can1357/oh-my-pi 为基础，保留上游功能演进，同时持续维护中文翻译。
 
-上游原作者、版权声明和开源协议保持不变；本分支维护者信息见文末的“分支维护与致谢”。
+上游原作者、版权声明和开源协议保持不变。
 
 面向终端工作流打造的完整 AI 编程代理：开箱即用，并保留从 CLI 到底层工具链的可扩展能力。
 
 **60+** 个供应商 · **31** 个内置工具 · **14** 个 LSP 操作 · **28** 个 DAP 操作 · **约 8 万** 行 Rust 核心代码。
 
 > [!NOTE]
-> 本分支以简体中文本地化为维护重点，同时跟踪
+> 本版本以简体中文本地化为维护重点，同时跟踪
 > [can1357/oh-my-pi](https://github.com/can1357/oh-my-pi) 的核心能力更新。
-> 安装和更新请使用本仓库提供的 omp-cn 路径。官方包和中文包都会提供 `omp` 命令，不能依靠 PATH 同时维护两套全局安装。
+> 本地化内容直接随本仓库源码提供；如需安装 CLI，见下文“安装”一节。
 
 ## 安装
 
-> [!WARNING]
-> 本中文分支在 npm 上的包名是 **`omp-cn`**，不是官方的 **`@oh-my-pi/pi-coding-agent`**。
-> 两者都会安装名为 `omp` 的命令，安装后请确认来源是 `omp-cn`，否则可能实际运行的是官方英文版本。
-> 如果之前安装过官方包，请先执行 `npm uninstall -g @oh-my-pi/pi-coding-agent`，再安装本分支：
->
-> ```sh
-> npm install -g omp-cn
-> ```
+> [!IMPORTANT]
+> 本仓库是个人自用汉化版，**不单独发布 npm 包**；汉化内容随本仓库源码提供。
+> 如需使用汉化界面，请克隆本仓库并从源码构建运行（见下文“开发”一节）。
+> 下面的安装方式来自上游，安装的是英文版 `@oh-my-pi/pi-coding-agent`，仅作参考保留。
 
 **macOS · Linux**
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/yequ172672/oh-my-pi-cn/main/scripts/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/can1357/oh-my-pi/main/scripts/install.sh | sh
 ```
 
 > **Alpine / musl：**预构建的 musl 二进制文件会动态链接 libstdc++/libgcc，而标准 Alpine 默认不提供它们。请先执行：apk add libstdc++ libgcc。
 
 **GitHub 发布版本二进制文件**
 
-当前 Release 只提供经过原生 Windows runner 验证的 Windows x64 二进制。macOS 和 Linux 用户请使用上面的 Bun/npm 安装方式；也可以从[本分支的 Release 页面](https://github.com/yequ172672/oh-my-pi-cn/releases)下载 Windows 版本。
+当前 Release 只提供经过原生 Windows runner 验证的 Windows x64 二进制。macOS 和 Linux 用户请使用上面的 Bun/npm 安装方式；也可以从[上游的 Release 页面](https://github.com/can1357/oh-my-pi/releases)下载 Windows 版本。
 
 **Bun（推荐）**
 
 ```sh
-bun install -g omp-cn
+bun install -g @oh-my-pi/pi-coding-agent
 ```
 
 **Nix**
 
 ```sh
 # 无需安装直接运行
-nix run github:yequ172672/oh-my-pi-cn
+nix run github:can1357/oh-my-pi
 
 # 或安装到当前 profile
-nix profile install github:yequ172672/oh-my-pi-cn
+nix profile install github:can1357/oh-my-pi
 ```
 
 Flake 使用者可以使用 `packages.<system>.omp`、`overlays.default`、`nixosModules.default` 或 `homeManagerModules.default`。Home Manager 配置可以声明式安装 OMP 并管理设置：
 
 ```nix
 {
-  inputs.omp.url = "github:yequ172672/oh-my-pi-cn";
+  inputs.omp.url = "github:can1357/oh-my-pi";
 
   # 在 Home Manager 模块中：
   imports = [ inputs.omp.homeManagerModules.default ];
@@ -109,18 +97,18 @@ Flake 使用者可以使用 `packages.<system>.omp`、`overlays.default`、`nixo
 **Windows（PowerShell）**
 
 ```powershell
-irm https://raw.githubusercontent.com/yequ172672/oh-my-pi-cn/main/scripts/install.ps1 | iex
+irm https://raw.githubusercontent.com/can1357/oh-my-pi/main/scripts/install.ps1 | iex
 ```
 
 **固定版本（mise）**
 
 ```sh
-mise use -g "github:yequ172672/oh-my-pi-cn[version_prefix=omp-cn-v]"
+mise use -g "github:can1357/oh-my-pi"
 ```
 
 支持 macOS、Linux、Windows，以及 bun ≥ 1.3.14。
 
-安装脚本默认使用 `yequ172672/oh-my-pi-cn` 的 `main` 分支和 `omp-cn` npm 包。有可用 Bun 时直接安装 npm 包；没有 Bun 时优先安装同时通过 Release SHA-256 和精确版本校验的二进制，资产不可用时再安装 Bun 并走 npm。显式源码安装会保留完整 workspace，避免临时目录被删除后全局链接失效。
+安装脚本默认使用 `can1357/oh-my-pi` 的 `main` 分支和上游 npm 包。有可用 Bun 时直接安装 npm 包；没有 Bun 时优先安装同时通过 Release SHA-256 和精确版本校验的二进制，资产不可用时再安装 Bun 并走 npm。显式源码安装会保留完整 workspace，避免临时目录被删除后全局链接失效。
 
 ### Shell 补全
 
@@ -593,7 +581,7 @@ omp acp
 
 ## 面向中文用户的可扩展终端工作流
 
-oh-my-pi-cn 延续上游面向终端的工作流设计，并将中文界面、供应商配置和日常操作提示作为本分支的重点。
+本汉化版延续上游面向终端的工作流设计，并将中文界面、供应商配置和日常操作提示作为维护重点。
 
 本项目基于 [Pi](https://github.com/badlogic/pi-mono)（作者
 [Mario Zechner](https://github.com/mariozechner)）和
@@ -703,33 +691,20 @@ bun dev -- --version
 | **[brush-core](crates/vendor/brush-core)** | [brush-shell](https://github.com/reubeno/brush) 的 vendored 分支，用于嵌入式 bash 执行 |
 | **[pi-builtins](crates/pi-builtins)** | Bash 内置命令（cd、echo、test、printf、read、export 等），以及 67 个进程内命令行工具 |
 
-## 参与贡献
+## 上游同步
 
-欢迎参与中文校对、平台安装验证、供应商文档、演示素材和上游新增文本审查。第一次参与不需要理解整个代码库，可以从
-[可认领的维护任务](docs/CONTRIBUTOR_TASKS.md) 或带有
-[`good first issue`](https://github.com/yequ172672/oh-my-pi-cn/issues?q=is%3Aissue+label%3A%22good+first+issue%22) 标签的任务开始。
+本版本基于 [can1357/oh-my-pi](https://github.com/can1357/oh-my-pi) 维护，保留上游的功能演进。
+同步上游更新后，继续维护设置中心、供应商配置、首次启动向导和常用 CLI 文案的简体中文本地化。
 
-- [Issues](https://github.com/yequ172672/oh-my-pi-cn/issues)：可复现问题和范围明确的维护任务；
-- [Discussions](https://github.com/yequ172672/oh-my-pi-cn/discussions)：使用问答、开放想法和社区交流；
-- [中文贡献指南](CONTRIBUTING.md)：开发环境、本地化边界、验证和 Pull Request 要求；
-- [社区行为规范](CODE_OF_CONDUCT.md) 与 [支持入口](SUPPORT.md)。
+涉及上游核心能力的改动，请同时关注 can1357/oh-my-pi 的实现和更新。
 
-涉及上游核心能力的改动，请同时关注 can1357/oh-my-pi 的实现和更新；涉及中文界面、提示、供应商向导、文档与安装体验的改动，可直接在本分支提出。
+## 致谢
 
-维护、上游同步、冲突处理、本地化适配、npm 发布和 GitHub Release 的操作说明见
-**[中文分支维护与发布流程](docs/MAINTENANCE.md)**。
-
-## 分支维护与致谢
-
-- 分支维护者：yequ172672
-- B 站 ID：夜曲_flac
-- 当前维护分支：main
 - 上游项目：[can1357/oh-my-pi](https://github.com/can1357/oh-my-pi)
 - 上游原作者：Mario Zechner、Can Bölük
-- 本分支特色：简体中文界面与提示本地化、供应商设置与首次启动向导本地化，以及独立的
-  omp-cn 安装和更新路径。
+- 本地化范围：简体中文界面与提示、供应商设置与首次启动向导文案。
 
-本分支是在上游项目基础上的本地化维护工作；上游作者、版权声明和原有 MIT 开源协议均予以保留。
+本仓库是在上游项目基础上的个人自用本地化维护工作；上游作者、版权声明和原有 MIT 开源协议均予以保留。
 
 ---
 
@@ -742,17 +717,11 @@ OMP 及本中文分支均遵循 [MIT 许可证](LICENSE)。
 © 2025 Mario Zechner<br>
 © 2025-2026 Can Bölük<br>
 © 2026 Stencil Labs, Inc.
-© 2026 yequ172672
 
 _为始终保持打开的终端而作_
 
 - [上游项目主页](https://omp.sh)
-- [GitHub 仓库](https://github.com/yequ172672/oh-my-pi-cn)
-- [项目网站](https://yequ172672.github.io/oh-my-pi-cn/)
-- [参与维护](https://github.com/yequ172672/oh-my-pi-cn/blob/main/CONTRIBUTING.md)
-- [社区讨论](https://github.com/yequ172672/oh-my-pi-cn/discussions)
-- [中文分支变更日志](https://github.com/yequ172672/oh-my-pi-cn/blob/main/docs/FORK_CHANGELOG.md)
-- [上游包变更日志](https://github.com/yequ172672/oh-my-pi-cn/blob/main/packages/coding-agent/CHANGELOG.md)
-- [npm 软件包](https://www.npmjs.com/package/omp-cn)
+- [上游 GitHub 仓库](https://github.com/can1357/oh-my-pi)
+- [上游包变更日志](packages/coding-agent/CHANGELOG.md)
 - [Discord 社区](https://discord.gg/4NMW9cdXZa)
-- [MIT 许可证](https://github.com/yequ172672/oh-my-pi-cn/blob/main/LICENSE)
+- [MIT 许可证](LICENSE)

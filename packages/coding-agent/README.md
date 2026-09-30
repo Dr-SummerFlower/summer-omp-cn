@@ -1,19 +1,16 @@
-# omp-cn（@oh-my-pi/pi-coding-agent）
+# @oh-my-pi/pi-coding-agent（个人中文本地化）
 
-这是 oh-my-pi-cn 仓库中编程代理的核心实现包，也是中文本地化 CLI 的主要代码目录。
+这是编程代理的核心实现包，也是个人自用中文汉化 CLI 的主要代码目录。
 
-本分支由 yequ172672 维护，B 站 ID 为 夜曲_flac，对外发布的本地化 CLI 包名为
-[omp-cn](https://www.npmjs.com/package/omp-cn)。内部 workspace 包名仍保持为
-@oh-my-pi/pi-coding-agent，以维持源码导入和上游兼容性。
-
-本包基于 [can1357/oh-my-pi](https://github.com/can1357/oh-my-pi)，重点维护设置中心、
-供应商配置、首次启动向导、随机提示和常用 CLI 文案的简体中文本地化。上游原作者
+本仓库是基于 [can1357/oh-my-pi](https://github.com/can1357/oh-my-pi) 的个人自用简体中文
+本地化版本，重点维护设置中心、供应商配置、首次启动向导、随机提示和常用 CLI 文案的中文汉化。
+内部 workspace 包名保持为 @oh-my-pi/pi-coding-agent，以维持源码导入和上游兼容性。上游原作者
 Mario Zechner、Can Bölük 及其版权信息保留不变，项目继续使用 MIT 协议。
 
 安装、供应商配置、模型角色、斜杠命令和完整 CLI 参考见：
 
 - [仓库 README（本地）](../../README.md)
-- [仓库 README（GitHub）](https://github.com/yequ172672/oh-my-pi-cn#readme)
+- [仓库 README（GitHub）](https://github.com/can1357/oh-my-pi#readme)
 
 本软件包的其他参考资料：
 

@@ -2,21 +2,20 @@
   "type": "module",
   "name": "@oh-my-pi/pi-coding-agent",
   "version": "17.4.1",
-  "description": "omp coding agent 的简体中文本地化分支，包含设置、供应商配置、提示和 CLI 文案中文化",
-  "homepage": "https://yequ172672.github.io/oh-my-pi-cn/",
-  "author": "yequ172672",
+  "description": "omp coding agent 的个人自用简体中文本地化版本，包含设置、供应商配置、提示和 CLI 文案中文化",
+  "homepage": "https://omp.sh",
+  "author": "Stencil Labs, Inc.",
   "contributors": [
-    "Mario Zechner",
-    "Can Boluk"
+    "Mario Zechner"
   ],
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/yequ172672/oh-my-pi-cn.git",
+    "url": "git+https://github.com/can1357/oh-my-pi.git",
     "directory": "packages/coding-agent"
   },
   "bugs": {
-    "url": "https://github.com/yequ172672/oh-my-pi-cn/issues"
+    "url": "https://github.com/can1357/oh-my-pi/issues"
   },
   "keywords": [
     "coding-agent",
@@ -24,10 +23,7 @@
     "llm",
     "cli",
     "tui",
-    "agent",
-    "chinese",
-    "i18n",
-    "zh-cn"
+    "agent"
   ],
   "main": "./src/index.ts",
   "types": "./src/index.ts",
@@ -88,7 +84,6 @@
     "bun": ">=1.3.14"
   },
   "files": [
-    "fork-release.json",
     "src",
     "dist/cli.js",
     "dist/docs-index.generated.txt",
