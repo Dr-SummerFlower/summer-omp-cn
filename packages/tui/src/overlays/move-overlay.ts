@@ -5,10 +5,11 @@
  * The user types a path, Tab autocompletes the highlighted directory, and Enter
  * confirms — yielding the resolved directory string (or `undefined` on cancel).
  */
+import { t } from "@oh-my-pi/pi-i18n";
 import { type Component, type Focusable, Key, matchesKey } from "../index";
-import { theme } from "../theme/theme";
 import { matchesSelectCancel, matchesSelectDown, matchesSelectUp } from "../keybinding-matchers";
 import { formTheme } from "../chrome/form-theme";
+import { theme } from "../theme/theme";
 import { bottomBorder, row, topBorder } from "../chrome/overlay-box";
 import { TextFormField } from "../components/form";
 import { formatKeyHint } from "../app-keybindings";
@@ -62,7 +63,7 @@ export class MoveOverlay implements Component, Focusable {
 		this.#done = done;
 		this.#field = new TextFormField({
 			theme: formTheme,
-			prompt: theme.fg("dim", "Path: "),
+			prompt: theme.fg("dim", t("tui.moveOverlay.prompt.path")),
 			empty: "submit",
 			spaceBeforeControl: false,
 			spaceAfterControl: false,
@@ -148,14 +149,14 @@ export class MoveOverlay implements Component, Focusable {
 		}
 		const lines: string[] = [];
 
-		lines.push(topBorder(w, "Move to directory"));
+		lines.push(topBorder(w, t("tui.moveOverlay.title")));
 		for (const fieldLine of fieldLines) {
 			lines.push(row(fieldLine, w));
 		}
 		lines.push(row("", w));
 
 		if (this.#results.length === 0 && this.#field.getValue().length > 0) {
-			lines.push(row(theme.fg("dim", "No matching directories"), w));
+			lines.push(row(theme.fg("dim", t("tui.moveOverlay.empty")), w));
 		} else {
 			for (let i = 0; i < Math.min(this.#results.length, MAX_RESULTS); i++) {
 				const item = this.#results[i]!;
@@ -168,7 +169,17 @@ export class MoveOverlay implements Component, Focusable {
 
 		lines.push(row("", w));
 		const nav = editorKeys("tui.select.up", "tui.select.down");
-		const hint = `Type to filter · ${nav} navigate · ${formatKeyHint("tab")} accept · ${formatKeyHint("enter")} confirm · ${editorKey("tui.select.cancel")} cancel`;
+		const hint = t("tui.moveOverlay.hint", {
+			filter: t("tui.moveOverlay.hint.filter"),
+			nav,
+			navigate: t("tui.mcpAdd.hint.navigate"),
+			tab: formatKeyHint("tab"),
+			accept: t("tui.moveOverlay.hint.accept"),
+			enter: formatKeyHint("enter"),
+			confirm: t("tui.moveOverlay.hint.confirm"),
+			cancelKey: editorKey("tui.select.cancel"),
+			cancel: t("tui.sessionSelector.hint.cancel"),
+		});
 		lines.push(row(theme.fg("dim", hint), w));
 		lines.push(bottomBorder(w));
 		this.#renderMemo = { width: w, fieldLines, revision: this.#revision, lines };
@@ -185,21 +196,21 @@ export class MoveOverlay implements Component, Focusable {
 			"list",
 			{
 				selected: this.#results[this.#selectedIndex]?.value ?? null,
-				empty: this.#field.getValue().length > 0 ? [span("No matching directories", "dim")] : undefined,
+				empty: this.#field.getValue().length > 0 ? [span(t("tui.moveOverlay.empty"), "dim")] : undefined,
 			},
 			items,
 			"results",
 		);
 		const hints = statusHintsRow(
-			[span("Type to filter", "dim")],
+			[span(t("tui.moveOverlay.hint.filter"), "dim")],
 			[
-				actionHint(["tui.select.up", "tui.select.down"], "navigate"),
-				{ keys: ["tab"], label: "accept" },
-				{ keys: ["enter"], label: "confirm" },
-				actionHint("tui.select.cancel", "cancel"),
+				actionHint(["tui.select.up", "tui.select.down"], t("tui.mcpAdd.hint.navigate")),
+				{ keys: ["tab"], label: t("tui.moveOverlay.hint.accept") },
+				{ keys: ["enter"], label: t("tui.moveOverlay.hint.confirm") },
+				actionHint("tui.select.cancel", t("tui.sessionSelector.hint.cancel")),
 			],
 		);
-		const described = overlayCard("omp.dialog.move", "Move to directory", [this.#field, list, hints]);
+		const described = overlayCard("omp.dialog.move", t("tui.moveOverlay.title"), [this.#field, list, hints]);
 		this.#native = { revision: this.#revision, node: described };
 		return described;
 	}
@@ -217,7 +228,7 @@ export class MoveOverlay implements Component, Focusable {
 	}
 
 	invalidate(): void {
-		this.#field.input.prompt = theme.fg("dim", "Path: ");
+		this.#field.input.prompt = theme.fg("dim", t("tui.moveOverlay.prompt.path"));
 		this.#field.invalidate();
 		this.#revision++;
 		this.#renderMemo = undefined;

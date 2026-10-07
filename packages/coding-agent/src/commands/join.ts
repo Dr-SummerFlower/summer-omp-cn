@@ -8,12 +8,13 @@ import { Args, Command } from "@oh-my-pi/pi-utils/cli";
 import { parseArgs } from "../cli/args";
 import { joinHelp as commandHelp } from "../cli/command-help";
 import { runRootCommand } from "../main";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export default class Join extends Command {
 	static description = commandHelp.description;
 	static args = {
 		link: Args.string({
-			description: "Collab link shared by the host (/collab)",
+			description: t("cli.join.collabLinkSharedByTheHost"),
 			required: true,
 		}),
 	};
@@ -24,12 +25,12 @@ export default class Join extends Command {
 		const { args } = await this.parse(Join);
 		const link = args.link?.trim();
 		if (!link) {
-			process.stderr.write(`Usage: ${APP_NAME} join <link>\n`);
+			process.stderr.write(t("cli.join.usageAppNameJoinLinkN", { APP_NAME: APP_NAME }));
 			process.exitCode = 1;
 			return;
 		}
 		if (!process.stdin.isTTY || !process.stdout.isTTY) {
-			process.stderr.write(`${APP_NAME} join requires an interactive terminal\n`);
+			process.stderr.write(t("cli.join.appNameJoinRequiresAnInteractive", { APP_NAME: APP_NAME }));
 			process.exitCode = 1;
 			return;
 		}

@@ -8,6 +8,7 @@
  */
 import * as net from "node:net";
 import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Tern wire protocol version omp speaks. */
 export const TERN_WIRE_VERSION = 6;
@@ -133,7 +134,8 @@ export function decodeTernReply(payload: Uint8Array): TernReply {
 		case TAG_REFUSED:
 			return { type: "refused", reason: readString(1) };
 		case TAG_BROWSER_REPLY: {
-			if (payload.length < 9) throw new TernBrowserError("protocol", "Tern browser reply is truncated");
+			if (payload.length < 9)
+				throw new TernBrowserError("protocol", t("tui.ca.tools.browser.tern.wire.ternBrowserReplyIsTruncated"));
 			return { type: "browser", id: view.getBigUint64(1, true), json: readString(9) };
 		}
 		default:
@@ -315,7 +317,10 @@ export class TernSocketClient {
 
 	/** Open the socket and greet; resolves once the daemon welcomed omp. */
 	async connect(): Promise<void> {
-		if (this.#closed) throw this.#closeError ?? new TernBrowserError("closed", "Tern connection closed");
+		if (this.#closed)
+			throw (
+				this.#closeError ?? new TernBrowserError("closed", t("tui.ca.tools.browser.tern.wire.ternConnectionClosed"))
+			);
 		if (this.#welcomed) return;
 		this.#connecting ??= this.#open();
 		try {
@@ -332,7 +337,11 @@ export class TernSocketClient {
 		await this.connect();
 		opts.signal?.throwIfAborted();
 		const socket = this.#socket;
-		if (!socket || this.#closed) throw this.#closeError ?? new TernBrowserError("closed", "Tern connection closed");
+		if (!socket || this.#closed)
+			throw (
+				this.#closeError ??
+				new TernBrowserError("closed", t("tui.ca.tools.browser.tern.wire.ternConnectionClosed2"))
+			);
 		const id = this.#nextId++;
 		let json: string;
 		try {
@@ -378,7 +387,7 @@ export class TernSocketClient {
 
 	/** Close the connection; every pending op rejects. */
 	close(): void {
-		this.#fail(new TernBrowserError("closed", "Tern connection closed"));
+		this.#fail(new TernBrowserError("closed", t("tui.ca.tools.browser.tern.wire.ternConnectionClosed3")));
 	}
 
 	async #open(): Promise<void> {
@@ -407,7 +416,7 @@ export class TernSocketClient {
 		socket.on("close", () => {
 			this.#fail(
 				this.#welcomed
-					? new TernBrowserError("closed", "Tern daemon closed the connection")
+					? new TernBrowserError("closed", t("tui.ca.tools.browser.tern.wire.ternDaemonClosedTheConnection"))
 					: new TernBrowserError(
 							"connect",
 							`Tern daemon at ${this.#socketPath} closed the connection before greeting`,

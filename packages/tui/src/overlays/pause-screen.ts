@@ -11,6 +11,7 @@
  * Use case: freeze a busy session, hand-edit the repo, resume, then explain
  * the change via a normal steering message.
  */
+import { t } from "@oh-my-pi/pi-i18n";
 import { agentPauseGate } from "@oh-my-pi/pi-agent-core";
 import { type Component, matchesKey, type OverlayFocusOwner, type OverlayHandle, type OverlayOptions } from "../index";
 import { formatCoarseDuration } from "../chrome/format";
@@ -51,11 +52,25 @@ const BAR_GAP = 4;
 const MIN_FULL_WIDTH = 64;
 const MIN_FULL_HEIGHT = 18;
 
-const TITLE = "P A U S E D";
-const BODY_LINES = [
-	"Main agent, subagents, and advisor hold at their next step.",
-	"In-flight calls finish; nothing new starts until you resume.",
-] as const;
+/**
+ * Pause screen copy. Labels are getters: this module loads before the UI
+ * language is initialized, so translating eagerly would freeze English
+ * (see settings-defs.ts TAB_METADATA for the same idiom).
+ */
+const PAUSE_COPY = {
+	get title(): string {
+		return t("tui.pauseScreen.title");
+	},
+	get bodyAgents(): string {
+		return t("tui.pauseScreen.body.agents");
+	},
+	get bodyInFlight(): string {
+		return t("tui.pauseScreen.body.inFlight");
+	},
+	get bodyLines(): readonly string[] {
+		return [this.bodyAgents, this.bodyInFlight];
+	},
+};
 
 /** Live hold clock, seconds-precise: `0:07`, `12:34`, `1:02:03`. */
 function formatClock(ms: number): string {
@@ -82,10 +97,12 @@ export function renderPauseScreen(width: number, height: number, elapsedMs: numb
 			content.push(centerLine(theme.bold(sessionName), width).trimEnd());
 			content.push("");
 		}
-		content.push(centerLine(theme.bold(theme.fg("accent", `▌▌ ${TITLE}`)), width).trimEnd());
+		content.push(centerLine(theme.bold(theme.fg("accent", `▌▌ ${PAUSE_COPY.title}`)), width).trimEnd());
 		content.push("");
-		content.push(centerLine(theme.fg("dim", `paused for ${formatClock(elapsedMs)}`), width).trimEnd());
-		content.push(centerLine(theme.fg("dim", `${esc} to resume`), width).trimEnd());
+		content.push(
+			centerLine(theme.fg("dim", t("tui.pauseScreen.clock", { clock: formatClock(elapsedMs) })), width).trimEnd(),
+		);
+		content.push(centerLine(theme.fg("dim", t("tui.pauseScreen.hint.resumeKey", { key: esc })), width).trimEnd());
 	} else {
 		if (sessionName) {
 			content.push(centerLine(theme.bold(sessionName), width).trimEnd());
@@ -98,15 +115,21 @@ export function renderPauseScreen(width: number, height: number, elapsedMs: numb
 			content.push(centerLine(theme.fg("accent", glyphRow), width).trimEnd());
 		}
 		content.push("");
-		content.push(centerLine(theme.bold(theme.fg("accent", TITLE)), width).trimEnd());
+		content.push(centerLine(theme.bold(theme.fg("accent", PAUSE_COPY.title)), width).trimEnd());
 		content.push("");
-		for (const line of BODY_LINES) {
+		for (const line of PAUSE_COPY.bodyLines) {
 			content.push(centerLine(theme.fg("muted", line), width).trimEnd());
 		}
 		content.push("");
-		content.push(centerLine(theme.fg("dim", `paused for ${formatClock(elapsedMs)}`), width).trimEnd());
+		content.push(
+			centerLine(theme.fg("dim", t("tui.pauseScreen.clock", { clock: formatClock(elapsedMs) })), width).trimEnd(),
+		);
 		content.push("");
-		const resumeHint = `${esc} · ${formatKeyHint("enter")} · ${formatKeyHint("space")} — resume`;
+		const resumeHint = t("tui.pauseScreen.hint.resumeKeys", {
+			esc,
+			enter: formatKeyHint("enter"),
+			space: formatKeyHint("space"),
+		});
 		content.push(centerLine(theme.fg("dim", resumeHint), width).trimEnd());
 	}
 
@@ -174,7 +197,14 @@ export class PauseScreenComponent implements Component, OverlayFocusOwner {
 	}
 
 	/** A glass sheet titled "Paused" (not the whole pane: the transcript stays visible, frozen). */
-	readonly nativeOverlay = { role: "omp.overlay.pause", size: "md", anchor: "center", head: "Paused" } as const;
+	readonly nativeOverlay = {
+		role: "omp.overlay.pause",
+		size: "md",
+		anchor: "center",
+		get head() {
+			return t("tui.pauseScreen.nativeHead");
+		},
+	} as const;
 
 	describe(): NativeNode {
 		if (this.#native) return this.#native;
@@ -183,22 +213,22 @@ export class PauseScreenComponent implements Component, OverlayFocusOwner {
 		const resumeKey = boundKeys("app.interrupt", ["escape"])[0] ?? "escape";
 		children.push(
 			text(
-				BODY_LINES.map((line, index) => span(index === 0 ? line : `\n${line}`, "muted")),
+				PAUSE_COPY.bodyLines.map((line, index) => span(index === 0 ? line : `\n${line}`, "muted")),
 				{ wrap: "word" },
 			),
 			row(
 				[
-					text([span("Paused for", "dim")]),
+					text([span(t("tui.pauseScreen.pausedFor"), "dim")]),
 					node("elapsed", { age: Date.now() - this.#startedAt, format: "clock" }),
 				],
 				{ gap: "xs", align: "baseline" },
 			),
 			actionBar([
 				null,
-				actionButton("Resume", "resume", {
+				actionButton(t("tui.pauseScreen.action.resume"), "resume", {
 					keys: resumeKey,
 					tone: "accent",
-					title: `Resume  ${resumeKey} · enter · space`,
+					title: t("tui.pauseScreen.action.resumeTitle", { key: resumeKey }),
 				}),
 			]),
 		);
@@ -247,7 +277,7 @@ export async function runPauseScreen(host: PauseScreenHost): Promise<void> {
 		overlay.hide();
 		const heldMs = agentPauseGate.resume();
 		if (heldMs !== undefined) {
-			host.showStatus(`Resumed after ${formatCoarseDuration(heldMs)} — agents are running again.`);
+			host.showStatus(t("tui.pauseScreen.resumedAfter", { duration: formatCoarseDuration(heldMs) }));
 		}
 	}
 }

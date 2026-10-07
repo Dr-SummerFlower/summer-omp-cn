@@ -4,10 +4,11 @@
  * Shows available plugins from all configured marketplaces in a SelectList.
  * Selecting a plugin triggers installation. Esc cancels.
  */
+import { t } from "@oh-my-pi/pi-i18n";
 import { type SelectItem, SelectList, type SgrMouseEvent } from "../index";
-import { getSelectListTheme } from "../theme/theme";
 import { OverlayPanel } from "../chrome/overlay-box";
 import { routeSelectListMouseWithTopBorder } from "../chrome/select-list-mouse-routing";
+import { getSelectListTheme } from "../theme/theme";
 import type { DescribeContext, NativeNode, NativeUiEvent } from "../native/node";
 import { SelectListSheet } from "../native/picker";
 
@@ -33,7 +34,7 @@ export class PluginSelectorComponent extends OverlayPanel {
 		installedIds: Set<string>,
 		callbacks: PluginSelectorCallbacks,
 	) {
-		super("Plugins", "omp.overlay.plugins");
+		super(t("tui.pluginSelector.title"), "omp.overlay.plugins");
 
 		const items: SelectItem[] = plugins.map(({ plugin, marketplace, scope }) => {
 			// Encode scope into the value so onSelect can recover it without a parallel Map.
@@ -41,7 +42,7 @@ export class PluginSelectorComponent extends OverlayPanel {
 			const id = scope ? `${plugin.name}@${marketplace}#${scope}` : `${plugin.name}@${marketplace}`;
 			const installed = installedIds.has(`${plugin.name}@${marketplace}`);
 			const version = plugin.version ? `@${plugin.version}` : "";
-			const status = installed ? " [installed]" : "";
+			const status = installed ? ` ${t("tui.pluginSelector.installed")}` : "";
 			const scopeTag = scope ? ` [${scope}]` : "";
 
 			return {
@@ -55,11 +56,11 @@ export class PluginSelectorComponent extends OverlayPanel {
 		if (items.length === 0) {
 			items.push({
 				value: "__empty__",
-				label: "No plugins available",
+				label: t("tui.pluginSelector.empty"),
 				description:
 					marketplaceCount === 0
-						? "Add a marketplace first: /marketplace add <source>"
-						: "Configured marketplaces have no plugins",
+						? t("tui.pluginSelector.emptyNoMarketplace")
+						: t("tui.pluginSelector.emptyMarketplaceEmpty"),
 				disabled: true,
 			});
 		}
@@ -79,10 +80,10 @@ export class PluginSelectorComponent extends OverlayPanel {
 
 		this.addChild(this.#selectList);
 		this.#sheet = new SelectListSheet(this.#selectList, {
-			title: "Plugins",
+			title: t("tui.pluginSelector.title"),
 			icon: "plus",
-			noun: "plugins",
-			confirm: "Install",
+			noun: t("tui.pluginSelector.noun"),
+			confirm: t("tui.pluginSelector.confirm"),
 			decorate: item => (item.hint ? { facts: { marketplace: item.hint } } : undefined),
 			columns: [{ id: "marketplace", format: "dim" }],
 		});

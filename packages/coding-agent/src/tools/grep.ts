@@ -56,6 +56,7 @@ import { toolResult } from "./tool-result";
 
 import { cfgGrepContextAfter, cfgGrepContextBefore } from "./settings";
 import { cfgTaskDisabledAgents } from "../task/settings";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const searchSchema = type({
 	pattern: type("string"),
@@ -818,7 +819,7 @@ export class GrepTool implements AgentTool<typeof searchSchema, GrepToolDetails>
 					const skipPastEnd = canPaginate && normalizedSkip > 0 && totalFiles > 0 && skipFiles >= totalFiles;
 					const noMatchText = skipPastEnd
 						? `No more results (${totalFilesLabel} files total; skip=${normalizedSkip} is past the end)`
-						: "No matches found";
+						: t("tui.ca.tools.grep.noMatchesFound");
 					const text = warningNote ? `${noMatchText}\n${warningNote}` : noMatchText;
 					// Zero matches is useless regardless of warnings: by the time
 					// compaction runs, the follow-up call has already corrected course.

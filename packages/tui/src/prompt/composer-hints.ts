@@ -12,6 +12,7 @@
  */
 import { formatDoubleTap, formatKeyHint, type KeybindingsManager } from "../app-keybindings";
 import { theme } from "../theme/theme";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Stable hint ids; persisted as usage-counter keys, so never rename one. */
 export type ComposerHintId = "agents" | "effort";
@@ -59,7 +60,9 @@ export const COMPOSER_HINTS: readonly ComposerHint[] = [
 		resolve: ctx => {
 			if (ctx.conversationStarted) return undefined;
 			const key = ctx.keybindings.getKeys("app.thinking.cycle")[0];
-			return key ? { key: formatKeyHint(key), label: "to change thinking effort" } : undefined;
+			return key
+				? { key: formatKeyHint(key), label: t("tui.prompt.composerHints.toChangeThinkingEffort") }
+				: undefined;
 		},
 	},
 ];

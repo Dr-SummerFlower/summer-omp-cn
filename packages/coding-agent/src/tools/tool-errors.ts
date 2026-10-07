@@ -6,12 +6,13 @@
  */
 
 import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /**
  * Error thrown when a tool operation is aborted (e.g., via AbortSignal).
  */
 export class ToolAbortError extends Error {
-	static readonly MESSAGE = "Operation aborted";
+	static readonly MESSAGE = t("tui.ca.tools.toolErrors.operationAborted");
 
 	constructor(message: string = ToolAbortError.MESSAGE, options?: ErrorOptions) {
 		super(message, options);

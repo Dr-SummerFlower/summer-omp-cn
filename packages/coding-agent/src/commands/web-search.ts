@@ -5,6 +5,7 @@
 import { Args, Command, Flags } from "@oh-my-pi/pi-utils/cli";
 import { searchHelp as commandHelp } from "../cli/command-help";
 import { runSearchCommand, type SearchCommandArgs } from "../cli/web-search-cli";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const RECENCY: NonNullable<SearchCommandArgs["recency"]>[] = ["day", "week", "month", "year"];
 
@@ -13,14 +14,14 @@ export default class Search extends Command {
 	static aliases = ["q", "web-search"];
 
 	static args = {
-		query: Args.string({ description: "Search query text", required: false, multiple: true }),
+		query: Args.string({ description: t("cli.webSearch.searchQueryText"), required: false, multiple: true }),
 	};
 
 	static flags = {
-		model: Flags.string({ description: "Catalog model selector" }),
-		recency: Flags.string({ description: "Recency filter", options: RECENCY }),
-		limit: Flags.integer({ char: "l", description: "Max results to return" }),
-		compact: Flags.boolean({ description: "Render condensed output" }),
+		model: Flags.string({ description: t("cli.webSearch.catalogModelSelector") }),
+		recency: Flags.string({ description: t("cli.webSearch.recencyFilter"), options: RECENCY }),
+		limit: Flags.integer({ char: "l", description: t("cli.webSearch.maxResultsToReturn") }),
+		compact: Flags.boolean({ description: t("cli.webSearch.renderCondensedOutput") }),
 	};
 
 	async run(): Promise<void> {

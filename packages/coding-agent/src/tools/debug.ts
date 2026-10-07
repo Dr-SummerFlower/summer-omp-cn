@@ -48,6 +48,7 @@ import { toolResult } from "./tool-result";
 import { clampTimeout } from "./tool-timeouts";
 
 import { cfgDebugEnabled, cfgToolsMaxTimeout } from "./settings";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /**
  * DAP debug actions that only read program state (no mutation, no execution).
@@ -185,7 +186,7 @@ function formatBreakpoints(filePath: string, breakpoints: DapBreakpointRecord[])
 }
 
 function formatFunctionBreakpoints(breakpoints: DapFunctionBreakpointRecord[]): string {
-	const lines = ["Function breakpoints:"];
+	const lines = [t("tui.ca.tools.debug.functionBreakpoints")];
 	if (breakpoints.length === 0) {
 		lines.push("(none)");
 		return lines.join("\n");
@@ -199,7 +200,7 @@ function formatFunctionBreakpoints(breakpoints: DapFunctionBreakpointRecord[]): 
 }
 
 function formatStackFrames(frames: DapStackFrame[]): string {
-	const lines = ["Stack trace:"];
+	const lines = [t("tui.ca.tools.debug.stackTrace")];
 	if (frames.length === 0) {
 		lines.push("(empty)");
 		return lines.join("\n");
@@ -344,7 +345,7 @@ function formatModules(modules: DapModule[]): string {
 }
 
 function formatLoadedSources(sources: DapSource[]): string {
-	const lines = ["Loaded sources:"];
+	const lines = [t("tui.ca.tools.debug.loadedSources")];
 	if (sources.length === 0) {
 		lines.push("(none)");
 		return lines.join("\n");
@@ -357,7 +358,7 @@ function formatLoadedSources(sources: DapSource[]): string {
 }
 
 function formatInstructionBreakpoints(breakpoints: DapInstructionBreakpointRecord[]): string {
-	const lines = ["Instruction breakpoints:"];
+	const lines = [t("tui.ca.tools.debug.instructionBreakpoints")];
 	if (breakpoints.length === 0) {
 		lines.push("(none)");
 		return lines.join("\n");
@@ -384,7 +385,7 @@ function formatDataBreakpointInfo(info: DapDataBreakpointInfoResponse): string {
 }
 
 function formatDataBreakpoints(breakpoints: DapDataBreakpointRecord[]): string {
-	const lines = ["Data breakpoints:"];
+	const lines = [t("tui.ca.tools.debug.dataBreakpoints")];
 	if (breakpoints.length === 0) {
 		lines.push("(none)");
 		return lines.join("\n");
@@ -409,7 +410,7 @@ function formatCustomResponse(command: string, body: unknown): string {
 
 function formatSessions(sessions: DapSessionSummary[]): string {
 	if (sessions.length === 0) {
-		return "No debug sessions.";
+		return t("tui.ca.tools.debug.noDebugSessions");
 	}
 	return sessions
 		.map(session => {
@@ -451,7 +452,7 @@ function buildOutcomeText(outcome: DapContinueOutcome, timeoutSec: number, verb:
 		);
 		return lines.join("\n");
 	}
-	lines.push("Program is running.");
+	lines.push(t("tui.ca.tools.debug.programIsRunning"));
 	return lines.join("\n");
 }
 
@@ -563,15 +564,15 @@ export class DebugTool implements AgentTool<typeof debugSchema, DebugExecutionDe
 
 	readonly examples: readonly ToolExample<typeof debugSchema.infer>[] = [
 		{
-			caption: "Launch and inspect hang",
+			caption: t("tui.ca.tools.debug.launchAndInspectHang"),
 			note: '1. debug(action: "launch", program: "./my_app")\n2. debug(action: "set_breakpoint", file: "src/main.c", line: 42)\n3. debug(action: "continue")\n4. If the program appears hung: debug(action: "pause")\n5. Inspect state with `threads`, `stack_trace`, `scopes`, and `variables`',
 		},
 		{
-			caption: "Launch a Python script with debugpy",
+			caption: t("tui.ca.tools.debug.launchAPythonScriptWithDebugpy"),
 			call: { action: "launch", adapter: "debugpy", program: "scripts/job.py", args: ["--flag"] },
 		},
 		{
-			caption: "Raw debugger command through repl",
+			caption: t("tui.ca.tools.debug.rawDebuggerCommandThroughRepl"),
 			call: { action: "evaluate", expression: "info registers", context: "repl" },
 		},
 	];
@@ -795,7 +796,7 @@ export class DebugTool implements AgentTool<typeof debugSchema, DebugExecutionDe
 				details.snapshot = outcome.snapshot;
 				details.state = outcome.state;
 				details.timedOut = outcome.timedOut;
-				return result.text(buildOutcomeText(outcome, timeoutSec, "Step over")).done();
+				return result.text(buildOutcomeText(outcome, timeoutSec, t("tui.ca.tools.debug.stepOver"))).done();
 			}
 			case "step_in": {
 				const outcome = await dapSessionManager.stepIn(combinedSignal, timeoutSec * 1000);
@@ -809,7 +810,7 @@ export class DebugTool implements AgentTool<typeof debugSchema, DebugExecutionDe
 				details.snapshot = outcome.snapshot;
 				details.state = outcome.state;
 				details.timedOut = outcome.timedOut;
-				return result.text(buildOutcomeText(outcome, timeoutSec, "Step out")).done();
+				return result.text(buildOutcomeText(outcome, timeoutSec, t("tui.ca.tools.debug.stepOut"))).done();
 			}
 			case "pause": {
 				const snapshot = await dapSessionManager.pause(combinedSignal, timeoutSec * 1000);
@@ -920,7 +921,7 @@ export class DebugTool implements AgentTool<typeof debugSchema, DebugExecutionDe
 				return result
 					.text(
 						[
-							"Memory write completed.",
+							t("tui.ca.tools.debug.memoryWriteCompleted"),
 							...(response.bytesWritten !== undefined ? [`Bytes written: ${response.bytesWritten}`] : []),
 							...(response.offset !== undefined ? [`Offset: ${response.offset}`] : []),
 						].join("\n"),

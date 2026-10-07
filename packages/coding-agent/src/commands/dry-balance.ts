@@ -1,22 +1,26 @@
 import { Args, Command, Flags } from "@oh-my-pi/pi-utils/cli";
 import { dryBalanceHelp as commandHelp } from "../cli/command-help";
 import { runDryBalanceCommand } from "../cli/dry-balance-cli";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export default class DryBalance extends Command {
 	static description = commandHelp.description;
 	static args = {
 		model: Args.string({
-			description: "Model selector (provider/model or fuzzy id). Defaults to the configured default model.",
+			description: t("cli.dryBalance.modelSelectorProviderModelOrFuzzy"),
 			required: false,
 		}),
 	};
 
 	static flags = {
-		model: Flags.string({ description: "Model selector (same syntax as --model on omp)" }),
-		count: Flags.integer({ description: "Number of random session ids to try", default: 100 }),
-		concurrency: Flags.integer({ description: "Maximum concurrent credential resolutions", default: 32 }),
-		json: Flags.boolean({ description: "Output JSON" }),
-		bench: Flags.boolean({ description: "Send one live benchmark request per OAuth account" }),
+		model: Flags.string({ description: t("cli.dryBalance.modelSelectorSameSyntaxAsModel") }),
+		count: Flags.integer({ description: t("cli.dryBalance.numberOfRandomSessionIdsTo"), default: 100 }),
+		concurrency: Flags.integer({
+			description: t("cli.dryBalance.maximumConcurrentCredentialResolutions"),
+			default: 32,
+		}),
+		json: Flags.boolean({ description: t("cli.agents.outputJson") }),
+		bench: Flags.boolean({ description: t("cli.dryBalance.sendOneLiveBenchmarkRequestPer") }),
 	};
 
 	static examples = [

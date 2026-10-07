@@ -15,6 +15,7 @@ import {
 	TERMINAL_ID,
 } from "../../terminal-capabilities";
 import { classifyTerminalMultiplexer } from "../../terminal-multiplexer";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Live values the debug view reads off the running TUI, not the static capability table. */
 export interface TerminalRuntimeState {
@@ -44,14 +45,14 @@ export interface TerminalStateInfo {
 }
 
 const IMAGE_PROTOCOL_NAMES: Record<ImageProtocol, string> = {
-	[ImageProtocol.Kitty]: "Kitty graphics",
+	[ImageProtocol.Kitty]: t("tui.apps.debug.terminalInfo.kittyGraphics"),
 	[ImageProtocol.Iterm2]: "iTerm2 inline images",
 	[ImageProtocol.Sixel]: "Sixel",
 };
 
 const NOTIFY_PROTOCOL_NAMES: Record<NotifyProtocol, string> = {
 	[NotifyProtocol.Bell]: "BEL (\\a)",
-	[NotifyProtocol.Osc99]: "OSC 99 (kitty desktop notifications)",
+	[NotifyProtocol.Osc99]: t("tui.apps.debug.terminalInfo.osc99KittyDesktopNotifications"),
 	[NotifyProtocol.Osc9]: "OSC 9 (iTerm2/WezTerm)",
 };
 
@@ -88,11 +89,11 @@ const yesNo = (value: boolean): string => (value ? "yes" : "no");
 /** Format terminal state for display in the debug menu. */
 export function formatTerminalState(info: TerminalStateInfo): string {
 	const lines = [
-		"Terminal State",
+		t("tui.apps.debug.terminalInfo.terminalState"),
 		"━━━━━━━━━━━━━━",
 		`Detected:     ${info.detectedId}`,
 		`Geometry:     ${info.columns}x${info.rows} cells · cell ${info.cellWidthPx}x${info.cellHeightPx}px`,
-		info.multiplexer ? `Multiplexer:  ${info.multiplexer}` : "Multiplexer:  none",
+		info.multiplexer ? `Multiplexer:  ${info.multiplexer}` : t("tui.apps.debug.terminalInfo.multiplexerNone"),
 		"",
 		"Subprotocols",
 		`  Graphics:     ${info.imageProtocol}`,
@@ -103,9 +104,9 @@ export function formatTerminalState(info: TerminalStateInfo): string {
 		`  Sync output:  ${yesNo(info.synchronizedOutput)} (DEC 2026)`,
 		"",
 		"Scrollback",
-		`  Screen->history clear: ${info.screenToScrollback ? "CSI 22 J" : "CSI 2 J (redraw)"}`,
+		`  Screen->history clear: ${info.screenToScrollback ? t("tui.apps.debug.terminalInfo.csi22J") : "CSI 2 J (redraw)"}`,
 		"",
-		"Detection signals",
+		t("tui.apps.debug.terminalInfo.detectionSignals"),
 		`  TERM:                 ${info.env.TERM ?? "(unset)"}`,
 		`  TERM_PROGRAM:         ${info.env.TERM_PROGRAM ?? "(unset)"}`,
 		`  TERM_PROGRAM_VERSION: ${info.env.TERM_PROGRAM_VERSION ?? "(unset)"}`,

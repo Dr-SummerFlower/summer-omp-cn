@@ -11,19 +11,20 @@ import { Settings, settings } from "../config/settings";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
 
 import { cfgColorBlindMode, cfgSymbolPreset, cfgThemeDark, cfgThemeLight } from "../modes/settings";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export default class Git extends Command {
 	static description = commandHelp.description;
 
 	static args = {
 		revision: Args.string({
-			description: "Pin the view to one commit (any revision, e.g. HEAD~2 or a sha)",
+			description: t("cli.git.pinTheViewToOneCommit"),
 			required: false,
 		}),
 	};
 
 	static flags = {
-		dir: Flags.string({ char: "C", description: "Run in another directory instead of the current one" }),
+		dir: Flags.string({ char: "C", description: t("cli.git.runInAnotherDirectoryInsteadOf") }),
 	};
 
 	static examples = ["omp git", "omp git HEAD~2", "omp git -C ~/projects/app"];

@@ -24,6 +24,7 @@ import { subprocessToolRegistry } from "../task/subprocess-tool-registry";
 import type { WorkPoolYieldItem } from "../task/workpool-yield";
 import type { ToolSession } from ".";
 import { buildOutputValidator, formatAllValidationIssues } from "./output-schema-validator";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const YIELD_FORMAT_HINT = 'Submit success as {"data":<your output>} or failure as {"error":"message"}.';
 
@@ -234,7 +235,7 @@ function wrapWorkPoolYieldParameters(items: readonly WorkPoolYieldItem[]): Recor
 				enum: items.map(item => item.index),
 				description: "1-based workpool item number",
 			},
-			data: { description: "Self-contained outcome and evidence for this item" },
+			data: { description: t("tui.ca.tools.yield.selfContainedOutcomeAndEvidenceFor") },
 			error: { type: "string", description: "Failure reason for this item" },
 		},
 		required: ["key"],
@@ -377,7 +378,7 @@ export class YieldTool implements AgentTool<TSchema, YieldDetails> {
 			} else {
 				this.#schemaStrict = false;
 				dataSchema = looseRecordSchema(
-					schemaError ? schemaDescription : "Structured JSON output (no schema specified)",
+					schemaError ? schemaDescription : t("tui.ca.tools.yield.structuredJsonOutputNoSchemaSpecified"),
 				);
 			}
 			parameters = buildYieldParameters(dataSchema);
@@ -511,7 +512,7 @@ export class YieldTool implements AgentTool<TSchema, YieldDetails> {
 		// legitimately closes the incremental flow (assembly keeps the sections).
 		if (status === "success" && useLastTurn && !isIncremental && this.#validate && !this.#hasIncrementalSections) {
 			throw new Error(
-				"This task requires structured output matching the declared schema; a last-turn result cannot satisfy it. " +
+				t("tui.ca.tools.yield.thisTaskRequiresStructuredOutputMatching") +
 					`Submit the full object: {"data":<object matching the schema>}.`,
 			);
 		}
@@ -631,7 +632,7 @@ export class YieldTool implements AgentTool<TSchema, YieldDetails> {
 						: `Item ${completedWorkPoolItem.index} submitted. Remaining item(s): ${remainingWorkPoolItems.map(item => item.index).join(", ")}.`
 					: schemaValidationOverridden
 						? `Result submitted (schema validation overridden after ${schemaValidationFailureCount} failed attempt(s)).`
-						: "Result submitted.";
+						: t("tui.ca.tools.yield.resultSubmitted");
 		return {
 			content: [{ type: "text", text: responseText }],
 			details: {

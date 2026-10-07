@@ -2,6 +2,7 @@ import { isRecord } from "@oh-my-pi/pi-utils";
 import type { CommitType, ConventionalAnalysis, ConventionalCommit, ConventionalDetail } from "../types";
 import { canonicalCommitType, coerceCommitType, conventionalAnalysis, conventionalCommit } from "./commit-types";
 import { codePointLength, sliceCodePoints } from "./text";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const PREFIX_RE = /^\s*(?:#+\s*)?(?<type>[a-z][a-z0-9-]*)(?:\((?<scope>[^)]+)\))?!?\s*:\s*(?<summary>.+?)\s*$/i;
 const ISSUE_RE = /#\d+(?:\s*-\s*#?\d+)?/g;
@@ -85,7 +86,7 @@ export function fallbackSummary(
 		candidate
 			.trim()
 			.replace(/[.;:]+$/g, "")
-			.trim() || "Updated files";
+			.trim() || t("tui.ca.commit.conventional.markdown.updatedFiles");
 	if (needsVerb && !startsWithPastTense(candidate))
 		candidate = `${SUMMARY_VERB_BY_TYPE[commitType] ?? "changed"} ${candidate}`;
 	const limit = Math.max(1, options.limit ?? 72);
@@ -112,7 +113,7 @@ export function parseSummaryMarkdown(text: string): string {
 	summary = stripLabelPrefix(summary);
 	summary = stripWrappingQuotes(summary);
 	summary = summary.split(/\s+/).filter(Boolean).join(" ");
-	if (!summary) throw new Error("Markdown summary empty after normalization");
+	if (!summary) throw new Error(t("tui.ca.commit.conventional.markdown.markdownSummaryEmptyAfterNormalization"));
 	return stripTypePrefix(summary);
 }
 
@@ -140,7 +141,7 @@ export function parseConventionalAnalysisMarkdown(
 		}
 	}
 	heading ??= coerced;
-	if (!heading) throw new Error("Markdown analysis type(scope): summary heading not found");
+	if (!heading) throw new Error(t("tui.ca.commit.conventional.markdown.markdownAnalysisTypeScopeSummaryHeading"));
 	const detailTexts: string[] = [];
 	const issueRefs: string[] = [];
 	for (const line of lines.slice(heading.index + 1)) {

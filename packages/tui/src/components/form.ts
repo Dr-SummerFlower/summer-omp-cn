@@ -11,6 +11,7 @@ import { Input } from "./input";
 import { type SelectItem, SelectList, type SelectListTheme } from "./select-list";
 import { Spacer } from "./spacer";
 import { Text } from "./text";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Styling hooks used by the reusable form-field layout. */
 export interface FormFieldTheme {
@@ -350,7 +351,7 @@ export class TextFormField extends FormField {
 				return;
 			}
 			if (empty === "reject") {
-				this.setError(this.#options.emptyError ?? "A value is required.");
+				this.setError(this.#options.emptyError ?? t("tui.components.form.aValueIsRequired"));
 				return;
 			}
 		}

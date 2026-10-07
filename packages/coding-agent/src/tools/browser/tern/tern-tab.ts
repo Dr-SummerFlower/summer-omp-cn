@@ -155,6 +155,7 @@ import {
 } from "./page-kit";
 import { parseTernSelector, type TernSelector } from "./selectors";
 import { TernBrowserError, type TernSocketClient } from "./wire";
+import { t } from "@oh-my-pi/pi-i18n";
 
 type WaitUntil = "load" | "domcontentloaded" | "networkidle0" | "networkidle2";
 type DragTarget = string | { readonly x: number; readonly y: number };
@@ -2019,7 +2020,7 @@ export class TernTab implements InProcessRunTab {
 			);
 		}
 		if (options.cpuThrottling !== undefined && options.cpuThrottling !== null && options.cpuThrottling !== 1) {
-			throw unsupported("emulate", "CPU throttling needs the Chromium DevTools protocol");
+			throw unsupported("emulate", t("tui.ca.tools.browser.tern.ternTab.cpuThrottlingNeedsTheChromiumDevtools"));
 		}
 		if (options.network !== undefined && options.network !== null) {
 			throw unsupported(
@@ -2597,7 +2598,7 @@ export class TernTab implements InProcessRunTab {
 			},
 			{
 				nativeSupported: false,
-				unavailableReason: "No page-side WebMCP tool registrations were observed in the main frame.",
+				unavailableReason: t("tui.ca.tools.browser.tern.ternTab.noPageSideWebmcpToolRegistrations"),
 			},
 		);
 		return this.#webmcp;
@@ -2719,22 +2720,28 @@ export class TernTab implements InProcessRunTab {
 
 	/** Unsupported: WKWebView has no tracing protocol. */
 	async traceStart(_options: { screenshots?: boolean; categories?: string[] } = {}): Promise<never> {
-		throw unsupported("traceStart", "WKWebView exposes no performance-trace protocol");
+		throw unsupported(
+			"traceStart",
+			t("tui.ca.tools.browser.tern.ternTab.wkwebviewExposesNoPerformanceTraceProtocol"),
+		);
 	}
 
 	/** Unsupported: WKWebView has no tracing protocol. */
 	async traceStop(_options: { path?: string } = {}): Promise<never> {
-		throw unsupported("traceStop", "WKWebView exposes no performance-trace protocol");
+		throw unsupported(
+			"traceStop",
+			t("tui.ca.tools.browser.tern.ternTab.wkwebviewExposesNoPerformanceTraceProtocol2"),
+		);
 	}
 
 	/** Unsupported: WKWebView has no CPU profiler protocol. */
 	async profileStart(): Promise<never> {
-		throw unsupported("profileStart", "WKWebView exposes no CPU-profiler protocol");
+		throw unsupported("profileStart", t("tui.ca.tools.browser.tern.ternTab.wkwebviewExposesNoCpuProfilerProtocol"));
 	}
 
 	/** Unsupported: WKWebView has no CPU profiler protocol. */
 	async profileStop(_options: { path?: string } = {}): Promise<never> {
-		throw unsupported("profileStop", "WKWebView exposes no CPU-profiler protocol");
+		throw unsupported("profileStop", t("tui.ca.tools.browser.tern.ternTab.wkwebviewExposesNoCpuProfilerProtocol2"));
 	}
 
 	#requireRunContext(operation: string): InProcessRunContext {
@@ -3252,7 +3259,7 @@ export class TernBrowserFacade {
 	}
 
 	async version(): Promise<string> {
-		return "Tern WKWebView";
+		return t("tui.ca.tools.browser.tern.ternTab.ternWkwebview");
 	}
 
 	wsEndpoint(): string {

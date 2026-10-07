@@ -21,6 +21,7 @@ import {
 } from "./contracts";
 import { exportSecurityBundleToSarif } from "./sarif";
 import type { SecurityStore } from "./store";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /**
  * ChatGPT's Codex Security cloud control plane. This authenticated web-app
@@ -457,7 +458,7 @@ function locationsAndEvidence(
 	if (validationReport) {
 		evidenceInputs.push({
 			kind: "validation",
-			label: "Cloud validation",
+			label: t("tui.ca.security.cloud.cloudValidation"),
 			explanation: validationReport,
 		});
 	}

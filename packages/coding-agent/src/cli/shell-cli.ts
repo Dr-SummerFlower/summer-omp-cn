@@ -12,6 +12,7 @@ import { Settings } from "../config/settings";
 import { buildMinimizerOptions } from "../exec/bash-executor";
 import { cfgShellMinimizer } from "../exec/settings";
 import { getOrCreateSnapshot } from "../utils/shell-snapshot";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export interface ShellCommandArgs {
 	cwd?: string;
@@ -45,7 +46,7 @@ export function parseShellArgs(args: string[]): ShellCommandArgs | undefined {
 
 export async function runShellCommand(cmd: ShellCommandArgs): Promise<void> {
 	if (!process.stdin.isTTY) {
-		process.stderr.write("Error: shell console requires an interactive TTY.\n");
+		process.stderr.write(t("cli.shell.errorShellConsoleRequiresAnInteractive"));
 		process.exit(1);
 	}
 
@@ -158,20 +159,13 @@ export async function runShellCommand(cmd: ShellCommandArgs): Promise<void> {
 }
 
 export function printShellHelp(): void {
-	process.stdout.write(`${chalk.bold(`${APP_NAME} shell`)} - Interactive shell console for testing
-
-${chalk.bold("Usage:")}
-  ${APP_NAME} shell [options]
-
-${chalk.bold("Options:")}
-  --cwd, -C <path>     Set working directory for commands
-  --timeout, -t <ms>   Timeout per command in milliseconds
-  --no-snapshot        Skip sourcing snapshot from user shell
-  -h, --help           Show this help
-
-${chalk.bold("Examples:")}
-  ${APP_NAME} shell
-  ${APP_NAME} shell --cwd ./tmp
-  ${APP_NAME} shell --timeout 2000
-`);
+	process.stdout.write(
+		t("cli.shell.help", {
+			title: chalk.bold(`${APP_NAME} shell`),
+			headingUsage: chalk.bold(t("cli.help.heading.usage")),
+			app: APP_NAME,
+			headingOptions: chalk.bold(t("cli.help.heading.options")),
+			headingExamples: chalk.bold(t("cli.help.heading.examples")),
+		}),
+	);
 }

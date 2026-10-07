@@ -54,6 +54,7 @@ import {
 	type StripChip as HubStripChip,
 	type StripState as HubStripState,
 } from "./hub-frame";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** One agent with its per-agent settings overrides resolved for display. */
 export interface HubAgent {
@@ -152,26 +153,26 @@ function extractJsonObject(raw: string): string {
 function parseGeneratedAgentSpec(raw: string): GeneratedAgentSpec {
 	const parsed = JSON.parse(extractJsonObject(raw)) as Partial<GeneratedAgentSpec>;
 	if (!parsed || typeof parsed !== "object") {
-		throw new Error("Model output is not a JSON object");
+		throw new Error(t("tui.overlays.agentsHub.modelOutputIsNotAJson"));
 	}
 	if (
 		typeof parsed.identifier !== "string" ||
 		typeof parsed.whenToUse !== "string" ||
 		typeof parsed.systemPrompt !== "string"
 	) {
-		throw new Error("Model output is missing required fields (identifier, whenToUse, systemPrompt)");
+		throw new Error(t("tui.overlays.agentsHub.modelOutputIsMissingRequiredFields"));
 	}
 	const identifier = parsed.identifier.trim();
 	const whenToUse = parsed.whenToUse.trim();
 	const systemPrompt = parsed.systemPrompt.trim();
 	if (!IDENTIFIER_PATTERN.test(identifier)) {
-		throw new Error("Generated identifier is invalid (must be lowercase kebab-case, 2+ words)");
+		throw new Error(t("tui.overlays.agentsHub.generatedIdentifierIsInvalidMustBe"));
 	}
 	if (!whenToUse.toLowerCase().startsWith("use this agent when")) {
-		throw new Error("Generated whenToUse must start with 'Use this agent when...'");
+		throw new Error(t("tui.overlays.agentsHub.generatedWhentouseMustStartWithUse"));
 	}
 	if (!systemPrompt) {
-		throw new Error("Generated systemPrompt is empty");
+		throw new Error(t("tui.overlays.agentsHub.generatedSystempromptIsEmpty"));
 	}
 	return { identifier, whenToUse, systemPrompt };
 }
@@ -330,7 +331,12 @@ export class AgentsHubComponent implements Component {
 		const counts: Record<AgentSource, number> = { project: 0, user: 0, bundled: 0 };
 		for (const agent of this.#allAgents) counts[agent.source]++;
 		const entries: SidebarEntry[] = [
-			{ id: "all", kind: "all", label: "All agents", annotation: String(this.#allAgents.length) },
+			{
+				id: "all",
+				kind: "all",
+				label: t("tui.overlays.agentsHub.allAgents"),
+				annotation: String(this.#allAgents.length),
+			},
 		];
 		const sources = (["project", "user", "bundled"] as const).filter(source => counts[source] > 0);
 		if (sources.length > 0) {
@@ -346,7 +352,7 @@ export class AgentsHubComponent implements Component {
 			}
 		}
 		entries.push({ id: "sep:actions", kind: "separator", label: "" });
-		entries.push({ id: "new", kind: "new", label: "New agent" });
+		entries.push({ id: "new", kind: "new", label: t("tui.overlays.agentsHub.newAgent3") });
 		this.#entries = entries;
 		if (!entries.some(entry => entry.id === this.#activeEntryId)) this.#activeEntryId = "all";
 	}
@@ -485,7 +491,7 @@ export class AgentsHubComponent implements Component {
 			active ? theme.fg("accent", `${theme.status.enabled} ${label}`) : theme.fg(color, label);
 		if (property === "model") {
 			chips.push({
-				label: "pick model…",
+				label: t("tui.overlays.agentsHub.pickModel"),
 				styled: theme.fg("accent", "pick model…"),
 				action: { kind: "pick", property },
 			});
@@ -496,14 +502,14 @@ export class AgentsHubComponent implements Component {
 			});
 			if (agent.overrideModel) {
 				chips.push({
-					label: "clear override",
+					label: t("tui.overlays.agentsHub.clearOverride"),
 					styled: theme.fg("warning", "clear override"),
 					action: { kind: "set", property, value: undefined },
 				});
 			}
 		} else {
 			chips.push({
-				label: "agent default",
+				label: t("tui.overlays.agentsHub.agentDefault"),
 				styled: mark("agent default", current === undefined),
 				action: { kind: "set", property, value: undefined },
 			});
@@ -644,7 +650,7 @@ export class AgentsHubComponent implements Component {
 		const description = rawDescription.trim();
 		this.#createDescription = description;
 		if (!description) {
-			this.#createError = "Description is required.";
+			this.#createError = t("tui.overlays.agentsHub.descriptionIsRequired");
 			this.#requestRender();
 			return;
 		}
@@ -1412,7 +1418,7 @@ export class AgentsHubComponent implements Component {
 				{ id: "back", label: strip.property ? "Back" : "Cancel", keys: ["esc"], end: true },
 			];
 		} else {
-			const noAgent = agent ? undefined : "Select an agent";
+			const noAgent = agent ? undefined : t("tui.overlays.agentsHub.selectAnAgent");
 			actions = [
 				{ id: "configure", label: agent ? "Configure" : "Create", keys: ["enter"], primary: true },
 				{
@@ -1439,7 +1445,7 @@ export class AgentsHubComponent implements Component {
 				layout: "rows",
 				preview: "side",
 				...pickerQuery(this.#search),
-				placeholder: "Search agents…",
+				placeholder: t("tui.overlays.agentsHub.searchAgents"),
 				scopes,
 				scope: entry.kind === "source" ? entry.id : "all",
 				columns: entry.kind === "source" ? AGENT_COLUMNS : [...AGENT_COLUMNS, SOURCE_COLUMN],
@@ -1468,7 +1474,7 @@ export class AgentsHubComponent implements Component {
 
 	#pickerItem(rowDef: ListRow): TspPickerItem {
 		if (rowDef.kind === "new") {
-			return { id: listRowId(rowDef), label: "New agent…", icon: "plus", tone: "muted" };
+			return { id: listRowId(rowDef), label: t("tui.overlays.agentsHub.newAgent"), icon: "plus", tone: "muted" };
 		}
 		const agent = rowDef.agent;
 		const prewalk = this.#deps.effectivePrewalkPattern(agent);
@@ -1479,7 +1485,7 @@ export class AgentsHubComponent implements Component {
 			mono: true,
 			detail: sanitizeDisplaySingleLine(agent.description),
 			dot: agent.disabled ? "muted" : "success",
-			disabled: agent.disabled ? "Disabled · space to enable" : undefined,
+			disabled: agent.disabled ? t("tui.overlays.agentsHub.disabledSpaceToEnable") : undefined,
 			facts: {
 				model: agent.overrideModel ? agent.overrideModel : [span("auto", "dim")],
 				prewalk: prewalk ?? [span("off", "dim")],
@@ -1509,15 +1515,15 @@ export class AgentsHubComponent implements Component {
 		if (rowDef.kind === "new") {
 			return [
 				text("New agent", { role: "omp.picker.title" }),
-				md(
-					"Describe what the agent should do; the architect drafts its name, when to use it and its system prompt.",
-				),
+				md(t("tui.overlays.agentsHub.describeWhatTheAgentShouldDo")),
 			];
 		}
 		const agent = rowDef.agent;
 		const patterns = this.#deps.effectiveModelPatterns(agent);
 		const resolved = this.#deps.resolvePatterns(patterns);
-		const model: TspSpan[] = [patterns.length > 0 ? span(patterns.join(","), "mono") : span("session model", "dim")];
+		const model: TspSpan[] = [
+			patterns.length > 0 ? span(patterns.join(","), "mono") : span(t("tui.overlays.agentsHub.sessionModel"), "dim"),
+		];
 		if (resolved) model.push(span(" → ", "dim"), span(resolved, "mono success"));
 		const prewalk = this.#deps.effectivePrewalkPattern(agent);
 		const advisor = this.#deps.effectiveAdvisorPattern(agent);
@@ -1542,7 +1548,7 @@ export class AgentsHubComponent implements Component {
 			out.push(
 				node(
 					"section",
-					{ head: "System prompt", role: "omp.agents.prompt" },
+					{ head: t("tui.overlays.agentsHub.systemPrompt"), role: "omp.agents.prompt" },
 					[code(agent.systemPrompt, { lang: "md", wrap: true })],
 					"prompt",
 				),
@@ -1573,7 +1579,7 @@ export class AgentsHubComponent implements Component {
 			const what = property === "model" ? "model override" : `${property} model`;
 			return [span(`Picking ${what} for `, "accent"), span(agent.name, "accent strong")];
 		}
-		if (this.#createActive) return [span("New agent — describe it and let the architect draft it", "accent")];
+		if (this.#createActive) return [span(t("tui.overlays.agentsHub.newAgentDescribeItAndLet"), "accent")];
 		if (this.#notice) return [span(this.#notice, "success")];
 		const entry = this.#activeEntry();
 		const scopeLabel = entry.kind === "source" ? `${entry.label} agents` : "All agents";
@@ -1586,7 +1592,7 @@ export class AgentsHubComponent implements Component {
 			"text",
 			{
 				spans: [
-					span("search: ", "muted"),
+					span(t("tui.overlays.agentsHub.search"), "muted"),
 					this.#search.getValue() ? span(this.#search.getValue(), "accent") : span("type to filter", "dim"),
 				],
 				truncate: "end",
@@ -1596,7 +1602,12 @@ export class AgentsHubComponent implements Component {
 		);
 		const items = this.#rows.map(rowDef =>
 			rowDef.kind === "new"
-				? node("item", { label: [span("+ New agent…", "dim")] }, undefined, listRowId(rowDef))
+				? node(
+						"item",
+						{ label: [span(t("tui.overlays.agentsHub.newAgent2"), "dim")] },
+						undefined,
+						listRowId(rowDef),
+					)
 				: this.#describeAgentItem(rowDef.agent),
 		);
 		const selectedRow = this.#rows[this.#rowIndex];
@@ -1647,7 +1658,12 @@ export class AgentsHubComponent implements Component {
 	#describeDetail(): NativeNode {
 		const agent = this.#selectedAgent();
 		if (!agent) {
-			return node("section", {}, [text([span("Select an agent to inspect", "dim")])], "detail");
+			return node(
+				"section",
+				{},
+				[text([span(t("tui.overlays.agentsHub.selectAnAgentToInspect"), "dim")])],
+				"detail",
+			);
 		}
 		const patterns = this.#deps.effectiveModelPatterns(agent);
 		const resolved = this.#deps.resolvePatterns(patterns);
@@ -1675,7 +1691,7 @@ export class AgentsHubComponent implements Component {
 		const spec = this.#createSpec;
 		if (spec) {
 			nodes.push(
-				text([span("Review generated agent", "accent strong")]),
+				text([span(t("tui.overlays.agentsHub.reviewGeneratedAgent"), "accent strong")]),
 				node("kv", {
 					items: [
 						{ k: [span("Identifier", "muted")], v: [span(spec.identifier, "code")] },
@@ -1686,7 +1702,7 @@ export class AgentsHubComponent implements Component {
 				node(
 					"card",
 					{
-						head: [span("System prompt", "muted")],
+						head: [span(t("tui.overlays.agentsHub.systemPrompt2"), "muted")],
 						collapsible: true,
 						collapsed: this.#promptCollapsed,
 						preview: { lines: 8 },
@@ -1697,10 +1713,16 @@ export class AgentsHubComponent implements Component {
 			);
 		} else {
 			nodes.push(
-				text([span("Create new agent", "accent strong")]),
-				text([span("Describe what the agent should do; scope: ", "muted"), span(this.#createScope, "accent")], {
-					wrap: "word",
-				}),
+				text([span(t("tui.overlays.agentsHub.createNewAgent"), "accent strong")]),
+				text(
+					[
+						span(t("tui.overlays.agentsHub.describeWhatTheAgentShouldDo2"), "muted"),
+						span(this.#createScope, "accent"),
+					],
+					{
+						wrap: "word",
+					},
+				),
 			);
 			if (this.#createInput && !this.#createGenerating) {
 				nodes.push(this.#createInput);

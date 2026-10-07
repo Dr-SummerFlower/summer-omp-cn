@@ -3,6 +3,7 @@ import * as AIError from "@oh-my-pi/pi-ai/error";
 import { COLLAB_PROMPT_MESSAGE_TYPE } from "@oh-my-pi/pi-wire";
 import type { OutputMeta } from "../tools/output-meta";
 import type { BranchSummaryMessage, CompactionSummaryMessage } from "@oh-my-pi/pi-agent-core/compaction/messages";
+import { t } from "@oh-my-pi/pi-i18n";
 
 declare module "@oh-my-pi/pi-agent-core" {
 	interface CustomAgentMessages {
@@ -98,7 +99,7 @@ export function isSilentAbort(message: Pick<AssistantMessage, "errorId" | "error
  *  aborted assistant message's `errorMessage` so queued follow-ups/tool-result
  *  placeholders can distinguish a deliberate interrupt from a bare lifecycle
  *  abort, but interactive renderers suppress this redundant transcript line. */
-export const USER_INTERRUPT_LABEL = "Interrupted by user";
+export const USER_INTERRUPT_LABEL = t("tui.chat.messages.interruptedByUser");
 
 export function isUserInterruptAbort(message: Pick<AssistantMessage, "errorId" | "errorMessage">): boolean {
 	return AIError.is(message.errorId, AIError.Flag.UserInterrupt) || message.errorMessage === USER_INTERRUPT_LABEL;
@@ -132,7 +133,7 @@ export function resolveAbortLabel(
 	if (retryAttempt > 0) {
 		return `Aborted after ${retryAttempt} retry attempt${retryAttempt > 1 ? "s" : ""}`;
 	}
-	return "Operation aborted";
+	return t("tui.chat.messages.operationAborted");
 }
 
 /** True when a persisted or extension-supplied value can be sent as custom-message content. */

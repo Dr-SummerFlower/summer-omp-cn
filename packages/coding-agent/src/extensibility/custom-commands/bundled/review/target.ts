@@ -1,5 +1,6 @@
 import * as vcs from "@oh-my-pi/pi-natives/vcs";
 import { parseReviewDiffSnapshot, type ReviewDiffSnapshot } from "./diff";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export type LocalReviewKind = "base-branch" | "uncommitted" | "commit";
 
@@ -26,9 +27,12 @@ export const LOCAL_REVIEW_CHOICES: ReadonlyArray<{ label: string; kind: LocalRev
 	{ label: "3. Review a specific commit", kind: "commit" },
 ];
 
-const GIT_UNCOMMITTED_DIFF_INSTRUCTION =
-	"MUST run both `git diff -- <path>` and `git diff --cached -- <path>` for assigned files";
-const JJ_UNCOMMITTED_DIFF_INSTRUCTION = "MUST run `jj --ignore-working-copy diff --git -- <path>` for assigned files";
+const GIT_UNCOMMITTED_DIFF_INSTRUCTION = t(
+	"tui.ca.extensibility.customCommands.bundled.review.target.mustRunBothGitDiffPath",
+);
+const JJ_UNCOMMITTED_DIFF_INSTRUCTION = t(
+	"tui.ca.extensibility.customCommands.bundled.review.target.mustRunJjIgnoreWorkingCopy",
+);
 
 export function createResolvedReviewTarget(
 	kind: ResolvedReviewTarget["kind"],
@@ -50,7 +54,10 @@ export function createResolvedReviewTarget(
 export function getReviewTargetIssue(target: ResolvedReviewTarget): string | undefined {
 	if (!target.rawDiff.trim()) return target.emptyMessage;
 	if (target.snapshot.files.length === 0) {
-		return target.filteredMessage ?? "No reviewable files (all changes filtered out)";
+		return (
+			target.filteredMessage ??
+			t("tui.ca.extensibility.customCommands.bundled.review.target.noReviewableFilesAllChangesFiltered")
+		);
 	}
 	return undefined;
 }
@@ -66,9 +73,13 @@ export async function readUncommittedReviewTarget(cwd: string): Promise<Resolved
 	const isJj = repository.kind() === "jj";
 	return createResolvedReviewTarget(
 		"uncommitted",
-		isJj ? "Reviewing JJ working-copy changes" : "Reviewing uncommitted changes (staged + unstaged)",
+		isJj
+			? t("tui.ca.extensibility.customCommands.bundled.review.target.reviewingJjWorkingCopyChanges")
+			: "Reviewing uncommitted changes (staged + unstaged)",
 		diffText,
-		isJj || !diffText.trim() ? "No uncommitted changes found" : "No diff content found",
+		isJj || !diffText.trim()
+			? t("tui.ca.extensibility.customCommands.bundled.review.target.noUncommittedChangesFound")
+			: "No diff content found",
 		{ diffInstruction: isJj ? JJ_UNCOMMITTED_DIFF_INSTRUCTION : GIT_UNCOMMITTED_DIFF_INSTRUCTION },
 	);
 }
@@ -106,7 +117,7 @@ export async function resolveLocalReviewTarget(
 		case "base-branch": {
 			const branches = await listGitBranches(cwd);
 			if (branches.length === 0) {
-				ui.notify("No git branches found", "error");
+				ui.notify(t("tui.ca.extensibility.customCommands.bundled.review.target.noGitBranchesFound"), "error");
 				return undefined;
 			}
 			const baseBranch = await ui.select("Select base branch to compare against", branches);
@@ -146,7 +157,7 @@ export async function resolveLocalReviewTarget(
 		case "commit": {
 			const commits = await recentCommits(cwd, 20);
 			if (commits.length === 0) {
-				ui.notify("No commits found", "error");
+				ui.notify(t("tui.ca.extensibility.customCommands.bundled.review.target.noCommitsFound"), "error");
 				return undefined;
 			}
 			const selectedCommit = await ui.select("Select commit to review", commits);
@@ -163,9 +174,11 @@ export async function resolveLocalReviewTarget(
 				"commit",
 				`Reviewing commit \`${hash}\``,
 				diffText,
-				"Commit has no diff content",
+				t("tui.ca.extensibility.customCommands.bundled.review.target.commitHasNoDiffContent"),
 				{
-					filteredMessage: "No reviewable files in commit (all changes filtered out)",
+					filteredMessage: t(
+						"tui.ca.extensibility.customCommands.bundled.review.target.noReviewableFilesInCommitAll",
+					),
 				},
 			);
 		}

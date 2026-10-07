@@ -1,4 +1,5 @@
 import type { AssistantMessage } from "@oh-my-pi/pi-ai";
+import { t } from "@oh-my-pi/pi-i18n";
 import { formatDoubleTap } from "@oh-my-pi/pi-tui/app-keybindings";
 import { appKey } from "@oh-my-pi/pi-tui/chrome/keybinding-hints";
 import { AgentLifecycleManager } from "../../registry/agent-lifecycle";
@@ -65,7 +66,7 @@ export class SessionFocusController {
 	}
 	/** Focus the main view on an agent's live session. Throws an Error with a user-displayable message. */
 	async focusAgent(id: string): Promise<void> {
-		if (this.ctx.collabGuest) throw new Error("Viewing agents is unavailable in a collab session.");
+		if (this.ctx.collabGuest) throw new Error(t("tui.sessionFocus.collabUnavailable"));
 		if (id === MAIN_AGENT_ID) return this.unfocus();
 		const request = ++this.#focusRequestSeq;
 		let session: AgentSession;
@@ -106,7 +107,11 @@ export class SessionFocusController {
 		if (request !== this.#focusRequestSeq) return;
 		if (attached && this.#focusedAgentId === id && this.#attachedSession === session) {
 			this.ctx.showStatus(
-				`Viewing agent ${id} — ${appKey(this.ctx.keybindings, "app.interrupt")} returns to main, ${formatDoubleTap("left")} hops to parent`,
+				t("tui.sessionFocus.viewingAgent", {
+					id,
+					key: appKey(this.ctx.keybindings, "app.interrupt"),
+					doubleTap: formatDoubleTap("left"),
+				}),
 			);
 		}
 	}
@@ -140,7 +145,7 @@ export class SessionFocusController {
 		this.#focusedAgentId = undefined;
 		this.#attachedSession = undefined;
 		const attached = await this.#attach(this.ctx.session);
-		if (attached && this.#focusedAgentId === undefined) this.ctx.showStatus("Returned to main session");
+		if (attached && this.#focusedAgentId === undefined) this.ctx.showStatus(t("tui.sessionFocus.returnedToMain"));
 	}
 
 	dispose(): void {
@@ -166,7 +171,10 @@ export class SessionFocusController {
 		const dead = event.type === "status_changed" && (event.ref.status === "parked" || event.ref.status === "aborted");
 		if (!gone && !dead) return;
 		void this.#detachToMain().then(() => {
-			this.ctx.showStatus(`Agent ${event.ref.id} is ${gone ? "gone" : event.ref.status}; returned to main session`);
+			const status = gone
+				? t("tui.sessionFocus.gone")
+				: t(event.ref.status === "parked" ? "tui.agentHub.status.parked" : "tui.agentHub.status.aborted");
+			this.ctx.showStatus(t("tui.sessionFocus.agentReturned", { id: event.ref.id, status }));
 		});
 	}
 
@@ -245,10 +253,7 @@ export class SessionFocusController {
 					try {
 						await this.#attach(this.ctx.session);
 					} catch (recoveryError) {
-						throw new AggregateError(
-							[error, recoveryError],
-							"Focus attachment and main-session recovery both failed",
-						);
+						throw new AggregateError([error, recoveryError], t("tui.sessionFocus.recoveryFailed"));
 					}
 				}
 			}

@@ -8,6 +8,7 @@ import type { ToolSession } from ".";
 
 import { cfgMemoryBackend } from "../memory-backend/settings";
 import { isGlobalMemoryScopeAvailable } from "../mnemopi/settings";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const memoryRetainSchemaBase = type({
 	items: type({
@@ -66,7 +67,7 @@ export class MemoryRetainTool implements AgentTool<MemoryRetainSchema, MemoryRet
 		if (backend === "mnemopi") {
 			const state = this.session.getMnemopiSessionState?.();
 			if (!state) {
-				throw new Error("Mnemopi backend is not initialised for this session.");
+				throw new Error(t("tui.ca.tools.memoryRetain.mnemopiBackendIsNotInitialisedFor"));
 			}
 			// Resolve the global bank first, so an unsupported scoping mode rejects the batch before any item is stored.
 			const globalTarget = params.items.some(item => item.scope === "global")
@@ -103,7 +104,7 @@ export class MemoryRetainTool implements AgentTool<MemoryRetainSchema, MemoryRet
 					const reason = error instanceof Error ? error.message : String(error);
 					const kept =
 						storedIds.length === 0
-							? "Nothing was stored."
+							? t("tui.ca.tools.memoryRetain.nothingWasStored")
 							: `Stored before the failure and kept: ${storedIds.map((storedId, storedIndex) => `item ${storedIndex + 1} (id ${storedId})`).join(", ")}.`;
 					const untried = index + 1 < params.items.length ? " Later items were not attempted." : "";
 					throw new Error(
@@ -124,10 +125,10 @@ export class MemoryRetainTool implements AgentTool<MemoryRetainSchema, MemoryRet
 
 		const state = this.session.getHindsightSessionState?.();
 		if (!state) {
-			throw new Error("Hindsight backend is not initialised for this session.");
+			throw new Error(t("tui.ca.tools.memoryRetain.hindsightBackendIsNotInitialisedFor"));
 		}
 		if (params.items.some(item => item.scope === "global")) {
-			throw new Error("Global memory scope is only available with the Mnemopi backend.");
+			throw new Error(t("tui.ca.tools.memoryRetain.globalMemoryScopeIsOnlyAvailable"));
 		}
 
 		// Push every item onto the session-owned queue and return immediately.

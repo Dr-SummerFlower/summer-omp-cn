@@ -19,6 +19,7 @@ import type { AskToolDetails, QuestionResult } from "@oh-my-pi/pi-tui/tools/ask"
 import { type as arkType } from "@oh-my-pi/omptype";
 import type { AgentTool, AgentToolContext, AgentToolResult, AgentToolUpdateCallback } from "@oh-my-pi/pi-agent-core";
 import { type ImageContent, type TextContent, type ToolExample, validateToolArguments } from "@oh-my-pi/pi-ai";
+import { t } from "@oh-my-pi/pi-i18n";
 import { replaceTabs, TERMINAL, truncateToWidth } from "@oh-my-pi/pi-tui";
 import { isRecord, logger, prompt, untilAborted } from "@oh-my-pi/pi-utils";
 
@@ -247,8 +248,15 @@ async function askSingleQuestion(
 			timeoutTriggered = true;
 		};
 		let navigationAction: "back" | "forward" | undefined;
-		const questionHint = navigation ? `${formatKeyHints(["left", "right"])} question  ` : "";
-		const helpText = `${editorKeys("tui.select.up", "tui.select.down")} navigate  ${formatKeyHint("enter")} select  ${questionHint}${editorKey("tui.select.cancel")} cancel`;
+		const questionHint = navigation
+			? t("tui.ask.helpQuestion", { leftRight: formatKeyHints(["left", "right"]) })
+			: "";
+		const helpText = t("tui.ask.help", {
+			upDown: editorKeys("tui.select.up", "tui.select.down"),
+			enter: formatKeyHint("enter"),
+			extra: questionHint,
+			escape: editorKey("tui.select.cancel"),
+		});
 		const timeoutMs = typeof timeout === "number" && timeout > 0 ? timeout : undefined;
 		const timeoutController = timeoutMs === undefined ? undefined : new AbortController();
 		const dialogSignal =
@@ -344,7 +352,7 @@ async function askSingleQuestion(
 			for (let i = 0; i < questionOptions.length; i++) {
 				if (selected.has(questionOptions[i]!.label)) checkedIndices.push(i);
 			}
-			const prefix = selected.size > 0 ? `(${selected.size} selected) ` : "";
+			const prefix = selected.size > 0 ? t("tui.ask.selectedCount", { count: String(selected.size) }) : "";
 			const {
 				choice,
 				timedOut: selectTimedOut,
@@ -526,7 +534,7 @@ function formatSingleQuestionResponse(result: {
 		);
 	}
 	if (responseParts.length > 0) return responseParts.join("\n");
-	return result.multi ? "User did not select any options" : "User cancelled the selection";
+	return result.multi ? t("tui.ca.tools.ask.userDidNotSelectAnyOptions") : "User cancelled the selection";
 }
 
 // =============================================================================
@@ -588,7 +596,7 @@ export class AskTool implements AgentTool<typeof askSchema, AskToolDetails> {
 		if (method === "off") return;
 		TERMINAL.sendNotification({
 			title: "omp",
-			body: "Waiting for input",
+			body: t("tui.ask.waitingForInput"),
 			type: "ask",
 			urgency: "normal",
 			actions: "focus",
@@ -800,7 +808,7 @@ export class AskTool implements AgentTool<typeof askSchema, AskToolDetails> {
 					};
 				}
 				if (richResult.results.length !== params.questions.length) {
-					throw new Error("Ask dialog returned a result count that does not match the requested questions");
+					throw new Error(t("tui.ca.tools.ask.askDialogReturnedAResultCount"));
 				}
 				const results: QuestionResult[] = [];
 				// Each prompt numbers markers from 1; shift them so `[Image #N]` indexes all result images.
@@ -809,7 +817,7 @@ export class AskTool implements AgentTool<typeof askSchema, AskToolDetails> {
 					const question = params.questions[index];
 					const result = richResult.results[index];
 					if (!question || !result || result.id !== question.id) {
-						throw new Error("Ask dialog returned results that do not match the requested question order");
+						throw new Error(t("tui.ca.tools.ask.askDialogReturnedResultsThatDo"));
 					}
 					const customOffset = answerImages.length;
 					if (result.customInputImages) answerImages.push(...result.customInputImages);
@@ -937,7 +945,7 @@ export class AskTool implements AgentTool<typeof askSchema, AskToolDetails> {
 		let questionIndex = 0;
 		while (questionIndex < params.questions.length) {
 			const q = params.questions[questionIndex];
-			if (!q) throw new Error("Ask question index exceeded the requested question list");
+			if (!q) throw new Error(t("tui.ca.tools.ask.askQuestionIndexExceededTheRequested"));
 			const previous = resultsByIndex[questionIndex];
 			const navigation: NavigationControls = {
 				allowBack: questionIndex > 0,

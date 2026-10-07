@@ -5,25 +5,30 @@ import { Args, CliUsageError, Command, Flags } from "@oh-my-pi/pi-utils/cli";
 import { runCollabLinkCommand, runCollabListCommand } from "../cli/collab-cli";
 import { collabHelp as commandHelp } from "../cli/command-help";
 import { CollabLinkError } from "../collab/registry";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export default class Collab extends Command {
 	static description = commandHelp.description;
 
 	static args = {
 		action: Args.string({
-			description: "list (default) or link",
+			description: t("cli.collab.listDefaultOrLink"),
 			required: false,
 			options: ["list", "link"],
 		}),
-		selector: Args.string({ description: "Host instance ID or PID (link only)", required: false }),
+		selector: Args.string({ description: t("cli.collab.hostInstanceIdOrPidLink"), required: false }),
 	};
 
 	static flags = {
 		view: Flags.boolean({
-			description: "Request a view-only link instead of control access (link only)",
+			description: t("cli.collab.requestAViewOnlyLinkInstead"),
 			default: false,
 		}),
-		json: Flags.boolean({ char: "j", description: "Emit deterministic machine-readable JSON", default: false }),
+		json: Flags.boolean({
+			char: "j",
+			description: t("cli.collab.emitDeterministicMachineReadableJson"),
+			default: false,
+		}),
 	};
 
 	static examples = [

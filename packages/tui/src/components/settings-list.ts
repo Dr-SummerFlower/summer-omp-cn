@@ -14,6 +14,7 @@ import { Ellipsis, padding, replaceTabs, truncateToWidth, visibleWidth, wrapText
 import { ScrollView } from "./scroll-view";
 import { FormField, type FormFieldOptions, type FormFieldTheme, SelectFormField, TextFormField } from "./form";
 import { MenuSelection } from "./menu-selection";
+import { t } from "@oh-my-pi/pi-i18n";
 
 function sanitizeSingleLine(text: string): string {
 	return replaceTabs(text)
@@ -805,7 +806,9 @@ export class SettingsList implements Component {
 		const lines: string[] = [];
 
 		if (this.#items.length === 0) {
-			lines.push(this.#theme.hint(`  ${this.#options.emptyText ?? "No settings available"}`));
+			lines.push(
+				this.#theme.hint(`  ${this.#options.emptyText ?? t("tui.components.settingsList.noSettingsAvailable")}`),
+			);
 			return lines;
 		}
 

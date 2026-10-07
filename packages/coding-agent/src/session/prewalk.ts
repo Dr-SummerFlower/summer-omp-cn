@@ -1,6 +1,7 @@
 import type { Agent, AgentMessage, AgentToolResult, AgentTurnEndContext } from "@oh-my-pi/pi-agent-core";
 import { invalidateMessageCache } from "@oh-my-pi/pi-agent-core/compaction";
 import type { Model, ToolResultMessage } from "@oh-my-pi/pi-ai";
+import { t } from "@oh-my-pi/pi-i18n";
 import { logger, prompt } from "@oh-my-pi/pi-utils";
 import type { Settings } from "../config/settings";
 import type { LocalProtocolOptions } from "../internal-urls";
@@ -144,7 +145,7 @@ export class PrewalkCoordinator {
 		this.#clearPrewalkState();
 		this.#host.emitNotice(
 			"info",
-			`Prewalk: target ${prewalk.target.provider}/${prewalk.target.id} already matches the active model and thinking level; nothing to switch.`,
+			t("tui.session.prewalkNoop", { target: `${prewalk.target.provider}/${prewalk.target.id}` }),
 			"prewalk",
 		);
 	}
@@ -191,7 +192,7 @@ export class PrewalkCoordinator {
 					attribution: "agent",
 					timestamp: Date.now(),
 				});
-				this.#host.emitNotice("info", "Prewalk: injected deep-plan nudge.", "prewalk");
+				this.#host.emitNotice("info", t("tui.session.prewalkDeepPlanNudge"), "prewalk");
 			}
 			return;
 		}
@@ -210,7 +211,10 @@ export class PrewalkCoordinator {
 		this.#clearPrewalkState();
 		this.#host.emitNotice(
 			"info",
-			`Prewalk: switched to ${target.provider}/${target.id} after first ${action.toolName} call.`,
+			t("tui.session.prewalkSwitched", {
+				target: `${target.provider}/${target.id}`,
+				tool: action.toolName,
+			}),
 			"prewalk",
 		);
 		this.#host.agent.steer({
@@ -231,7 +235,7 @@ export class PrewalkCoordinator {
 		this.#clearPrewalkState();
 		this.#host.emitNotice(
 			"info",
-			`Prewalk: disarmed; staying on the active model instead of switching to ${active.target.provider}/${active.target.id}.`,
+			t("tui.session.prewalkDisarmed", { target: `${active.target.provider}/${active.target.id}` }),
 			"prewalk",
 		);
 	}
@@ -242,7 +246,9 @@ export class PrewalkCoordinator {
 		if (active) {
 			this.#host.emitNotice(
 				"info",
-				`Prewalk: already armed for ${active.target.provider}/${active.target.id}, waiting for the first edit/write.`,
+				t("tui.session.prewalkAlreadyArmed", {
+					target: `${active.target.provider}/${active.target.id}`,
+				}),
 				"prewalk",
 			);
 			return (
@@ -270,7 +276,7 @@ export class PrewalkCoordinator {
 		});
 		this.#host.emitNotice(
 			"info",
-			`Prewalk: armed for ${target.provider}/${target.id} — will switch at the first edit/write once the todo list exists.`,
+			t("tui.session.prewalkArmed", { target: `${target.provider}/${target.id}` }),
 			"prewalk",
 		);
 		return true;
@@ -356,7 +362,7 @@ export class PrewalkCoordinator {
 	async #finalizePlanYoloProposal(title: string): Promise<AgentToolResult<unknown>> {
 		const planYolo = this.#planYolo;
 		const state = this.#host.getPlanModeState();
-		if (!planYolo || !state?.enabled) throw new ToolError("Plan mode is not active.");
+		if (!planYolo || !state?.enabled) throw new ToolError(t("tui.session.planModeNotActive"));
 		const {
 			planFilePath,
 			planContent,
@@ -381,7 +387,7 @@ export class PrewalkCoordinator {
 			});
 			if (autosavedPlan) {
 				const displayPath = truncateToWidth(replaceTabs(shortenPath(autosavedPlan)), TRUNCATE_LENGTHS.CONTENT);
-				this.#host.emitNotice("info", `Plan autosaved to ${displayPath}.`, "plan-yolo");
+				this.#host.emitNotice("info", t("tui.session.planAutosaved", { path: displayPath }), "plan-yolo");
 			}
 		} catch (error) {
 			logger.warn("Failed to autosave approved plan", { error });
@@ -393,11 +399,7 @@ export class PrewalkCoordinator {
 				),
 				TRUNCATE_LENGTHS.CONTENT,
 			);
-			this.#host.emitNotice(
-				"warning",
-				`Plan autosave failed: ${detail} Continuing with implementation.`,
-				"plan-yolo",
-			);
+			this.#host.emitNotice("warning", t("tui.session.planAutosaveFailed", { detail }), "plan-yolo");
 		}
 		this.#host.setPlanModeState(undefined);
 		const previousPresentation = this.#planYoloPreviousNonMCPPresentation;
@@ -415,7 +417,10 @@ export class PrewalkCoordinator {
 		await this.#host.setModelTemporary(planYolo.target, planYolo.thinkingLevel, { ephemeral: true });
 		this.#host.emitNotice(
 			"info",
-			`Plan-yolo: plan approved, switched to ${planYolo.target.provider}/${planYolo.target.id} to implement "${resolvedTitle}".`,
+			t("tui.session.planYoloApproved", {
+				target: `${planYolo.target.provider}/${planYolo.target.id}`,
+				title: resolvedTitle,
+			}),
 			"plan-yolo",
 		);
 		this.#host.agent.steer({

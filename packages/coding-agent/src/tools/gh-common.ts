@@ -8,6 +8,7 @@ import type { GhToolDetails } from "@oh-my-pi/pi-tui/tools/github";
 import type { GhLabel, GhUser } from "./gh-types";
 import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";
 import { toolResult } from "./tool-result";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export function normalizeText(value: string | null | undefined): string {
 	return (value ?? "").replaceAll("\r\n", "\n").replaceAll("\r", "\n").replaceAll("\t", "    ").trim();
@@ -341,7 +342,11 @@ export function buildTextResult(
 	options?: { artifactId?: string; artifactLabel?: string; useless?: boolean },
 ): AgentToolResult<GhToolDetails> {
 	const builder = toolResult<GhToolDetails>(details).text(
-		appendArtifactReference(text, options?.artifactId, options?.artifactLabel ?? "Saved artifact"),
+		appendArtifactReference(
+			text,
+			options?.artifactId,
+			options?.artifactLabel ?? t("tui.ca.tools.ghCommon.savedArtifact"),
+		),
 	);
 	if (sourceUrl) {
 		builder.sourceUrl(sourceUrl);

@@ -1,6 +1,7 @@
 import * as path from "node:path";
 import type { CommitType, ConventionalAnalysis, NumstatEntry } from "../../commit/types";
 import type { CommitProposal } from "./state";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const TEST_PATTERNS = ["/test/", "/tests/", "/__tests__/", "_test.", ".test.", ".spec.", "_spec."];
 const DOC_EXTENSIONS = new Set([".md", ".txt", ".rst", ".adoc"]);
@@ -91,6 +92,6 @@ export function generateFallbackProposal(numstat: NumstatEntry[]): CommitProposa
 	return {
 		analysis,
 		summary,
-		warnings: ["Commit generated using fallback due to agent failure"],
+		warnings: [t("tui.ca.commit.agentic.fallback.commitGeneratedUsingFallbackDueTo")],
 	};
 }

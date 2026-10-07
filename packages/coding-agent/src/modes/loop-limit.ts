@@ -1,3 +1,4 @@
+import { t } from "@oh-my-pi/pi-i18n";
 import { readShellWord } from "../tools/shell-tokenize";
 import type { LoopConditionConfig, LoopLimitRuntime } from "@oh-my-pi/pi-tui/status-line/loop";
 
@@ -29,8 +30,9 @@ const TIME_UNITS_MS = new Map<string, number>([
 	["hours", 3_600_000],
 ]);
 
-const LOOP_USAGE =
-	"Usage: /loop [count|duration] [--while|--until '<command>'] [prompt]. Examples: /loop 10, /loop 10m, /loop 20 --until 'bun test' fix the failing tests.";
+function loopUsage(): string {
+	return t("tui.loop.usage");
+}
 
 /**
  * Flag → `until` polarity. `--while` continues while the command succeeds;
@@ -111,7 +113,7 @@ function takeLoopLimit(input: string): { limit?: LoopLimitConfig; rest: string }
 	}
 
 	// Limit-shaped but unparseable ("-1", "1.5h", "10x10").
-	return LOOP_USAGE;
+	return loopUsage();
 }
 
 /** Split an optional leading `--while` / `--until` flag off the argument string. */
@@ -123,16 +125,16 @@ function takeLoopCondition(input: string): { condition?: LoopConditionConfig; re
 		const name = /^(--[a-z][a-z-]*)(?=[\s=]|$)/.exec(rest)?.[1];
 		const until = name === undefined ? undefined : CONDITION_FLAGS[name];
 		if (name === undefined || until === undefined) {
-			return `Unknown /loop flag ${name ?? rest.split(/\s+/, 1)[0]}. ${LOOP_USAGE}`;
+			return t("tui.loop.unknownFlag", { flag: name ?? rest.split(/\s+/, 1)[0], usage: loopUsage() });
 		}
-		if (condition) return "Use only one of --while or --until.";
+		if (condition) return t("tui.loop.bothFlags");
 
 		const afterName = rest.slice(name.length);
 		const valueText = afterName.startsWith("=") ? afterName.slice(1) : afterName;
 		const value = readShellWord(valueText);
-		if (value === "unterminated") return `${name} has an unterminated quote.`;
+		if (value === "unterminated") return t("tui.loop.unterminatedQuote", { flag: name });
 		if (value === undefined || !value.value.trim() || valueText.trim().startsWith("-")) {
-			return `${name} needs a shell command. Quote it when it contains spaces: /loop ${name} 'bun test'.`;
+			return t("tui.loop.needsCommand", { flag: name });
 		}
 		condition = { command: value.value.trim(), until };
 		rest = value.rest;
@@ -144,7 +146,7 @@ function takeLoopCondition(input: string): { condition?: LoopConditionConfig; re
 function makeIterations(amountText: string): LoopLimitConfig | string {
 	const amount = Number(amountText);
 	if (!Number.isSafeInteger(amount) || amount <= 0) {
-		return "Loop count must be a positive integer.";
+		return t("tui.loop.countPositive");
 	}
 	return { kind: "iterations", iterations: amount };
 }
@@ -152,7 +154,7 @@ function makeIterations(amountText: string): LoopLimitConfig | string {
 function makeDuration(amountText: string, unitMs: number): LoopLimitConfig | string {
 	const amount = Number(amountText);
 	if (!Number.isSafeInteger(amount) || amount <= 0) {
-		return "Loop duration must be positive.";
+		return t("tui.loop.durationPositive");
 	}
 	return { kind: "duration", durationMs: amount * unitMs };
 }
@@ -170,18 +172,18 @@ function parseCompoundDuration(token: string): LoopLimitConfig | string | undefi
 	let totalMs = 0;
 	for (const segment of segments) {
 		const match = /^(\d+)([a-z]+)$/.exec(segment);
-		if (!match) return LOOP_USAGE;
+		if (!match) return loopUsage();
 		const unitMs = TIME_UNITS_MS.get(match[2]);
 		if (unitMs === undefined) {
-			return "Loop duration unit must be seconds, minutes, or hours.";
+			return t("tui.loop.durationUnit");
 		}
 		const amount = Number(match[1]);
 		if (!Number.isSafeInteger(amount) || amount <= 0) {
-			return "Loop duration must be positive.";
+			return t("tui.loop.durationPositive");
 		}
 		totalMs += amount * unitMs;
 	}
-	if (totalMs <= 0) return "Loop duration must be positive.";
+	if (totalMs <= 0) return t("tui.loop.durationPositive");
 	return { kind: "duration", durationMs: totalMs };
 }
 
@@ -225,28 +227,33 @@ export function isLoopLimitExhausted(limit: LoopLimitRuntime | undefined, nowMs 
 
 export function describeLoopLimit(config: LoopLimitConfig): string {
 	if (config.kind === "iterations") {
-		return `${config.iterations} ${config.iterations === 1 ? "iteration" : "iterations"}`;
+		const unit = config.iterations === 1 ? t("tui.loop.unit.iteration") : t("tui.loop.unit.iterations");
+		return t("tui.loop.limit.count", { count: config.iterations, unit });
 	}
 	return formatLoopBudget(config.durationMs);
 }
 
 export function describeLoopLimitRuntime(limit: LoopLimitRuntime): string {
 	if (limit.kind === "iterations") {
-		return `${limit.remaining} of ${limit.initial} ${limit.initial === 1 ? "iteration" : "iterations"} remaining`;
+		const unit = limit.initial === 1 ? t("tui.loop.unit.iteration") : t("tui.loop.unit.iterations");
+		return t("tui.loop.runtime.iterations", { remaining: limit.remaining, initial: limit.initial, unit });
 	}
-	return `${formatLoopBudget(limit.durationMs)} limit`;
+	return t("tui.loop.runtime.duration", { budget: formatLoopBudget(limit.durationMs) });
 }
 
 // Budget descriptions retain full precision in one spelled-out unit, unlike compact elapsed times.
 function formatLoopBudget(durationMs: number): string {
 	if (durationMs % 3_600_000 === 0) {
 		const hours = durationMs / 3_600_000;
-		return `${hours} ${hours === 1 ? "hour" : "hours"}`;
+		const unit = hours === 1 ? t("tui.loop.unit.hour") : t("tui.loop.unit.hours");
+		return t("tui.loop.limit.count", { count: hours, unit });
 	}
 	if (durationMs % 60_000 === 0) {
 		const minutes = durationMs / 60_000;
-		return `${minutes} ${minutes === 1 ? "minute" : "minutes"}`;
+		const unit = minutes === 1 ? t("tui.loop.unit.minute") : t("tui.loop.unit.minutes");
+		return t("tui.loop.limit.count", { count: minutes, unit });
 	}
 	const seconds = durationMs / 1_000;
-	return `${seconds} ${seconds === 1 ? "second" : "seconds"}`;
+	const unit = seconds === 1 ? t("tui.loop.unit.second") : t("tui.loop.unit.seconds");
+	return t("tui.loop.limit.count", { count: seconds, unit });
 }

@@ -2,6 +2,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { $flag, $which, logger } from "@oh-my-pi/pi-utils";
 import { TOML } from "bun";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /**
  * lspmux integration for LSP server multiplexing.
@@ -68,7 +69,7 @@ function getConfigPath(): string {
 		case "win32":
 			return path.join(Bun.env.APPDATA ?? path.join(home, "AppData", "Roaming"), "lspmux", "config.toml");
 		case "darwin":
-			return path.join(home, "Library", "Application Support", "lspmux", "config.toml");
+			return path.join(home, "Library", t("tui.ca.lsp.lspmux.applicationSupport"), "lspmux", "config.toml");
 		default:
 			return path.join(Bun.env.XDG_CONFIG_HOME ?? path.join(home, ".config"), "lspmux", "config.toml");
 	}

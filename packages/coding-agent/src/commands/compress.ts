@@ -3,18 +3,23 @@ import { Args, Command, Flags } from "@oh-my-pi/pi-utils/cli";
 import { compressHelp as commandHelp } from "../cli/command-help";
 import { CliUsageError } from "../cli/usage-error";
 import { runCompressCommand } from "../compress";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export default class Compress extends Command {
 	static description = commandHelp.description;
 	static args = {
-		files: Args.string({ description: "Files or glob patterns to compress", required: true, multiple: true }),
+		files: Args.string({
+			description: t("cli.compress.filesOrGlobPatternsToCompress"),
+			required: true,
+			multiple: true,
+		}),
 	};
 	static flags = {
-		out: Flags.string({ char: "o", description: "Write the approved text here instead of stdout (single file)" }),
-		inPlace: Flags.boolean({ char: "i", description: "Overwrite each source file with its approved text" }),
-		rounds: Flags.integer({ char: "r", description: "Maximum drafts per file before giving up", default: 3 }),
-		agents: Flags.integer({ char: "n", description: "Files compressed concurrently", default: 4 }),
-		model: Flags.string({ char: "m", description: "Model selector" }),
+		out: Flags.string({ char: "o", description: t("cli.compress.writeTheApprovedTextHereInstead") }),
+		inPlace: Flags.boolean({ char: "i", description: t("cli.compress.overwriteEachSourceFileWithIts") }),
+		rounds: Flags.integer({ char: "r", description: t("cli.compress.maximumDraftsPerFileBeforeGiving"), default: 3 }),
+		agents: Flags.integer({ char: "n", description: t("cli.compress.filesCompressedConcurrently"), default: 4 }),
+		model: Flags.string({ char: "m", description: t("cli.compress.modelSelector") }),
 	};
 
 	static examples = [

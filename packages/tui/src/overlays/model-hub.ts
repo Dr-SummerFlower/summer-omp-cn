@@ -10,6 +10,7 @@ import { parseModelString, splitUpstreamRouting, formatModelSelectorValue } from
  * Fully mouse-navigable (hover, wheel, click). Session-only switching lives
  * in the compact alt+p picker ({@link ./model-picker}).
  */
+import { t } from "@oh-my-pi/pi-i18n";
 import { ThinkingLevel } from "@oh-my-pi/pi-agent-core";
 import type {
 	TspPickerAction,
@@ -223,26 +224,52 @@ const ROLES_ACTION_KEYS: Record<string, RolesAction> = {
 	t: "thinking",
 };
 
-/** Picker fact columns of the Roles view. */
-const ROLE_PICKER_COLUMNS: readonly TspPickerColumn[] = [
-	{ id: "model", head: "Model", format: "text", priority: 2 },
-	{ id: "thinking", head: "Thinking", format: "dim", priority: 1 },
-];
+/** Picker fact columns of the Roles view (built lazily so headers follow the active language). */
+function rolePickerColumns(): readonly TspPickerColumn[] {
+	return [
+		{ id: "model", head: t("tui.modelHub.roleColumn.model"), format: "text", priority: 2 },
+		{ id: "thinking", head: t("tui.modelHub.roleColumn.thinking"), format: "dim", priority: 1 },
+	];
+}
 
-/** Kind tab labels (sentence case; acronyms stay upper). */
-const MODEL_KIND_LABELS: Record<"all" | ModelKind, string> = {
-	all: "All",
-	chat: "Chat",
-	tiny: "Tiny",
-	image: "Image",
-	tts: "TTS",
-	stt: "STT",
-	search: "Search",
-	judge: "Judge",
-	embedding: "Embedding",
-	rerank: "Rerank",
-	video: "Video",
-};
+/** Kind tab label (sentence case; acronyms stay upper); lazy for the active language. */
+function modelKindLabel(kind: "all" | ModelKind): string {
+	switch (kind) {
+		case "all":
+			return t("tui.modelHub.kind.all");
+		case "chat":
+			return t("tui.modelHub.kind.chat");
+		case "tiny":
+			return t("tui.modelHub.kind.tiny");
+		case "image":
+			return t("tui.modelHub.kind.image");
+		case "tts":
+			return t("tui.modelHub.kind.tts");
+		case "stt":
+			return t("tui.modelHub.kind.stt");
+		case "search":
+			return t("tui.modelHub.kind.search");
+		case "judge":
+			return t("tui.modelHub.kind.judge");
+		case "embedding":
+			return t("tui.modelHub.kind.embedding");
+		case "rerank":
+			return t("tui.modelHub.kind.rerank");
+		case "video":
+			return t("tui.modelHub.kind.video");
+	}
+}
+
+function roleTabLabel(tab: RoleTab): string {
+	switch (tab) {
+		case "all":
+			return t("tui.modelHub.roleTab.all");
+		case "chat":
+			return t("tui.modelHub.roleTab.chat");
+		case "kind":
+			return t("tui.modelHub.roleTab.kinds");
+	}
+}
 
 /** A provider mark's initials: `amazon-bedrock` → `AB`, `anthropic` → `An`. */
 function providerInitials(providerId: string): string {
@@ -367,7 +394,7 @@ export class ModelHubComponent implements Component {
 		return lines.slice(0, rows);
 	};
 	readonly #frame: HubFrame = new HubFrame(
-		"Models",
+		t("tui.modelHub.title"),
 		{ min: 18, max: 26 },
 		(width, rows) => this.#renderSidebar(width, rows),
 		this.#renderBodyPane,
@@ -611,10 +638,15 @@ export class ModelHubComponent implements Component {
 			{
 				id: "roles",
 				kind: "roles",
-				label: "Roles",
+				label: t("tui.modelHub.sidebar.roles"),
 				annotation: `${assignedCount}/${visibleRoles.length}`,
 			},
-			{ id: "all", kind: "all", label: "All models", annotation: String(availableModels.length) },
+			{
+				id: "all",
+				kind: "all",
+				label: t("tui.modelHub.sidebar.allModels"),
+				annotation: String(availableModels.length),
+			},
 		];
 
 		this.#fixedEntries = fixed;
@@ -1012,17 +1044,17 @@ export class ModelHubComponent implements Component {
 	#formatDiscoveryAge(fetchedAt: number | undefined): string | undefined {
 		if (!fetchedAt) return undefined;
 		const ageMs = Math.max(0, Date.now() - fetchedAt);
-		if (ageMs < 60_000) return "less than a minute ago";
-		return `${Math.round(ageMs / 60_000)}m ago`;
+		if (ageMs < 60_000) return t("tui.modelHub.discoveryAge.lessThanMinute");
+		return t("tui.modelHub.discoveryAge.minutesAgo", { n: Math.round(ageMs / 60_000) });
 	}
 
 	#emptyStateMessage(): string | undefined {
 		if (this.#configError) return `  ${this.#configError}`;
 		const entry = this.#activeEntry();
-		if (entry.kind === "recent") return "  No recently used models yet";
+		if (entry.kind === "recent") return `  ${t("tui.modelHub.empty.noRecent")}`;
 		if (entry.kind !== "provider" || entry.locked) return undefined;
 		if (this.#browser.query.trim()) {
-			return `  No matching models in ${entry.label}. Switch to All models to search every provider.`;
+			return `  ${t("tui.modelHub.empty.noMatchInProvider", { provider: entry.label })}`;
 		}
 		const providerId = entry.providerId ?? "";
 		const state = this.#registry.getProviderDiscoveryState(providerId);
@@ -1030,23 +1062,23 @@ export class ModelHubComponent implements Component {
 		const age = this.#formatDiscoveryAge(state.fetchedAt);
 		switch (state.status) {
 			case "cached":
-				return age
-					? `  Using cached model list from ${age}. Live refresh is still pending.`
-					: "  Using cached model list. Live refresh is still pending.";
+				return age ? `  ${t("tui.modelHub.empty.cachedWithAge", { age })}` : `  ${t("tui.modelHub.empty.cached")}`;
 			case "unavailable": {
 				const httpMatch = state.error?.match(/^HTTP (\d+) from (.+)$/);
 				if (httpMatch?.[1] === "404") {
-					return `  Discovery endpoint ${httpMatch[2]} returned 404. Point baseUrl at the host that serves /models (usually .../v1).`;
+					return `  ${t("tui.modelHub.empty.endpoint404", { endpoint: httpMatch[2] })}`;
 				}
-				if (state.error) return `  Discovery failed: ${state.error}`;
-				return age ? `  Provider unavailable. Using cached model list from ${age}.` : "  Provider unavailable.";
+				if (state.error) return `  ${t("tui.modelHub.empty.discoveryFailed", { error: state.error })}`;
+				return age
+					? `  ${t("tui.modelHub.empty.providerUnavailableWithAge", { age })}`
+					: `  ${t("tui.modelHub.empty.providerUnavailable")}`;
 			}
 			case "unauthenticated":
-				return "  Provider requires authentication before models can be discovered.";
+				return `  ${t("tui.modelHub.empty.requiresAuth")}`;
 			case "idle":
-				return "  Provider has not been refreshed yet.";
+				return `  ${t("tui.modelHub.empty.notRefreshed")}`;
 			case "empty":
-				return "  Discovery succeeded but returned 0 models. Check that /models returns { data: [{ id }] }.";
+				return `  ${t("tui.modelHub.empty.discoveryEmpty")}`;
 			case "ok":
 				return undefined;
 		}
@@ -1228,26 +1260,40 @@ export class ModelHubComponent implements Component {
 			}
 		}
 		chips.push({
-			label: `fallbacks:${item.model.id}`,
-			styled: theme.fg("muted", `fallbacks:${item.model.id}`),
+			label: t("tui.modelHub.roleChip.fallbackModel", { id: item.model.id }),
+			styled: theme.fg("muted", t("tui.modelHub.roleChip.fallbackModel", { id: item.model.id })),
 			action: "fallbackModel",
 		});
 		chips.push({
-			label: `fallbacks:${item.model.provider}/*`,
-			styled: theme.fg("muted", `fallbacks:${item.model.provider}/*`),
+			label: t("tui.modelHub.roleChip.fallbackProvider", { provider: item.model.provider }),
+			styled: theme.fg("muted", t("tui.modelHub.roleChip.fallbackProvider", { provider: item.model.provider })),
 			action: "fallbackProvider",
 		});
 		// `retry-fallback` appends to the default chain, so only chat-capable models qualify.
 		if (this.#settings.getRoleInfo("default").accepts(item.model)) {
-			chips.push({ label: "fallback", styled: theme.fg("muted", "retry-fallback"), action: "fallback" });
+			chips.push({
+				label: t("tui.modelHub.roleChip.fallbackLabel"),
+				styled: theme.fg("muted", t("tui.modelHub.roleChip.fallbackStyled")),
+				action: "fallback",
+			});
 		}
 		this.#strip = { kind: "role", item, chips, index: 0, returnToRoles: false };
 	}
 
 	#openScopeStrip(item: ModelBrowserItem, role: string, returnToRoles: boolean): void {
 		const chips: StripChip[] = [
-			{ label: "project", styled: theme.fg("accent", "project"), action: "scope", scope: "project" },
-			{ label: "global", styled: theme.fg("muted", "global"), action: "scope", scope: "global" },
+			{
+				label: t("tui.modelHub.scopeChip.project"),
+				styled: theme.fg("accent", t("tui.modelHub.scopeChip.project")),
+				action: "scope",
+				scope: "project",
+			},
+			{
+				label: t("tui.modelHub.scopeChip.global"),
+				styled: theme.fg("muted", t("tui.modelHub.scopeChip.global")),
+				action: "scope",
+				scope: "global",
+			},
 		];
 		this.#strip = { kind: "scope", item, role, chips, index: 0, returnToRoles };
 	}
@@ -1542,13 +1588,13 @@ export class ModelHubComponent implements Component {
 	#openFallbackKeyStrip(item: ModelBrowserItem): void {
 		const chips: StripChip[] = [
 			{
-				label: `for ${item.selector}`,
-				styled: theme.fg("muted", `for ${item.selector}`),
+				label: t("tui.modelHub.strip.forModel", { selector: item.selector }),
+				styled: theme.fg("muted", t("tui.modelHub.strip.forModel", { selector: item.selector })),
 				action: "fallbackModel",
 			},
 			{
-				label: `for ${item.model.provider}/*`,
-				styled: theme.fg("muted", `for ${item.model.provider}/*`),
+				label: t("tui.modelHub.strip.forProvider", { provider: item.model.provider }),
+				styled: theme.fg("muted", t("tui.modelHub.strip.forProvider", { provider: item.model.provider })),
 				action: "fallbackProvider",
 			},
 		];
@@ -2190,7 +2236,7 @@ export class ModelHubComponent implements Component {
 			Math.max(0, active),
 		);
 		return truncateToWidth(
-			` ${theme.fg("dim", "Kind:")} ${track}  ${theme.fg("dim", formatKeyHints(["alt+left", "alt+right"]))}`,
+			` ${theme.fg("dim", t("tui.modelHub.tabs.kind"))} ${track}  ${theme.fg("dim", formatKeyHints(["alt+left", "alt+right"]))}`,
 			width,
 		);
 	}
@@ -2202,62 +2248,69 @@ export class ModelHubComponent implements Component {
 			Math.max(0, active),
 		);
 		return truncateToWidth(
-			` ${theme.fg("dim", "Roles:")} ${track}  ${theme.fg("dim", formatKeyHints(["alt+left", "alt+right"]))}`,
+			` ${theme.fg("dim", t("tui.modelHub.tabs.roles"))} ${track}  ${theme.fg("dim", formatKeyHints(["alt+left", "alt+right"]))}`,
 			width,
 		);
 	}
 
 	#statusRow(width: number): string {
 		if (this.#assignmentPending) {
-			return truncateToWidth(theme.fg("accent", " Applying model…"), width);
+			return truncateToWidth(theme.fg("accent", ` ${t("tui.modelHub.status.applyingModel")}`), width);
 		}
 		if (this.#assigning !== null) {
 			const enter = formatKeyHint("enter");
 			const cancel = editorKey("tui.select.cancel");
 			if (this.#assigning.kind === "fallbackKey") {
 				return truncateToWidth(
-					theme.fg("accent", ` New fallback chain — ${enter} picks the model it protects, ${cancel} cancels`),
+					theme.fg("accent", t("tui.modelHub.hint.newFallbackChain", { enter, cancel })),
 					width,
 				);
 			}
 			const info = this.#settings.getRoleInfo(this.#assigning.role);
 			const label = info.tag ?? info.name ?? this.#assigning.role;
 			if (this.#assigning.kind === "fallback") {
-				const verb = this.#assigning.index === null ? "Adding fallback for" : "Replacing fallback of";
+				const verb =
+					this.#assigning.index === null
+						? t("tui.modelHub.verb.addingFallbackFor")
+						: t("tui.modelHub.verb.replacingFallbackOf");
 				return truncateToWidth(
 					theme.fg(
 						"accent",
-						` ${verb} ${theme.bold(label)} — ${enter} picks the fallback model, ${cancel} cancels`,
+						t("tui.modelHub.hint.assignFallback", { verb, label: theme.bold(label), enter, cancel }),
 					),
 					width,
 				);
 			}
 			return truncateToWidth(
-				theme.fg("accent", ` Assigning ${theme.bold(label)} — ${enter} assigns, ${cancel} cancels`),
+				theme.fg("accent", t("tui.modelHub.hint.assigning", { label: theme.bold(label), enter, cancel })),
 				width,
 			);
 		}
 		const entry = this.#activeEntry();
-		const scopedSuffix = this.#scopedModels.length > 0 ? " · --models scope" : "";
+		const scopedSuffix = this.#scopedModels.length > 0 ? t("tui.modelHub.scopedSuffix") : "";
 		let text: string;
 		switch (entry.kind) {
 			case "recent":
-				text = `Recently used models${scopedSuffix}`;
+				text = t("tui.modelHub.heading.recent", { scoped: scopedSuffix });
 				break;
 			case "roles":
-				text = `Model roles — ${formatKeyHint("f")} adds a retry fallback, cleared roles fall back to auto-selection`;
+				text = t("tui.modelHub.heading.roles", { key: formatKeyHint("f") });
 				break;
 			case "provider":
 				if (entry.locked) {
-					text = `${entry.label} · not configured`;
+					text = t("tui.modelHub.heading.providerNotConfigured", { label: entry.label });
 				} else if (entry.providerId && this.#refreshingProviders.has(entry.providerId)) {
-					text = `${entry.label} · refreshing model list…`;
+					text = t("tui.modelHub.heading.providerRefreshing", { label: entry.label });
 				} else {
-					text = `${entry.label} · ${entry.annotation ?? "0"} models${scopedSuffix}`;
+					text = t("tui.modelHub.heading.providerModels", {
+						label: entry.label,
+						count: entry.annotation ?? "0",
+						scoped: scopedSuffix,
+					});
 				}
 				break;
 			default:
-				text = `All available models${scopedSuffix}`;
+				text = t("tui.modelHub.heading.allModels", { scoped: scopedSuffix });
 				break;
 		}
 		if (this.#configError && entry.kind !== "provider") {
@@ -2317,7 +2370,7 @@ export class ModelHubComponent implements Component {
 			}
 
 			if (rowDef.kind === "newRole" || rowDef.kind === "newFallback") {
-				const label = rowDef.kind === "newRole" ? "+ New role…" : "+ New fallback…";
+				const label = rowDef.kind === "newRole" ? t("tui.modelHub.row.newRole") : t("tui.modelHub.row.newFallback");
 				let line = ` ${cursor} ${theme.fg(selected ? "accent" : "dim", label)}`;
 				line = this.#finishRolesRow(line, width, hovered);
 				lines.push(line);
@@ -2391,8 +2444,8 @@ export class ModelHubComponent implements Component {
 			const hiddenAbove = this.#roleScrollStart;
 			const hiddenBelow = total - endIndex;
 			const parts: string[] = [];
-			if (hiddenAbove > 0) parts.push(`↑ ${hiddenAbove} more`);
-			if (hiddenBelow > 0) parts.push(`↓ ${hiddenBelow} more`);
+			if (hiddenAbove > 0) parts.push(t("tui.modelHub.overflow.above", { n: hiddenAbove }));
+			if (hiddenBelow > 0) parts.push(t("tui.modelHub.overflow.below", { n: hiddenBelow }));
 			lines.push(truncateToWidth(theme.fg("dim", `   ${parts.join("   ")}`), width));
 		}
 
@@ -2410,10 +2463,16 @@ export class ModelHubComponent implements Component {
 					cycleOrder.map(role => ({ label: role })),
 					activeIndex,
 				);
-				lines[rows - 1] = truncateToWidth(`  ${theme.fg("dim", `${cycleKey} cycle:`)} ${track}`, width);
+				lines[rows - 1] = truncateToWidth(
+					`  ${theme.fg("dim", `${cycleKey} ${t("tui.modelHub.cycleTrack.label")}`)} ${track}`,
+					width,
+				);
 			} else {
 				lines[rows - 1] = truncateToWidth(
-					theme.fg("dim", `  ${cycleKey} cycle is empty — press ${formatKeyHint("c")} on a role to add it`),
+					theme.fg(
+						"dim",
+						`  ${cycleKey} ${t("tui.modelHub.cycleTrack.emptyPrefix")}${formatKeyHint("c")}${t("tui.modelHub.cycleTrack.emptySuffix")}`,
+					),
 					width,
 				);
 			}
@@ -2425,24 +2484,35 @@ export class ModelHubComponent implements Component {
 		const lines: string[] = [];
 		this.#lockedLoginLine = null;
 		lines.push("");
-		lines.push(truncateToWidth(theme.fg("warning", `  ${entry.label} has no credentials configured`), width));
+		lines.push(
+			truncateToWidth(
+				theme.fg("warning", `  ${t("tui.modelHub.locked.noCredentials", { label: entry.label })}`),
+				width,
+			),
+		);
 		lines.push("");
 		const envVars = entry.providerId ? (providerEntry(entry.providerId)?.envVars ?? []) : [];
 		if (envVars.length > 0) {
 			lines.push(
 				truncateToWidth(
-					theme.fg("muted", `  Set ${envVars.join(" or ")} in your environment, or add a key in config.`),
+					theme.fg(
+						"muted",
+						`  ${t("tui.modelHub.locked.envSet", { vars: envVars.join(t("tui.modelHub.locked.or")) })}`,
+					),
 					width,
 				),
 			);
 		} else {
-			lines.push(truncateToWidth(theme.fg("muted", "  Add an API key for this provider in config."), width));
+			lines.push(truncateToWidth(theme.fg("muted", `  ${t("tui.modelHub.locked.addApiKey")}`), width));
 		}
 		if (entry.oauth) {
 			this.#lockedLoginLine = lines.length + 1; // +1 for the status row offset handled by caller
 			lines.push(
 				truncateToWidth(
-					theme.fg("accent", `  ${theme.nav.cursor} Log in with OAuth (${formatKeyHint("enter")})`),
+					theme.fg(
+						"accent",
+						`  ${theme.nav.cursor} ${t("tui.modelHub.locked.logInOAuth")} (${formatKeyHint("enter")})`,
+					),
 					width,
 				),
 			);
@@ -2450,7 +2520,12 @@ export class ModelHubComponent implements Component {
 		lines.push("");
 		const catalogCount = entry.catalogCount ?? 0;
 		if (catalogCount > 0) {
-			lines.push(truncateToWidth(theme.fg("dim", `  ${catalogCount} models in catalog:`), width));
+			lines.push(
+				truncateToWidth(
+					theme.fg("dim", `  ${t("tui.modelHub.locked.catalogCount", { count: catalogCount })}:`),
+					width,
+				),
+			);
 			const preview = this.#scopedModels.length > 0 ? [] : this.#registry.getAll("all");
 			for (const model of preview) {
 				if (model.provider !== entry.providerId) continue;
@@ -2470,65 +2545,77 @@ export class ModelHubComponent implements Component {
 		const leftRight = formatKeyHints(["left", "right"]);
 		const enterRight = formatKeyHints(["enter", "right"]);
 		const altLeftRight = formatKeyHints(["alt+left", "alt+right"]);
+		const providers = t("tui.modelHub.keyHint.providers");
+		const models = t("tui.modelHub.keyHint.models");
+		const search = t("tui.modelHub.keyHint.search");
+		const kind = t("tui.modelHub.keyHint.kind");
+		const close = t("tui.modelHub.keyHint.close");
+		const cancelLabel = t("tui.modelHub.keyHint.cancel");
 		const strip = this.#strip;
 		if (strip) {
 			if (strip.kind === "roleName") {
-				return `${enter} create + pick model · ${cancel} cancel`;
+				return `${enter} ${t("tui.modelHub.keyHint.createPickModel")} · ${cancel} ${cancelLabel}`;
 			}
-			if (strip.kind === "role") return `${leftRight} choose · ${enter} assign/clear · ${cancel} cancel`;
-			if (strip.kind === "scope") return `${leftRight} save scope · ${enter} choose · ${cancel} cancel`;
-			return `${leftRight} thinking level · ${enter} apply · ${cancel} keep`;
+			if (strip.kind === "role") {
+				return `${leftRight} ${t("tui.modelHub.keyHint.choose")} · ${enter} ${t("tui.modelHub.keyHint.assignClear")} · ${cancel} ${cancelLabel}`;
+			}
+			if (strip.kind === "scope") {
+				return `${leftRight} ${t("tui.modelHub.keyHint.saveScope")} · ${enter} ${t("tui.modelHub.keyHint.choose")} · ${cancel} ${cancelLabel}`;
+			}
+			return `${leftRight} ${t("tui.modelHub.keyHint.thinkingLevel")} · ${enter} ${t("tui.modelHub.keyHint.apply")} · ${cancel} ${t("tui.modelHub.keyHint.keep")}`;
 		}
 		if (this.#assigning !== null) {
 			if (this.#focus === "scope") {
-				return `${enterRight} models · ${upDown} providers · type to search · ${altLeftRight} kind · ${cancel} cancel`;
+				return `${enterRight} ${models} · ${upDown} ${providers} · ${search} · ${altLeftRight} ${kind} · ${cancel} ${cancelLabel}`;
 			}
-			const browse = `${upDown} models · ${left} providers · type to search · ${altLeftRight} kind · ${cancel} cancel`;
+			const browse = `${upDown} ${models} · ${left} ${providers} · ${search} · ${altLeftRight} ${kind} · ${cancel} ${cancelLabel}`;
 			switch (this.#assigning.kind) {
 				case "fallback":
-					return `${enter} pick fallback · ${browse}`;
+					return `${enter} ${t("tui.modelHub.keyHint.pickFallback")} · ${browse}`;
 				case "fallbackKey":
-					return `${enter} pick the protected model · ${browse}`;
+					return `${enter} ${t("tui.modelHub.keyHint.pickProtectedModel")} · ${browse}`;
 				default:
-					return `${enter} assign · ${browse}`;
+					return `${enter} ${t("tui.modelHub.keyHint.assign")} · ${browse}`;
 			}
 		}
 		const entry = this.#activeEntry();
 		if (entry.kind === "roles") {
 			if (this.#focus !== "list") {
-				return `${upDown} providers · ${enterRight} roles · ${altLeftRight} tabs · ${cancel} close`;
+				return `${upDown} ${providers} · ${enterRight} ${t("tui.modelHub.keyHint.roles")} · ${altLeftRight} ${t("tui.modelHub.keyHint.tabs")} · ${cancel} ${close}`;
 			}
 			const row = this.#rolesRows[this.#roleIndex];
+			const rows = t("tui.modelHub.keyHint.rows");
+			const thinking = t("tui.modelHub.keyHint.thinking");
 			if (row?.kind === "fallback") {
 				// Advertise `t` only when the entry resolves: wildcards always
 				// inherit and unknown models have no ladder to offer, so the
 				// action would be inert there.
 				const editable = this.#resolveFallbackEntry(row.role, row.chainIndex) !== undefined;
-				const thinking = editable ? ` · ${formatKeyHint("t")} thinking` : "";
-				return `${upDown} rows · ${enter} replace · ${formatKeyHint("f")} add another · ${formatKeyHint("x")} remove${thinking} · [/] reorder · ${left} providers`;
+				const thinkingPart = editable ? ` · ${formatKeyHint("t")} ${thinking}` : "";
+				return `${upDown} ${rows} · ${enter} ${t("tui.modelHub.keyHint.replace")} · ${formatKeyHint("f")} ${t("tui.modelHub.keyHint.addAnother")} · ${formatKeyHint("x")} ${t("tui.modelHub.keyHint.remove")}${thinkingPart} · [/] ${t("tui.modelHub.keyHint.reorder")} · ${left} ${providers}`;
 			}
 			if (row?.kind === "chainKey") {
-				return `${upDown} rows · ${formatKeyHints(["enter", "f"])} add fallback · ${formatKeyHint("x")} clear chain · ${left} providers`;
+				return `${upDown} ${rows} · ${formatKeyHints(["enter", "f"])} ${t("tui.modelHub.keyHint.addFallback")} · ${formatKeyHint("x")} ${t("tui.modelHub.keyHint.clearChain")} · ${left} ${providers}`;
 			}
 			if (row?.kind === "newFallback") {
-				return `${upDown} rows · ${enter} new model/provider fallback chain · ${left} providers`;
+				return `${upDown} ${rows} · ${enter} ${t("tui.modelHub.keyHint.newModelFallbackChain")} · ${left} ${providers}`;
 			}
 			// Same rule as fallback rows: advertise `t` only where a strip would
 			// open — an assigned role whose model has thinking levels to offer.
 			const editable = row?.kind === "role" && this.#roleThinkingTarget(row.role) !== undefined;
-			const thinking = editable ? ` · ${formatKeyHint("t")} thinking` : "";
-			return `${upDown} rows · ${enter} pick · ${formatKeyHint("f")} fallback · ${formatKeyHint("x")} clear${thinking} · ${formatKeyHint("c")} cycle · [/] reorder · ${formatKeyHint("n")} new`;
+			const thinkingPart = editable ? ` · ${formatKeyHint("t")} ${thinking}` : "";
+			return `${upDown} ${rows} · ${enter} ${t("tui.modelHub.keyHint.pick")} · ${formatKeyHint("f")} ${t("tui.modelHub.keyHint.fallback")} · ${formatKeyHint("x")} ${t("tui.modelHub.keyHint.clear")}${thinkingPart} · ${formatKeyHint("c")} ${t("tui.modelHub.keyHint.cycle")} · [/] ${t("tui.modelHub.keyHint.reorder")} · ${formatKeyHint("n")} ${t("tui.modelHub.keyHint.new")}`;
 		}
 		if (entry.kind === "provider" && entry.locked) {
 			return entry.oauth
-				? `${enter} log in · ${upDown} providers · ${cancel} close`
-				: `${upDown} providers · ${cancel} close`;
+				? `${enter} ${t("tui.modelHub.keyHint.logIn")} · ${upDown} ${providers} · ${cancel} ${close}`
+				: `${upDown} ${providers} · ${cancel} ${close}`;
 		}
-		const refresh = entry.kind === "provider" ? ` · ${formatKeyHint("f5")} refresh` : "";
+		const refresh = entry.kind === "provider" ? ` · ${formatKeyHint("f5")} ${t("tui.modelHub.keyHint.refresh")}` : "";
 		if (this.#focus === "scope") {
-			return `${enterRight} models · ${upDown} providers · type to search · ${altLeftRight} kind${refresh} · ${cancel} close`;
+			return `${enterRight} ${models} · ${upDown} ${providers} · ${search} · ${altLeftRight} ${kind}${refresh} · ${cancel} ${close}`;
 		}
-		return `${enter} assign roles · ${upDown} models · ${left} providers · type to search · ${altLeftRight} kind${refresh} · ${cancel} close`;
+		return `${enter} ${t("tui.modelHub.keyHint.assignRoles")} · ${upDown} ${models} · ${left} ${providers} · ${search} · ${altLeftRight} ${kind}${refresh} · ${cancel} ${close}`;
 	}
 
 	#renderFooter(width: number): string {
@@ -2542,10 +2629,11 @@ export class ModelHubComponent implements Component {
 
 	#renderStrip(width: number, strip: StripState): string {
 		if (strip.kind === "roleName") {
-			const label = theme.fg("accent", "New role name:");
-			const inputWidth = Math.max(8, Math.min(32, width - visibleWidth("New role name:") - 24));
+			const nameLabel = t("tui.modelHub.row.newRoleNameLabel");
+			const label = theme.fg("accent", nameLabel);
+			const inputWidth = Math.max(8, Math.min(32, width - visibleWidth(nameLabel) - 24));
 			const inputLine = strip.input.render(inputWidth)[0] ?? "";
-			return truncateToWidth(`${label} ${inputLine} ${theme.fg("dim", "(letters, digits, - and _)")}`, width);
+			return truncateToWidth(`${label} ${inputLine} ${theme.fg("dim", t("tui.modelHub.row.roleNameChars"))}`, width);
 		}
 
 		const prefix =
@@ -2609,7 +2697,7 @@ export class ModelHubComponent implements Component {
 		footer.push(hintsRow(this.#footerHints()));
 		const described = describeHubFrame(
 			"omp.overlay.model-hub",
-			"Models",
+			t("tui.modelHub.title"),
 			describeHubSidebar(this.#entries, this.#activeEntryId, this.#nativeSidebarStyle, "scopes"),
 			this.#describeBody(),
 			node("col", { gap: "xs" }, footer, "footer"),
@@ -2702,10 +2790,13 @@ export class ModelHubComponent implements Component {
 					"row",
 					{ gap: "sm", align: "center" },
 					[
-						text([span("Kind:", "dim")]),
+						text([span(t("tui.modelHub.tabs.kind"), "dim")]),
 						node(
 							"tabs",
-							{ items: MODEL_KIND_TABS.map(kind => ({ id: kind, label: kind })), active: this.#modelKindTab },
+							{
+								items: MODEL_KIND_TABS.map(kind => ({ id: kind, label: modelKindLabel(kind) })),
+								active: this.#modelKindTab,
+							},
 							undefined,
 							"kinds",
 						),
@@ -2720,22 +2811,27 @@ export class ModelHubComponent implements Component {
 
 	#describeStatus(): NativeNode {
 		if (this.#assignmentPending) {
-			return node("spinner", { label: [span("Applying model…", "accent")] }, undefined, "status");
+			return node(
+				"spinner",
+				{ label: [span(t("tui.modelHub.status.applyingModel"), "accent")] },
+				undefined,
+				"status",
+			);
 		}
 		let spans: TspSpan[];
 		const assigning = this.#assigning;
 		if (assigning !== null) {
 			if (assigning.kind === "fallbackKey") {
-				spans = [span("New fallback chain — pick the model it protects", "accent")];
+				spans = [span(t("tui.modelHub.status.newFallbackChain"), "accent")];
 			} else {
 				const info = this.#settings.getRoleInfo(assigning.role);
 				const label = info.tag ?? info.name ?? assigning.role;
 				const verb =
 					assigning.kind === "role"
-						? "Assigning"
+						? t("tui.modelHub.verb.assigning")
 						: assigning.index === null
-							? "Adding fallback for"
-							: "Replacing fallback of";
+							? t("tui.modelHub.verb.addingFallbackFor")
+							: t("tui.modelHub.verb.replacingFallbackOf");
 				spans = [span(`${verb} `, "accent"), span(label, "accent strong")];
 			}
 			return node("text", { spans, truncate: "end" }, undefined, "status");
@@ -2744,34 +2840,43 @@ export class ModelHubComponent implements Component {
 		if (this.#configError && entry.kind !== "provider") {
 			return node("text", { spans: [span(this.#configError, "error")], wrap: "word" }, undefined, "status");
 		}
-		const scopedSuffix = this.#scopedModels.length > 0 ? " · --models scope" : "";
+		const scopedSuffix = this.#scopedModels.length > 0 ? t("tui.modelHub.scopedSuffix") : "";
 		switch (entry.kind) {
 			case "recent":
-				spans = [span(`Recently used models${scopedSuffix}`, "muted")];
+				spans = [span(t("tui.modelHub.heading.recent", { scoped: scopedSuffix }), "muted")];
 				break;
 			case "roles":
 				spans = [
-					span("Model roles — ", "muted"),
+					span(t("tui.modelHub.status.modelRolesPrefix"), "muted"),
 					span("f", "key"),
-					span(" adds a retry fallback, cleared roles fall back to auto-selection", "muted"),
+					span(t("tui.modelHub.status.modelRolesSuffix"), "muted"),
 				];
 				break;
 			case "provider":
 				if (entry.locked) {
-					spans = [span(`${entry.label} · not configured`, "muted")];
+					spans = [span(t("tui.modelHub.heading.providerNotConfigured", { label: entry.label }), "muted")];
 				} else if (entry.providerId && this.#refreshingProviders.has(entry.providerId)) {
 					return node(
 						"spinner",
-						{ label: [span(`${entry.label} · refreshing model list…`, "muted")] },
+						{ label: [span(t("tui.modelHub.heading.providerRefreshing", { label: entry.label }), "muted")] },
 						undefined,
 						"status",
 					);
 				} else {
-					spans = [span(`${entry.label} · ${entry.annotation ?? "0"} models${scopedSuffix}`, "muted")];
+					spans = [
+						span(
+							t("tui.modelHub.heading.providerModels", {
+								label: entry.label,
+								count: entry.annotation ?? "0",
+								scoped: scopedSuffix,
+							}),
+							"muted",
+						),
+					];
 				}
 				break;
 			default:
-				spans = [span(`All available models${scopedSuffix}`, "muted")];
+				spans = [span(t("tui.modelHub.heading.allModels", { scoped: scopedSuffix }), "muted")];
 				break;
 		}
 		return node("text", { spans, truncate: "end" }, undefined, "status");
@@ -2782,11 +2887,11 @@ export class ModelHubComponent implements Component {
 			"row",
 			{ gap: "sm", align: "center" },
 			[
-				text([span("Roles:", "dim")]),
+				text([span(t("tui.modelHub.tabs.roles"), "dim")]),
 				node(
 					"tabs",
 					{
-						items: ROLE_TABS.map(tab => ({ id: tab, label: tab === "kind" ? "kinds" : tab })),
+						items: ROLE_TABS.map(tab => ({ id: tab, label: roleTabLabel(tab) })),
 						active: this.#roleTab,
 					},
 					undefined,
@@ -2805,7 +2910,7 @@ export class ModelHubComponent implements Component {
 				virtual: true,
 				grow: 1,
 				tone: this.#focus === "list" ? "accent" : undefined,
-				aria: "Roles",
+				aria: t("tui.modelHub.aria.roles"),
 			},
 			items,
 			"roles",
@@ -2819,9 +2924,9 @@ export class ModelHubComponent implements Component {
 			case "separator":
 				return node("rule", undefined, undefined, key);
 			case "newRole":
-				return node("item", { label: [span("+ New role…", "dim")] }, undefined, key);
+				return node("item", { label: [span(t("tui.modelHub.row.newRole"), "dim")] }, undefined, key);
 			case "newFallback":
-				return node("item", { label: [span("+ New fallback…", "dim")] }, undefined, key);
+				return node("item", { label: [span(t("tui.modelHub.row.newFallback"), "dim")] }, undefined, key);
 			case "chainKey": {
 				const slash = rowDef.role.lastIndexOf("/");
 				return node(
@@ -2883,7 +2988,11 @@ export class ModelHubComponent implements Component {
 				{ gap: "xs", align: "center", wrap: true },
 				[
 					...keycap,
-					text([span("cycle is empty — press ", "dim"), span("c", "key"), span(" on a role to add it", "dim")]),
+					text([
+						span(t("tui.modelHub.cycleTrack.emptyPrefix"), "dim"),
+						span("c", "key"),
+						span(t("tui.modelHub.cycleTrack.emptySuffix"), "dim"),
+					]),
 				],
 				"cycle",
 			);
@@ -2899,14 +3008,14 @@ export class ModelHubComponent implements Component {
 		return node(
 			"row",
 			{ gap: "xs", align: "center", wrap: true },
-			[...keycap, text([span("cycle:", "dim")]), text(track, { wrap: "word" })],
+			[...keycap, text([span(t("tui.modelHub.cycleTrack.label"), "dim")]), text(track, { wrap: "word" })],
 			"cycle",
 		);
 	}
 
 	#describeLockedView(entry: SidebarEntry): NativeNode {
 		const children: NativeChild[] = [
-			text([span(`${entry.label} has no credentials configured`, "warning")], { wrap: "word" }),
+			text([span(t("tui.modelHub.locked.noCredentials", { label: entry.label }), "warning")], { wrap: "word" }),
 		];
 		const envVars = entry.providerId ? (providerEntry(entry.providerId)?.envVars ?? []) : [];
 		children.push(
@@ -2914,8 +3023,8 @@ export class ModelHubComponent implements Component {
 				[
 					span(
 						envVars.length > 0
-							? `Set ${envVars.join(" or ")} in your environment, or add a key in config.`
-							: "Add an API key for this provider in config.",
+							? t("tui.modelHub.locked.envSet", { vars: envVars.join(t("tui.modelHub.locked.or")) })
+							: t("tui.modelHub.locked.addApiKey"),
 						"muted",
 					),
 				],
@@ -2927,7 +3036,7 @@ export class ModelHubComponent implements Component {
 				node(
 					"row",
 					{ gap: "sm", align: "center", actions: { click: "login" } },
-					[text([span("Log in with OAuth", "accent")]), node("kbd", { keys: ["enter"] })],
+					[text([span(t("tui.modelHub.locked.logInOAuth"), "accent")]), node("kbd", { keys: ["enter"] })],
 					"login",
 				),
 			);
@@ -2943,7 +3052,7 @@ export class ModelHubComponent implements Component {
 			children.push(
 				node(
 					"section",
-					{ head: [span(`${catalogCount} models in catalog`, "dim")] },
+					{ head: [span(t("tui.modelHub.locked.catalogCount", { count: catalogCount }), "dim")] },
 					[node("list", { selected: null, virtual: true }, items, "catalog")],
 					"catalog",
 				),
@@ -2960,16 +3069,16 @@ export class ModelHubComponent implements Component {
 		const lockedView = entry.kind === "provider" && entry.locked === true && this.#assigning === null;
 		const strip = this.#strip;
 		const props: TspPickerProps = {
-			title: "Models",
+			title: t("tui.modelHub.title"),
 			subtitle: this.#pickerSubtitle(entry, rolesView),
 			icon: "cpu",
-			noun: rolesView ? "roles" : "models",
+			noun: rolesView ? t("tui.modelHub.noun.roles") : t("tui.modelHub.noun.models"),
 			size: "lg",
 			layout: "rows",
 			preview: "side",
 			query: this.#browser.query,
 			cursor: this.#browser.cursor,
-			placeholder: "Search models…",
+			placeholder: t("tui.modelHub.searchPlaceholder"),
 			scopes: this.#pickerScopes(),
 			scope: entry.id,
 			actions: this.#pickerActions(entry, rolesView, lockedView),
@@ -2983,13 +3092,13 @@ export class ModelHubComponent implements Component {
 					...props,
 					tabs: ROLE_TABS.map(tab => ({
 						id: tab,
-						label: tab === "all" ? "All" : tab === "chat" ? "Chat" : "Kinds",
+						label: roleTabLabel(tab),
 						count: this.#visibleRoleIds().filter(
 							role => tab === "all" || this.#settings.getRoleInfo(role).section === tab,
 						).length,
 					})),
 					tab: this.#roleTab,
-					columns: ROLE_PICKER_COLUMNS,
+					columns: rolePickerColumns(),
 					items: this.#rolePickerItems(),
 					order: this.#rolePickerOrder(),
 					selected: row && row.kind !== "separator" ? rolesRowKey(row, this.#roleIndex) : null,
@@ -3018,7 +3127,12 @@ export class ModelHubComponent implements Component {
 		const query = this.#browser.query.trim();
 		const view = this.#browser.pickerOrder({
 			providers: entry.kind === "all" && query.length === 0,
-			rest: entry.kind === "provider" ? entry.label : query ? "Matches" : "All models",
+			rest:
+				entry.kind === "provider"
+					? entry.label
+					: query
+						? t("tui.modelHub.order.matches")
+						: t("tui.modelHub.sidebar.allModels"),
 		});
 		const refreshing =
 			this.#catalogRefreshing ||
@@ -3047,7 +3161,9 @@ export class ModelHubComponent implements Component {
 				...(state === "error" && this.#configError ? { message: this.#configError } : {}),
 				empty:
 					this.#emptyStateMessage()?.trim() ??
-					(entry.kind === "provider" ? `No models from ${entry.label} yet` : "No models available in this scope"),
+					(entry.kind === "provider"
+						? t("tui.modelHub.empty.noModelsFromProvider", { label: entry.label })
+						: t("tui.modelHub.empty.noModelsInScope")),
 			},
 			this.#browser.pickerPreview("full", this.#currentSelector),
 		);
@@ -3055,26 +3171,26 @@ export class ModelHubComponent implements Component {
 
 	/** What the hub is doing when it is more than browsing: applying, assigning, refreshing, a config error. */
 	#pickerSubtitle(entry: SidebarEntry, rolesView: boolean): TspPickerProps["subtitle"] {
-		if (this.#assignmentPending) return "Applying model…";
+		if (this.#assignmentPending) return t("tui.modelHub.status.applyingModel");
 		const assigning = this.#assigning;
 		if (assigning !== null) {
-			if (assigning.kind === "fallbackKey") return "New fallback chain — pick the model it protects";
+			if (assigning.kind === "fallbackKey") return t("tui.modelHub.status.newFallbackChain");
 			const info = this.#settings.getRoleInfo(assigning.role);
 			const label = info.tag ?? info.name ?? assigning.role;
 			const verb =
 				assigning.kind === "role"
-					? "Assigning"
+					? t("tui.modelHub.verb.assigning")
 					: assigning.index === null
-						? "Adding fallback for"
-						: "Replacing fallback of";
+						? t("tui.modelHub.verb.addingFallbackFor")
+						: t("tui.modelHub.verb.replacingFallbackOf");
 			return [span(`${verb} `), span(label, "strong")];
 		}
 		if (this.#configError && entry.kind !== "provider") return [span(this.#configError, "error")];
 		if (entry.kind === "provider" && entry.providerId && this.#refreshingProviders.has(entry.providerId)) {
-			return `${entry.label} · refreshing model list…`;
+			return t("tui.modelHub.heading.providerRefreshing", { label: entry.label });
 		}
-		if (this.#scopedModels.length > 0) return "--models scope";
-		if (rolesView) return "Cleared roles fall back to auto-selection";
+		if (this.#scopedModels.length > 0) return t("tui.modelHub.subtitle.modelsScope");
+		if (rolesView) return t("tui.modelHub.status.clearedRoles");
 		return undefined;
 	}
 
@@ -3088,12 +3204,17 @@ export class ModelHubComponent implements Component {
 				case "separator":
 					break;
 				case "roles":
-					scopes.push({ id: entry.id, label: "Roles", icon: "sparkles", count: this.#visibleRoleIds().length });
+					scopes.push({
+						id: entry.id,
+						label: t("tui.modelHub.sidebar.roles"),
+						icon: "sparkles",
+						count: this.#visibleRoleIds().length,
+					});
 					break;
 				case "all":
 					scopes.push({
 						id: entry.id,
-						label: "All models",
+						label: t("tui.modelHub.sidebar.allModels"),
 						icon: "list",
 						count: counts ? this.#searchTotal : this.#availableItems.length,
 					});
@@ -3101,7 +3222,7 @@ export class ModelHubComponent implements Component {
 				case "recent":
 					scopes.push({
 						id: entry.id,
-						label: "Recent",
+						label: t("tui.modelHub.sidebar.recent"),
 						icon: "clock",
 						count: counts ? this.#recentSearchCount : this.#recentItems.length,
 					});
@@ -3115,12 +3236,14 @@ export class ModelHubComponent implements Component {
 							id: entry.id,
 							label: entry.label,
 							mark,
-							group: "Not signed in",
+							group: t("tui.modelHub.scope.notSignedIn"),
 							disabled: oauthIds.has(providerId)
-								? "Sign in with /login"
+								? t("tui.modelHub.scope.signInWithLogin")
 								: envVars.length > 0
-									? `Set ${envVars.join(" or ")} to sign in`
-									: "Add an API key in config to sign in",
+									? t("tui.modelHub.scope.setEnvToSignIn", {
+											vars: envVars.join(t("tui.modelHub.locked.or")),
+										})
+									: t("tui.modelHub.scope.addApiKeyToSignIn"),
 							dot: "muted",
 						});
 						break;
@@ -3130,7 +3253,7 @@ export class ModelHubComponent implements Component {
 						id: entry.id,
 						label: entry.label,
 						mark,
-						group: "Providers",
+						group: t("tui.modelHub.scope.providers"),
 						count: counts ? (counts.get(providerId) ?? 0) : Number(entry.annotation ?? 0),
 						...(dot ? { dot } : {}),
 					});
@@ -3170,7 +3293,7 @@ export class ModelHubComponent implements Component {
 		}
 		const tabs = MODEL_KIND_TABS.map(kind => ({
 			id: kind,
-			label: MODEL_KIND_LABELS[kind],
+			label: modelKindLabel(kind),
 			count: kind === "all" ? candidates.length : (counts.get(kind) ?? 0),
 		}));
 		this.#kindTabsMemo = { candidates, tabs };
@@ -3185,25 +3308,38 @@ export class ModelHubComponent implements Component {
 		if (strip) {
 			const apply =
 				strip.kind === "roleName"
-					? pickerAction("roleName", "Create role", "enter", { primary: true })
+					? pickerAction("roleName", t("tui.modelHub.action.createRole"), "enter", { primary: true })
 					: pickerAction(
 							"stripApply",
-							strip.kind === "thinking" ? "Apply" : strip.kind === "scope" ? "Save to scope" : "Assign / clear",
+							strip.kind === "thinking"
+								? t("tui.modelHub.action.apply")
+								: strip.kind === "scope"
+									? t("tui.modelHub.action.saveToScope")
+									: t("tui.modelHub.action.assignClear"),
 							"enter",
 							{ primary: true },
 						);
-			return [apply, cancel(strip.kind === "thinking" ? "Keep" : "Cancel")];
+			return [
+				apply,
+				cancel(strip.kind === "thinking" ? t("tui.modelHub.action.keep") : t("tui.modelHub.action.cancel")),
+			];
 		}
 		const refresh =
-			entry.kind === "provider" && !entry.locked ? pickerAction("refresh", "Refresh provider", "f5") : undefined;
+			entry.kind === "provider" && !entry.locked
+				? pickerAction("refresh", t("tui.modelHub.action.refreshProvider"), "f5")
+				: undefined;
 		if (this.#assigning !== null) {
 			const label =
 				this.#assigning.kind === "fallback"
-					? "Pick fallback"
+					? t("tui.modelHub.action.pickFallback")
 					: this.#assigning.kind === "fallbackKey"
-						? "Pick protected model"
-						: "Assign";
-			return compact([pickerAction("assign", label, "enter", { primary: true }), refresh, cancel("Cancel")]);
+						? t("tui.modelHub.action.pickProtectedModel")
+						: t("tui.modelHub.action.assign");
+			return compact([
+				pickerAction("assign", label, "enter", { primary: true }),
+				refresh,
+				cancel(t("tui.modelHub.action.cancel")),
+			]);
 		}
 		if (rolesView) {
 			const row = this.#rolesRows[this.#roleIndex];
@@ -3214,53 +3350,68 @@ export class ModelHubComponent implements Component {
 				case "role": {
 					const assigned = this.#roles[row.role];
 					actions.push(
-						roleAction("pick", "Pick model", "enter", true),
-						roleAction("fallback", "Add fallback", "f"),
-						assigned && !assigned.autoSelected ? roleAction("clear", "Clear", "x") : undefined,
-						this.#roleThinkingTarget(row.role) ? roleAction("thinking", "Thinking", "t") : undefined,
-						roleAction("cycle", this.#cycleOrder().includes(row.role) ? "Leave cycle" : "Add to cycle", "c"),
-						roleAction("new", "New role", "n"),
+						roleAction("pick", t("tui.modelHub.action.pickModel"), "enter", true),
+						roleAction("fallback", t("tui.modelHub.action.addFallback"), "f"),
+						assigned && !assigned.autoSelected
+							? roleAction("clear", t("tui.modelHub.action.clear"), "x")
+							: undefined,
+						this.#roleThinkingTarget(row.role)
+							? roleAction("thinking", t("tui.modelHub.action.thinking"), "t")
+							: undefined,
+						roleAction(
+							"cycle",
+							this.#cycleOrder().includes(row.role)
+								? t("tui.modelHub.action.leaveCycle")
+								: t("tui.modelHub.action.addToCycle"),
+							"c",
+						),
+						roleAction("new", t("tui.modelHub.action.newRole"), "n"),
 					);
 					break;
 				}
 				case "fallback":
 					actions.push(
-						roleAction("pick", "Replace", "enter", true),
-						roleAction("fallback", "Add another", "f"),
-						roleAction("clear", "Remove", "x"),
+						roleAction("pick", t("tui.modelHub.action.replace"), "enter", true),
+						roleAction("fallback", t("tui.modelHub.action.addAnother"), "f"),
+						roleAction("clear", t("tui.modelHub.action.remove"), "x"),
 						this.#resolveFallbackEntry(row.role, row.chainIndex)
-							? roleAction("thinking", "Thinking", "t")
+							? roleAction("thinking", t("tui.modelHub.action.thinking"), "t")
 							: undefined,
-						roleAction("earlier", "Earlier", "["),
-						roleAction("later", "Later", "]"),
+						roleAction("earlier", t("tui.modelHub.action.earlier"), "["),
+						roleAction("later", t("tui.modelHub.action.later"), "]"),
 					);
 					break;
 				case "chainKey":
-					actions.push(roleAction("pick", "Add fallback", "enter", true), roleAction("clear", "Clear chain", "x"));
+					actions.push(
+						roleAction("pick", t("tui.modelHub.action.addFallback"), "enter", true),
+						roleAction("clear", t("tui.modelHub.action.clearChain"), "x"),
+					);
 					break;
 				case "newFallback":
-					actions.push(roleAction("pick", "New fallback chain", "enter", true));
+					actions.push(roleAction("pick", t("tui.modelHub.action.newFallbackChain"), "enter", true));
 					break;
 				case "newRole":
-					actions.push(roleAction("pick", "New role", "enter", true));
+					actions.push(roleAction("pick", t("tui.modelHub.action.newRole"), "enter", true));
 					break;
 			}
 			return compact([...actions, CLOSE_ACTION]);
 		}
 		if (lockedView) {
 			return entry.oauth
-				? [pickerAction("login", "Log in", "enter", { primary: true }), CLOSE_ACTION]
+				? [pickerAction("login", t("tui.modelHub.action.logIn"), "enter", { primary: true }), CLOSE_ACTION]
 				: [CLOSE_ACTION];
 		}
 		return compact([
 			pickerAction(
 				"assign",
-				"Assign role",
+				t("tui.modelHub.action.assignRole"),
 				"enter",
-				this.#browser.pickerSelected ? { primary: true } : { primary: true, disabled: "No model selected" },
+				this.#browser.pickerSelected
+					? { primary: true }
+					: { primary: true, disabled: t("tui.modelHub.action.noModelSelected") },
 			),
 			refresh,
-			this.#browser.query.length > 0 ? cancel("Clear search") : CLOSE_ACTION,
+			this.#browser.query.length > 0 ? cancel(t("tui.modelHub.action.clearSearch")) : CLOSE_ACTION,
 		]);
 	}
 
@@ -3268,26 +3419,39 @@ export class ModelHubComponent implements Component {
 	#pickerStrip(strip: StripState): NonNullable<TspPickerProps["strip"]> {
 		if (strip.kind === "roleName") {
 			return {
-				label: [span("New role name ", "muted"), span(strip.input.getValue(), "mono"), span("▏", "accent")],
+				label: [
+					span(t("tui.modelHub.strip.newRoleName"), "muted"),
+					span(strip.input.getValue(), "mono"),
+					span("▏", "accent"),
+				],
 				items: [],
 			};
 		}
 		let label: TspSpan[];
 		if (strip.kind === "role") {
 			// The second step of "New fallback chain…" reuses the role strip with key chips only.
-			const keyStrip = strip.chips.every(chip => chip.label.startsWith("for "));
+			const keyStrip = strip.chips.every(
+				chip => chip.action === "fallbackModel" || chip.action === "fallbackProvider",
+			);
 			label = keyStrip
-				? [span("New fallback chain", "muted")]
-				: [span("Assign ", "muted"), span(strip.item.id, "mono"), span(" to", "muted")];
+				? [span(t("tui.modelHub.strip.newFallbackChain"), "muted")]
+				: [
+						span(t("tui.modelHub.strip.assign"), "muted"),
+						span(strip.item.id, "mono"),
+						span(t("tui.modelHub.strip.to"), "muted"),
+					];
 		} else {
 			const info = this.#settings.getRoleInfo(strip.role ?? "");
 			const roleLabel = (info.tag ?? strip.role ?? "").toLowerCase();
 			label = [
-				span(strip.kind === "thinking" ? "Thinking for " : "Save ", "muted"),
+				span(
+					strip.kind === "thinking" ? t("tui.modelHub.strip.thinkingFor") : t("tui.modelHub.strip.save"),
+					"muted",
+				),
 				span(roleLabel, "strong"),
 				span(" · ", "muted"),
 				span(strip.item.id, "mono"),
-				...(strip.kind === "scope" ? [span(" to", "muted")] : []),
+				...(strip.kind === "scope" ? [span(t("tui.modelHub.strip.to"), "muted")] : []),
 			];
 		}
 		return {
@@ -3325,16 +3489,28 @@ export class ModelHubComponent implements Component {
 				case "separator":
 					return;
 				case "newRole":
-					items.push({ id, label: "New role…", icon: "plus", tone: "muted" });
+					items.push({ id, label: t("tui.modelHub.row.newRoleList"), icon: "plus", tone: "muted" });
 					return;
 				case "newFallback":
-					items.push({ id, label: "New fallback chain…", icon: "plus", tone: "muted" });
+					items.push({ id, label: t("tui.modelHub.row.newFallbackList"), icon: "plus", tone: "muted" });
 					return;
 				case "chainKey":
-					items.push({ id, label: row.role, mono: true, icon: "git-branch", detail: "fallback chain" });
+					items.push({
+						id,
+						label: row.role,
+						mono: true,
+						icon: "git-branch",
+						detail: t("tui.modelHub.row.fallbackChainDetail"),
+					});
 					return;
 				case "fallback":
-					items.push({ id, label: row.selector, mono: true, depth: 1, detail: `fallback ${row.chainIndex + 1}` });
+					items.push({
+						id,
+						label: row.selector,
+						mono: true,
+						depth: 1,
+						detail: t("tui.modelHub.row.fallbackDetail", { n: row.chainIndex + 1 }),
+					});
 					return;
 				case "role":
 					break;
@@ -3363,9 +3539,9 @@ export class ModelHubComponent implements Component {
 					? {
 							badges: [
 								{
-									text: `cycle ${cycleIndex + 1}`,
+									text: t("tui.modelHub.row.cycleBadge", { n: cycleIndex + 1 }),
 									tone: "accent" as const,
-									title: `Stop ${cycleIndex + 1} of the quick-switch cycle`,
+									title: t("tui.modelHub.row.cycleBadgeTitle", { n: cycleIndex + 1 }),
 								},
 							],
 						}
@@ -3384,12 +3560,15 @@ export class ModelHubComponent implements Component {
 			head = { group, label, count: 0 };
 			order.push(head);
 		};
-		open(this.#roleTab === "kind" ? "kind" : "chat", this.#roleTab === "kind" ? "Kind roles" : "Chat roles");
+		open(
+			this.#roleTab === "kind" ? "kind" : "chat",
+			this.#roleTab === "kind" ? t("tui.modelHub.order.kindRoles") : t("tui.modelHub.order.chatRoles"),
+		);
 		this.#rolesRows.forEach((row, index) => {
 			if (row.kind === "separator") {
 				const previous = this.#rolesRows[index - 1];
-				if (previous?.kind === "newRole") open("chains", "Model fallback chains");
-				else open("kind", "Kind roles");
+				if (previous?.kind === "newRole") open("chains", t("tui.modelHub.order.modelFallbackChains"));
+				else open("kind", t("tui.modelHub.order.kindRoles"));
 				return;
 			}
 			order.push(rolesRowKey(row, index));
@@ -3409,7 +3588,7 @@ export class ModelHubComponent implements Component {
 		const chainList = (key: string): NativeChild | undefined => {
 			const chain = this.#fallbackChains()[key] ?? [];
 			if (chain.length === 0) return undefined;
-			return node("section", { head: "Fallback chain" }, [
+			return node("section", { head: t("tui.modelHub.preview.fallbackChain") }, [
 				md(chain.map((selector, index) => `${index + 1}. \`${selector}\``).join("\n")),
 			]);
 		};
@@ -3428,19 +3607,24 @@ export class ModelHubComponent implements Component {
 					children.push(
 						node("kv", {
 							items: [
-								{ k: [span("Role", "muted")], v: info.name },
+								{ k: [span(t("tui.modelHub.preview.role"), "muted")], v: info.name },
 								{
-									k: [span("Thinking", "muted")],
+									k: [span(t("tui.modelHub.preview.thinking"), "muted")],
 									v: getConfiguredThinkingLevelMetadata(assignment.thinkingLevel).label,
 								},
-								{ k: [span("Source", "muted")], v: assignment.autoSelected ? "auto-selected" : "configured" },
+								{
+									k: [span(t("tui.modelHub.preview.source"), "muted")],
+									v: assignment.autoSelected
+										? t("tui.modelHub.preview.autoSelected")
+										: t("tui.modelHub.preview.configured"),
+								},
 							],
 						}),
 					);
 				} else {
 					children.push(
 						text(info.name, { role: "omp.picker.title" }),
-						text([span("Not assigned; no available model fits this role.", "muted")], { wrap: "word" }),
+						text([span(t("tui.modelHub.preview.notAssigned"), "muted")], { wrap: "word" }),
 					);
 				}
 				const chain = chainList(row.role);
@@ -3463,14 +3647,14 @@ export class ModelHubComponent implements Component {
 			}
 			case "newRole":
 				children.push(
-					text("New role", { role: "omp.picker.title" }),
-					text([span("Name a custom role, then pick the model it runs on.", "muted")], { wrap: "word" }),
+					text(t("tui.modelHub.preview.newRole"), { role: "omp.picker.title" }),
+					text([span(t("tui.modelHub.preview.newRoleHint"), "muted")], { wrap: "word" }),
 				);
 				break;
 			case "newFallback":
 				children.push(
-					text("New fallback chain", { role: "omp.picker.title" }),
-					text([span("Pick the model (or provider) a new retry fallback chain protects.", "muted")], {
+					text(t("tui.modelHub.preview.newFallback"), { role: "omp.picker.title" }),
+					text([span(t("tui.modelHub.preview.newFallbackHint"), "muted")], {
 						wrap: "word",
 					}),
 				);
@@ -3484,9 +3668,9 @@ export class ModelHubComponent implements Component {
 		const envVars = entry.providerId ? (providerEntry(entry.providerId)?.envVars ?? []) : [];
 		const how =
 			envVars.length > 0
-				? `Set ${envVars.join(" or ")} in your environment, or add a key in config.`
-				: "Add an API key for this provider in config.";
-		return `${entry.label} has no credentials configured. ${how}`;
+				? t("tui.modelHub.locked.envSet", { vars: envVars.join(t("tui.modelHub.locked.or")) })
+				: t("tui.modelHub.locked.addApiKey");
+		return t("tui.modelHub.locked.message", { label: entry.label, how });
 	}
 
 	/** A signed-out provider's preview: how to sign in and what its catalog holds. */
@@ -3501,7 +3685,11 @@ export class ModelHubComponent implements Component {
 			for (const model of this.#registry.getAll("all")) {
 				if (model.provider === entry.providerId) ids.push(`- \`${model.id}\``);
 			}
-			children.push(node("section", { head: `${catalogCount} models in catalog` }, [md(ids.join("\n"))]));
+			children.push(
+				node("section", { head: t("tui.modelHub.locked.catalogCount", { count: catalogCount }) }, [
+					md(ids.join("\n")),
+				]),
+			);
 		}
 		return children;
 	}
@@ -3627,9 +3815,9 @@ export class ModelHubComponent implements Component {
 				"row",
 				{ gap: "sm", align: "center" },
 				[
-					text([span("New role name:", "accent")]),
+					text([span(t("tui.modelHub.row.newRoleNameLabel"), "accent")]),
 					col([strip.input], { grow: 1 }),
-					text([span("(letters, digits, - and _)", "dim")]),
+					text([span(t("tui.modelHub.row.roleNameChars"), "dim")]),
 				],
 				"roleName",
 			);
@@ -3668,98 +3856,137 @@ export class ModelHubComponent implements Component {
 		const keys = (label: string, ...ids: KeyName[]): NativeHint => ({ keys: ids, label });
 		const cancel = (label: string) => actionHint("tui.select.cancel", label);
 		const upDown = (label: string) => actionHint(["tui.select.up", "tui.select.down"], label);
-		const search = keys("type to search");
-		const kind = keys("kind", "alt+left", "alt+right");
-		const reorder = keys("reorder", "[", "]");
+		const search = keys(t("tui.modelHub.keyHint.search"));
+		const kind = keys(t("tui.modelHub.keyHint.kind"), "alt+left", "alt+right");
+		const reorder = keys(t("tui.modelHub.keyHint.reorder"), "[", "]");
 		const strip = this.#strip;
 		if (strip) {
 			switch (strip.kind) {
 				case "roleName":
-					return [keys("create + pick model", "enter"), cancel("cancel")];
+					return [
+						keys(t("tui.modelHub.keyHint.createPickModel"), "enter"),
+						cancel(t("tui.modelHub.keyHint.cancel")),
+					];
 				case "role":
-					return [keys("choose", "left", "right"), keys("assign/clear", "enter"), cancel("cancel")];
+					return [
+						keys(t("tui.modelHub.keyHint.choose"), "left", "right"),
+						keys(t("tui.modelHub.keyHint.assignClear"), "enter"),
+						cancel(t("tui.modelHub.keyHint.cancel")),
+					];
 				case "scope":
-					return [keys("save scope", "left", "right"), keys("choose", "enter"), cancel("cancel")];
+					return [
+						keys(t("tui.modelHub.keyHint.saveScope"), "left", "right"),
+						keys(t("tui.modelHub.keyHint.choose"), "enter"),
+						cancel(t("tui.modelHub.keyHint.cancel")),
+					];
 				case "thinking":
-					return [keys("thinking level", "left", "right"), keys("apply", "enter"), cancel("keep")];
+					return [
+						keys(t("tui.modelHub.keyHint.thinkingLevel"), "left", "right"),
+						keys(t("tui.modelHub.keyHint.apply"), "enter"),
+						cancel(t("tui.modelHub.keyHint.keep")),
+					];
 			}
 		}
 		if (this.#assigning !== null) {
+			const assignCancel = cancel(t("tui.modelHub.keyHint.cancel"));
 			if (this.#focus === "scope") {
-				return [keys("models", "enter", "right"), upDown("providers"), search, kind, cancel("cancel")];
+				return [
+					keys(t("tui.modelHub.keyHint.models"), "enter", "right"),
+					upDown(t("tui.modelHub.keyHint.providers")),
+					search,
+					kind,
+					assignCancel,
+				];
 			}
 			const pick =
 				this.#assigning.kind === "fallback"
-					? "pick fallback"
+					? t("tui.modelHub.keyHint.pickFallback")
 					: this.#assigning.kind === "fallbackKey"
-						? "pick the protected model"
-						: "assign";
-			return [keys(pick, "enter"), upDown("models"), keys("providers", "left"), search, kind, cancel("cancel")];
+						? t("tui.modelHub.keyHint.pickProtectedModel")
+						: t("tui.modelHub.keyHint.assign");
+			return [
+				keys(pick, "enter"),
+				upDown(t("tui.modelHub.keyHint.models")),
+				keys(t("tui.modelHub.keyHint.providers"), "left"),
+				search,
+				kind,
+				assignCancel,
+			];
 		}
 		const entry = this.#activeEntry();
+		const providersHint = t("tui.modelHub.keyHint.providers");
+		const modelsHint = t("tui.modelHub.keyHint.models");
+		const closeHint = () => cancel(t("tui.modelHub.keyHint.close"));
 		if (entry.kind === "roles") {
 			if (this.#focus !== "list") {
 				return [
-					upDown("providers"),
-					keys("roles", "enter", "right"),
-					keys("tabs", "alt+left", "alt+right"),
-					cancel("close"),
+					upDown(providersHint),
+					keys(t("tui.modelHub.keyHint.roles"), "enter", "right"),
+					keys(t("tui.modelHub.keyHint.tabs"), "alt+left", "alt+right"),
+					closeHint(),
 				];
 			}
 			const row = this.#rolesRows[this.#roleIndex];
+			const rowsHint = t("tui.modelHub.keyHint.rows");
 			if (row?.kind === "fallback") {
 				// Advertise `t` only where a strip would open, as the ANSI footer does.
 				const editable = this.#resolveFallbackEntry(row.role, row.chainIndex) !== undefined;
+				const thinkingHint = t("tui.modelHub.keyHint.thinking");
 				return [
-					upDown("rows"),
-					keys("replace", "enter"),
-					keys("add another", "f"),
-					keys("remove", "x"),
-					editable ? keys("thinking", "t") : undefined,
+					upDown(rowsHint),
+					keys(t("tui.modelHub.keyHint.replace"), "enter"),
+					keys(t("tui.modelHub.keyHint.addAnother"), "f"),
+					keys(t("tui.modelHub.keyHint.remove"), "x"),
+					editable ? keys(thinkingHint, "t") : undefined,
 					reorder,
-					keys("providers", "left"),
+					keys(providersHint, "left"),
 				];
 			}
 			if (row?.kind === "chainKey") {
 				return [
-					upDown("rows"),
-					keys("add fallback", "enter", "f"),
-					keys("clear chain", "x"),
-					keys("providers", "left"),
+					upDown(rowsHint),
+					keys(t("tui.modelHub.keyHint.addFallback"), "enter", "f"),
+					keys(t("tui.modelHub.keyHint.clearChain"), "x"),
+					keys(providersHint, "left"),
 				];
 			}
 			if (row?.kind === "newFallback") {
-				return [upDown("rows"), keys("new model/provider fallback chain", "enter"), keys("providers", "left")];
+				return [
+					upDown(rowsHint),
+					keys(t("tui.modelHub.keyHint.newModelFallbackChain"), "enter"),
+					keys(providersHint, "left"),
+				];
 			}
 			const editable = row?.kind === "role" && this.#roleThinkingTarget(row.role) !== undefined;
+			const thinkingHint = t("tui.modelHub.keyHint.thinking");
 			return [
-				upDown("rows"),
-				keys("pick", "enter"),
-				keys("fallback", "f"),
-				keys("clear", "x"),
-				editable ? keys("thinking", "t") : undefined,
-				keys("cycle", "c"),
+				upDown(rowsHint),
+				keys(t("tui.modelHub.keyHint.pick"), "enter"),
+				keys(t("tui.modelHub.keyHint.fallback"), "f"),
+				keys(t("tui.modelHub.keyHint.clear"), "x"),
+				editable ? keys(thinkingHint, "t") : undefined,
+				keys(t("tui.modelHub.keyHint.cycle"), "c"),
 				reorder,
-				keys("new", "n"),
+				keys(t("tui.modelHub.keyHint.new"), "n"),
 			];
 		}
 		if (entry.kind === "provider" && entry.locked) {
 			return entry.oauth
-				? [keys("log in", "enter"), upDown("providers"), cancel("close")]
-				: [upDown("providers"), cancel("close")];
+				? [keys(t("tui.modelHub.keyHint.logIn"), "enter"), upDown(providersHint), closeHint()]
+				: [upDown(providersHint), closeHint()];
 		}
-		const refresh = entry.kind === "provider" ? keys("refresh", "f5") : undefined;
+		const refresh = entry.kind === "provider" ? keys(t("tui.modelHub.keyHint.refresh"), "f5") : undefined;
 		if (this.#focus === "scope") {
-			return [keys("models", "enter", "right"), upDown("providers"), search, kind, refresh, cancel("close")];
+			return [keys(modelsHint, "enter", "right"), upDown(providersHint), search, kind, refresh, closeHint()];
 		}
 		return [
-			keys("assign roles", "enter"),
-			upDown("models"),
-			keys("providers", "left"),
+			keys(t("tui.modelHub.keyHint.assignRoles"), "enter"),
+			upDown(modelsHint),
+			keys(providersHint, "left"),
 			search,
 			kind,
 			refresh,
-			cancel("close"),
+			closeHint(),
 		];
 	}
 }

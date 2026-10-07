@@ -1,6 +1,7 @@
 import { $which } from "@oh-my-pi/pi-utils";
 import { theme } from "@oh-my-pi/pi-tui/theme";
 import type { DoctorCheck } from "./types";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export async function runDoctorChecks(): Promise<DoctorCheck[]> {
 	const checks: DoctorCheck[] = [];
@@ -9,7 +10,7 @@ export async function runDoctorChecks(): Promise<DoctorCheck[]> {
 	const tools = [
 		{ name: "sd", description: "Find-replace" },
 		{ name: "sg", description: "AST-grep" },
-		{ name: "git", description: "Version control" },
+		{ name: "git", description: t("tui.ca.extensibility.plugins.doctor.versionControl") },
 	];
 
 	for (const tool of tools) {
@@ -23,9 +24,9 @@ export async function runDoctorChecks(): Promise<DoctorCheck[]> {
 
 	// Check API keys
 	const apiKeys = [
-		{ name: "ANTHROPIC_API_KEY", description: "Anthropic API" },
-		{ name: "OPENAI_API_KEY", description: "OpenAI API" },
-		{ name: "EXA_API_KEY", description: "Exa search" },
+		{ name: "ANTHROPIC_API_KEY", description: t("tui.ca.extensibility.plugins.doctor.anthropicApi") },
+		{ name: "OPENAI_API_KEY", description: t("tui.ca.extensibility.plugins.doctor.openaiApi") },
+		{ name: "EXA_API_KEY", description: t("tui.ca.extensibility.plugins.doctor.exaSearch") },
 	];
 
 	for (const key of apiKeys) {
@@ -43,7 +44,7 @@ export async function runDoctorChecks(): Promise<DoctorCheck[]> {
 export function formatDoctorResults(checks: DoctorCheck[]): string {
 	// Note: This function returns plain text without theming as it may be called outside TUI context.
 	// For TUI usage, the plugin CLI handler applies theme colors.
-	const lines: string[] = ["System Health Check", "=".repeat(40), ""];
+	const lines: string[] = [t("tui.ca.extensibility.plugins.doctor.systemHealthCheck"), "=".repeat(40), ""];
 
 	for (const check of checks) {
 		const icon =

@@ -15,6 +15,7 @@ import {
 	type MuxConnectResult,
 	muxServerKey,
 } from "./protocol";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const SERVER_LINGER_MS = 5 * 60 * 1_000;
 const MUX_IDLE_MS = 15 * 60 * 1_000;
@@ -199,7 +200,7 @@ export class LspMuxServer {
 
 	/** Listen for Content-Length framed mux links at a Unix socket or named pipe. */
 	async listen(endpoint: string): Promise<void> {
-		if (this.#netServer) throw new Error("LSP mux is already listening");
+		if (this.#netServer) throw new Error(t("tui.ca.lsp.mux.server.lspMuxIsAlreadyListening"));
 		if (process.platform !== "win32") await this.#clearStaleSocket(endpoint);
 		const server = net.createServer(socket => this.#accept(socket));
 		this.#netServer = server;
@@ -742,7 +743,7 @@ export class LspMuxServer {
 export async function startLspMuxFromEnvironment(): Promise<void> {
 	const endpoint = process.env[LSP_MUX_SOCKET_ENV];
 	const projectDir = process.env[LSP_MUX_PROJECT_DIR_ENV];
-	if (!endpoint || !projectDir) throw new Error("LSP mux environment is incomplete");
+	if (!endpoint || !projectDir) throw new Error(t("tui.ca.lsp.mux.server.lspMuxEnvironmentIsIncomplete"));
 	delete process.env[LSP_MUX_SOCKET_ENV];
 	delete process.env[LSP_MUX_PROJECT_DIR_ENV];
 	setProcessName("omp lsp mux");

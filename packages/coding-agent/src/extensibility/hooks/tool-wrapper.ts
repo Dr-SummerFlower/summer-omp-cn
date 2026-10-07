@@ -12,6 +12,7 @@ import { normalizeToolEventInput, resolveToolEventInput } from "../tool-event-in
 import { applyToolProxy } from "../tool-proxy";
 import type { HookRunner } from "./runner";
 import type { ToolCallEventResult, ToolResultEventResult } from "./types";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /**
  * Wraps an AgentTool with hook callbacks for interception.
@@ -64,7 +65,8 @@ export class HookToolWrapper<TParameters extends TSchema = TSchema, TDetails = u
 				})) as ToolCallEventResult | undefined;
 
 				if (callResult?.block) {
-					const reason = callResult.reason || "Tool execution was blocked by a hook";
+					const reason =
+						callResult.reason || t("tui.ca.extensibility.hooks.toolWrapper.toolExecutionWasBlockedByA");
 					throw new Error(reason);
 				}
 				if (isNonBlankContext(callResult?.additionalContext)) {

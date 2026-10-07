@@ -27,6 +27,7 @@ import {
 import { captureGalleryScreenshots } from "./gallery-screenshot";
 
 import { cfgColorBlindMode, cfgSymbolPreset, cfgThemeDark, cfgThemeLight } from "../modes/settings";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Lifecycle states the gallery renders, in display order. */
 export const GALLERY_STATES = ["streaming", "progress", "success", "error"] as const;
@@ -125,7 +126,7 @@ export interface GallerySection {
 }
 
 const GENERIC_ERROR: GalleryResult = {
-	content: [{ type: "text", text: "Error: operation failed" }],
+	content: [{ type: "text", text: t("cli.gallery.errorOperationFailed") }],
 	isError: true,
 };
 

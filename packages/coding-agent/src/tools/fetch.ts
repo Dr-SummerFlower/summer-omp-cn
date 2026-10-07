@@ -37,6 +37,7 @@ import { clampTimeout } from "./tool-timeouts";
 
 import { cfgFetchEnabled, cfgToolsMaxTimeout } from "./settings";
 import { cfgProvidersFetch } from "../session/settings";
+import { t } from "@oh-my-pi/pi-i18n";
 
 // =============================================================================
 // Types and Constants
@@ -632,7 +633,7 @@ export async function renderHtmlToText(
 			const parallelResult = await extractWithParallel(
 				[url],
 				{
-					objective: "Extract the main content",
+					objective: t("tui.ca.tools.fetch.extractTheMainContent"),
 					excerpts: true,
 					fullContent: false,
 					signal: remoteSignal(),
@@ -906,7 +907,9 @@ async function tryRenderBinaryPayload(
 	const resultNotes = [...notes];
 	const binary = await fetchBinary(finalUrl, timeout, signal);
 	if (!binary.ok) {
-		resultNotes.push(binary.error ? `Binary fetch failed: ${binary.error}` : "Binary fetch failed");
+		resultNotes.push(
+			binary.error ? `Binary fetch failed: ${binary.error}` : t("tui.ca.tools.fetch.binaryFetchFailed"),
+		);
 		return buildBinaryPayloadResult(
 			url,
 			finalUrl,
@@ -1081,7 +1084,7 @@ async function renderUrl(
 			content: "",
 			fetchedAt,
 			truncated: false,
-			notes: ["Internal protocol URL - no external content"],
+			notes: [t("tui.ca.tools.fetch.internalProtocolUrlNoExternalContent")],
 		};
 	}
 
@@ -1109,7 +1112,9 @@ async function renderUrl(
 			fetchedAt,
 			truncated: false,
 			notes: [
-				response.status ? `Failed to fetch URL (HTTP ${response.status})` : "Failed to fetch URL",
+				response.status
+					? `Failed to fetch URL (HTTP ${response.status})`
+					: t("tui.ca.tools.fetch.failedToFetchUrl"),
 				...(response.error ? [`Cause: ${response.error}`] : []),
 			],
 		};
@@ -1129,12 +1134,12 @@ async function renderUrl(
 			notes.push(
 				`Image MIME type ${imageMimeType} is unsupported for inline model serialization; returning text metadata only`,
 			);
-			notes.push("Falling back to textual rendering from initial response");
+			notes.push(t("tui.ca.tools.fetch.fallingBackToTextualRenderingFrom"));
 			skipConvertibleBinaryRetry = true;
 		} else {
 			const binary = await fetchBinary(finalUrl, timeout, signal);
 			if (binary.ok) {
-				notes.push("Fetched image binary");
+				notes.push(t("tui.ca.tools.fetch.fetchedImageBinary"));
 
 				if (binary.buffer.byteLength > MAX_INLINE_IMAGE_SOURCE_BYTES) {
 					notes.push(
@@ -1217,8 +1222,8 @@ async function renderUrl(
 					},
 				};
 			}
-			notes.push(binary.error ? `Binary fetch failed: ${binary.error}` : "Binary fetch failed");
-			notes.push("Falling back to textual rendering from initial response");
+			notes.push(binary.error ? `Binary fetch failed: ${binary.error}` : t("tui.ca.tools.fetch.binaryFetchFailed2"));
+			notes.push(t("tui.ca.tools.fetch.fallingBackToTextualRenderingFrom2"));
 			skipConvertibleBinaryRetry = true;
 		}
 	}
@@ -1231,7 +1236,7 @@ async function renderUrl(
 			const converted = await convertWithMarkit(binary.buffer, ext, timeout, signal);
 			if (converted.ok) {
 				if (converted.content.trim().length > 50) {
-					notes.push("Converted with markit");
+					notes.push(t("tui.ca.tools.fetch.convertedWithMarkit"));
 					const output = finalizeOutput(converted.content);
 					return {
 						url,
@@ -1253,7 +1258,7 @@ async function renderUrl(
 		} else if (binary.error) {
 			notes.push(`Binary fetch failed: ${binary.error}`);
 		} else {
-			notes.push("Binary fetch failed");
+			notes.push(t("tui.ca.tools.fetch.binaryFetchFailed3"));
 		}
 	}
 
@@ -1511,7 +1516,7 @@ async function renderUrl(
 				};
 			}
 
-			notes.push("Page appears to require JavaScript or is mostly navigation");
+			notes.push(t("tui.ca.tools.fetch.pageAppearsToRequireJavascriptOr"));
 		}
 
 		const output = finalizeOutput(htmlResult.content);

@@ -4,6 +4,7 @@ import * as vcs from "@oh-my-pi/pi-natives/vcs";
 import { $which, isRecord, ptree, sanitizeText } from "@oh-my-pi/pi-utils";
 import { CLEANSE_PARSER_KINDS, type CleanseParserKind, parseCleanseDiagnostics } from "./parsers";
 import type { CleanseCheckResult, CleanseDiagnostic, CleanseDiagnosticReport, SkippedCleanseCheck } from "./types";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const IGNORED_DIRECTORIES: Record<string, true> = {
 	".git": true,
@@ -1192,7 +1193,7 @@ function discoverGitHubActions(state: DiscoveryState): void {
 		addPlan(state, {
 			id: "actionlint",
 			label: "actionlint",
-			language: "GitHub Actions",
+			language: t("tui.ca.cleanse.checkers.githubActions"),
 			root,
 			binaries: ["actionlint"],
 			args: ["-format", "{{json .}}"],

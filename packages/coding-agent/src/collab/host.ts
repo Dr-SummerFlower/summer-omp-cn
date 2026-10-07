@@ -60,6 +60,7 @@ import {
 	shrinkReplicatedEntry,
 	shrinkReplicatedEvent,
 } from "./replication-shrink";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Events that change the footer state guests render. */
 const STATE_TRIGGER_EVENTS: Record<string, true> = {
@@ -726,7 +727,7 @@ export class CollabHost {
 
 	#handleHello(name: string, proto: number, writeToken: string | undefined, fromPeer: number): void {
 		if (this.#ctx.session.isSessionTransitioning) {
-			this.#send({ t: "error", message: "Session transition in progress; join again when it completes" }, fromPeer);
+			this.#send({ t: "error", message: t("tui.ca.collab.host.sessionTransitionInProgressJoinAgain") }, fromPeer);
 			return;
 		}
 		if (proto !== COLLAB_PROTO) {
@@ -927,10 +928,7 @@ export class CollabHost {
 			);
 			return;
 		}
-		this.#send(
-			{ t: "error", message: "Prompt was not submitted. Please resend it when the host is ready." },
-			fromPeer,
-		);
+		this.#send({ t: "error", message: t("tui.ca.collab.host.promptWasNotSubmittedPleaseResend") }, fromPeer);
 	}
 
 	#handleAbort(fromPeer: number): void {

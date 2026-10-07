@@ -43,6 +43,7 @@ import type {
 
 import { cfgBrowserScreenshotDir } from "./settings";
 import { TernTab } from "./tern/tern-tab";
+import { t } from "@oh-my-pi/pi-i18n";
 
 // Coding-agent binary/bundle workers route through the CLI entrypoint with a
 // hidden argv mode, so compiled/npm builds only need one JavaScript entry.
@@ -806,7 +807,7 @@ async function runInTabWithSnapshot(
 			return await raceWithTimeout(
 				promise,
 				opts.timeoutMs + GRACE_MS,
-				"Browser code execution hung past grace; tab killed",
+				t("tui.ca.tools.browser.tabSupervisor.browserCodeExecutionHungPastGrace"),
 				async reason => await forceKillTab(name, reason),
 			);
 		} catch (error) {
@@ -816,8 +817,8 @@ async function runInTabWithSnapshot(
 				try {
 					if (tab.worker.mode === "inline") {
 						const reason = runTimedOut
-							? "Browser code execution timed out; tab killed"
-							: "Browser request interception cleanup failed; tab killed";
+							? t("tui.ca.tools.browser.tabSupervisor.browserCodeExecutionTimedOutTab")
+							: t("tui.ca.tools.browser.tabSupervisor.browserRequestInterceptionCleanupFailedTab");
 						await forceKillTab(name, reason);
 					} else {
 						await recycleTimedOutWorkerTab(tab, opts.timeoutMs + GRACE_MS);
@@ -826,7 +827,7 @@ async function runInTabWithSnapshot(
 					logger.warn("Failed to recycle browser tab worker; killing tab", {
 						error: recycleError instanceof Error ? recycleError.message : String(recycleError),
 					});
-					await forceKillTab(name, "Browser tab worker recovery failed; tab killed");
+					await forceKillTab(name, t("tui.ca.tools.browser.tabSupervisor.browserTabWorkerRecoveryFailedTab"));
 				}
 			}
 			throw error;
@@ -1460,7 +1461,12 @@ async function dispatchToolCall(
 			id: msg.id,
 			reply: {
 				ok: false,
-				error: { name: "ToolError", message: "No active run for tool call", isToolError: true, isAbort: false },
+				error: {
+					name: "ToolError",
+					message: t("tui.ca.tools.browser.tabSupervisor.noActiveRunForToolCall"),
+					isToolError: true,
+					isAbort: false,
+				},
 			},
 		});
 		return;
@@ -1635,7 +1641,7 @@ async function waitForClosed(tab: WorkerTabSession): Promise<void> {
 		if (msg.type === "closed") resolve();
 	});
 	try {
-		await raceWithTimeout(promise, GRACE_MS, "Timed out closing browser tab worker");
+		await raceWithTimeout(promise, GRACE_MS, t("tui.ca.tools.browser.tabSupervisor.timedOutClosingBrowserTabWorker"));
 	} finally {
 		unsubscribe();
 	}
@@ -1847,12 +1853,20 @@ async function initializeTabWorker(
 	});
 	try {
 		worker.send({ type: "init", payload });
-		await raceWithTimeout(setup.promise, setupBudgetMs, "Timed out waiting for tab worker setup");
+		await raceWithTimeout(
+			setup.promise,
+			setupBudgetMs,
+			t("tui.ca.tools.browser.tabSupervisor.timedOutWaitingForTabWorker"),
+		);
 		// The ready wait gets only what is left of the caller's budget at
 		// this point; the floor covers sub-3s budgets where the 2s setup
 		// floor alone exceeds it.
 		const readyBudgetMs = Math.max(READY_BUDGET_FLOOR_MS, timeoutMs - Math.round(performance.now() - deadlineStart));
-		return await raceWithTimeout(ready.promise, readyBudgetMs, "Timed out initializing browser tab worker");
+		return await raceWithTimeout(
+			ready.promise,
+			readyBudgetMs,
+			t("tui.ca.tools.browser.tabSupervisor.timedOutInitializingBrowserTabWorker"),
+		);
 	} finally {
 		unlisten();
 		unlistenError();
@@ -1881,5 +1895,5 @@ export function initializeTabWorkerForTest(
 function errorFromWorkerEvent(event: ErrorEvent): Error {
 	if (event.error instanceof Error) return event.error;
 	if (event.message) return new Error(event.message);
-	return new Error("Unknown tab worker error");
+	return new Error(t("tui.ca.tools.browser.tabSupervisor.unknownTabWorkerError"));
 }

@@ -38,6 +38,7 @@ import {
 	type ExtensionState,
 	isShadowedExtension,
 } from "./types";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export interface ExtensionListCallbacks {
 	getProviders?: () => readonly ExtensionProvider[];
@@ -527,7 +528,7 @@ export class ExtensionList implements Component {
 	#getKindLabel(kind: ExtensionKind): string {
 		switch (kind) {
 			case "extension-module":
-				return "Extension Modules";
+				return t("tui.overlays.extensions.extensionList.extensionModules");
 			case "skill":
 				return "Skills";
 			case "tool":
@@ -537,7 +538,7 @@ export class ExtensionList implements Component {
 			case "rule":
 				return "Rules";
 			case "mcp":
-				return "MCP Servers";
+				return t("tui.overlays.extensions.extensionList.mcpServers");
 			case "hook":
 				return "Hooks";
 			case "prompt":

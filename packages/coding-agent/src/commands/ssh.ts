@@ -6,6 +6,7 @@ import { Args, Command, Flags } from "@oh-my-pi/pi-utils/cli";
 import { sshHelp as commandHelp } from "../cli/command-help";
 import { runSSHCommand, type SSHAction, type SSHCommandArgs } from "../cli/ssh-cli";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const ACTIONS: SSHAction[] = ["add", "remove", "list"];
 
@@ -13,26 +14,26 @@ export default class SSH extends Command {
 	static description = commandHelp.description;
 	static args = {
 		action: Args.string({
-			description: "SSH action",
+			description: t("cli.ssh.sshAction"),
 			required: false,
 			options: ACTIONS,
 		}),
 		targets: Args.string({
-			description: "Host name or arguments",
+			description: t("cli.ssh.hostNameOrArguments"),
 			required: false,
 			multiple: true,
 		}),
 	};
 
 	static flags = {
-		json: Flags.boolean({ description: "Output JSON" }),
-		host: Flags.string({ description: "Host address" }),
+		json: Flags.boolean({ description: t("cli.agents.outputJson") }),
+		host: Flags.string({ description: t("cli.ssh.hostAddress") }),
 		user: Flags.string({ description: "Username" }),
-		port: Flags.string({ description: "Port number" }),
-		key: Flags.string({ description: "Identity key path" }),
-		desc: Flags.string({ description: "Host description" }),
-		compat: Flags.boolean({ description: "Enable compatibility mode" }),
-		scope: Flags.string({ description: "Config scope (project|user)", options: ["project", "user"] }),
+		port: Flags.string({ description: t("cli.ssh.portNumber") }),
+		key: Flags.string({ description: t("cli.ssh.identityKeyPath") }),
+		desc: Flags.string({ description: t("cli.ssh.hostDescription") }),
+		compat: Flags.boolean({ description: t("cli.ssh.enableCompatibilityMode") }),
+		scope: Flags.string({ description: t("cli.ssh.configScopeProjectUser"), options: ["project", "user"] }),
 	};
 
 	async run(): Promise<void> {

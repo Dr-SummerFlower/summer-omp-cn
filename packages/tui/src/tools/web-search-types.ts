@@ -1,3 +1,4 @@
+import { t } from "@oh-my-pi/pi-i18n";
 /**
  * Web search response types shared by the coding agent's search providers and
  * the transcript renderer in {@link ./web-search}. Render-free, so provider code
@@ -14,8 +15,8 @@ export const SEARCH_PROVIDER_LABELS = {
 	perplexity: "Perplexity",
 	gemini: "Gemini",
 	anthropic: "Anthropic",
-	codex: "OpenAI Codex",
-	openai: "OpenAI API",
+	codex: t("tui.tools.webSearchTypes.openaiCodex"),
+	openai: t("tui.tools.webSearchTypes.openaiApi"),
 	xai: "xAI",
 	openrouter: "OpenRouter",
 	zai: "Z.AI",
@@ -35,7 +36,7 @@ export const SEARCH_PROVIDER_LABELS = {
 	ecosia: "Ecosia",
 	google: "Google",
 	mojeek: "Mojeek",
-	public: "Public Web",
+	public: t("tui.tools.webSearchTypes.publicWeb"),
 } as const;
 
 /** Id of a search implementation; see {@link SEARCH_PROVIDER_LABELS}. */

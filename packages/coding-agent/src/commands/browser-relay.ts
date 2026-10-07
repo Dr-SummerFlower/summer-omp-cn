@@ -8,29 +8,40 @@ import {
 	DEFAULT_RELAY_PORT,
 	runBrowserRelayCommand,
 } from "../cli/browser-relay-cli";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export default class BrowserRelay extends Command {
-	static description = "Run the local CDP relay that lets the browser prelude drive your own Chrome tabs";
+	static description = t("cli.commandHelp.runTheLocalCdpRelayThat");
 
 	static args = {
 		action: Args.string({
-			description: `Action: ${BROWSER_RELAY_ACTIONS.join(" | ")} (default serve)`,
+			description: t("cli.browserRelay.actionBrowserRelayActionsJoinDefault", {
+				arg: BROWSER_RELAY_ACTIONS.join(" | "),
+			}),
 			options: [...BROWSER_RELAY_ACTIONS],
 			required: false,
 		}),
 	};
 
 	static flags = {
-		port: Flags.integer({ char: "p", description: "Port to listen on", default: DEFAULT_RELAY_PORT }),
-		token: Flags.string({ description: "Require the extension to present this token" }),
+		port: Flags.integer({
+			char: "p",
+			description: t("cli.browserRelay.portToListenOn"),
+			default: DEFAULT_RELAY_PORT,
+		}),
+		token: Flags.string({ description: t("cli.browserRelay.requireTheExtensionToPresentThis") }),
 		dir: Flags.string({
-			description: "Extension install directory (install; default ~/.omp/browser-relay/extension)",
+			description: t("cli.browserRelay.extensionInstallDirectoryInstallDefaultOmp"),
 		}),
 		"no-group": Flags.boolean({
-			description: "Don't gather controllable tabs into an 'omp' tab group",
+			description: t("cli.browserRelay.donTGatherControllableTabsInto"),
 			default: false,
 		}),
-		verbose: Flags.boolean({ char: "v", description: "Log relay traffic summaries to stderr", default: false }),
+		verbose: Flags.boolean({
+			char: "v",
+			description: t("cli.browserRelay.logRelayTrafficSummariesToStderr"),
+			default: false,
+		}),
 	};
 
 	static examples = [

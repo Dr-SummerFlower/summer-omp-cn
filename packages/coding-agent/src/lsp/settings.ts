@@ -3,6 +3,7 @@
  * settings-panel order; `config/all-settings.ts` registers every domain.
  */
 import { register } from "../config/registry";
+import { t } from "@oh-my-pi/pi-i18n";
 
 // LSP
 export const cfgLspEnabled = register({
@@ -25,8 +26,7 @@ export const cfgLspLazy = register({
 		tab: "files",
 		group: "LSP",
 		label: "Lazy LSP Startup",
-		description:
-			"Start language servers on first use (lsp tool or editing a matching file type) instead of at session startup",
+		description: t("tui.ca.lsp.settings.startLanguageServersOnFirstUse"),
 	},
 });
 
@@ -38,8 +38,7 @@ export const cfgLspShared = register({
 		tab: "files",
 		group: "LSP",
 		label: "Shared Language Servers",
-		description:
-			"Share one language server per project across omp instances via the daemon broker (falls back to private servers when unavailable)",
+		description: t("tui.ca.lsp.settings.shareOneLanguageServerPerProject"),
 	},
 });
 

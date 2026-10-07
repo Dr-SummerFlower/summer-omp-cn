@@ -21,6 +21,7 @@ import {
 	truncateToWidth,
 } from "../render/render-utils";
 import type { NativeToolView, RenderResultOptions, ToolRenderer, ToolRenderResult } from "./renderer";
+import { t } from "@oh-my-pi/pi-i18n";
 /** Operation represented by a worker-session tool result. */
 export type VibeOp = "spawn" | "send" | "wait" | "kill" | "list";
 
@@ -445,9 +446,9 @@ function describeVibeResult(
 			op === "spawn"
 				? span(`turn started${details.spawned ? ` (job ${details.spawned.jobId})` : ""}`, "success")
 				: details.send?.mode === "steered"
-					? span("steered into the running turn", "success")
+					? span(t("tui.tools.vibe.steeredIntoTheRunningTurn"), "success")
 					: details.send?.mode === "queued"
-						? span("mid-turn — queued as the next turn", "warning")
+						? span(t("tui.tools.vibe.midTurnQueuedAsTheNext"), "warning")
 						: span(`turn started${details.send?.jobId ? ` (job ${details.send.jobId})` : ""}`, "success");
 		return {
 			head,
@@ -483,7 +484,7 @@ function describeVibeResult(
 	const head: TspSpan[] = toolHead("Vibe", title);
 	if (running > 0) head.push(span(` · ${running} on air`, "accent"));
 	if (settledById.size > 0) head.push(span(` · ${settledById.size} settled`, "success"));
-	if (details.wait?.timedOut) head.push(span(" · timed out", "warning"));
+	if (details.wait?.timedOut) head.push(span(t("tui.tools.vibe.timedOut"), "warning"));
 	if (killedMeta) head.push(killedMeta);
 	const nowMs = Date.now();
 	return {

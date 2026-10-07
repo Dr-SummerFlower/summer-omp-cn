@@ -20,6 +20,7 @@ import { DEFAULT_TERMINAL_PREVIEW_LINES, expandKeyHint } from "../render/render-
 import type { TspCardStatus, TspSpan, TspText, TspTone } from "@oh-my-pi/pi-wire";
 import { card, node, span, text } from "../native/describe";
 import type { NativeChild, NativeNode } from "../native/node";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Output rows shown while an execution is collapsed. */
 export const PREVIEW_LINES = 20;
@@ -230,7 +231,8 @@ export function describeExecutionTool(input: ExecutionToolInput): NativeNode {
 	}
 	const ms = Math.max(0, Math.round((input.endedAt ?? performance.now()) - input.startedAt));
 	const badges: { text: string; tone?: TspTone; title?: string }[] = [{ text: "you", tone: "user" }];
-	if (input.excluded) badges.push({ text: "not sent", title: "Not sent to the model", tone: "muted" });
+	if (input.excluded)
+		badges.push({ text: "not sent", title: t("tui.chat.executionShared.notSentToTheModel"), tone: "muted" });
 	const hasBody = body.length > 0;
 	return node(
 		"tool",

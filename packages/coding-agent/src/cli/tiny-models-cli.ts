@@ -15,6 +15,7 @@ import {
 	smolLmWeightsReady,
 } from "../predict/smollm-weights";
 import { shutdownTinyTitleClient, tinyTitleClient, tinyWorkerUsesMlx } from "../tiny/title-client";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** CLI key for the word-completion model (`spelling.autocomplete` `auto`/`smollm`). */
 const SMOLLM_KEY = "smollm";
@@ -88,7 +89,7 @@ async function listModels(json: boolean | undefined): Promise<void> {
 	const wordCompletion = {
 		key: SMOLLM_KEY,
 		label: SMOLLM_LABEL,
-		description: "Word completion (spelling.autocomplete auto/smollm)",
+		description: t("cli.tinyModels.wordCompletionSpellingAutocompleteAutoSmollm"),
 		bytes: SMOLLM_TOTAL_BYTES,
 		dir: getSmolLmModelDir(),
 		ready: await smolLmWeightsReady(),

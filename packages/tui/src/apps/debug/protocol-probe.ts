@@ -23,6 +23,7 @@ import { Text } from "../../components/text";
 import { ImageProtocol, NotifyProtocol, TERMINAL } from "../../terminal-capabilities";
 import { DynamicBorder } from "../../chrome/dynamic-border";
 import { theme } from "../../theme/theme";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const PNG_SIGNATURE = Uint8Array.of(0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a);
 
@@ -94,7 +95,7 @@ export function buildSampleImage(width = 192, height = 128): SampleImage {
 	};
 }
 
-const LARGE_TEXT_SAMPLE = "Aa Bb 123";
+const LARGE_TEXT_SAMPLE = t("tui.apps.debug.protocolProbe.aaBb123");
 
 /**
  * OSC 66 text-sizing sample lines, one scaled span per requested scale. Each
@@ -124,7 +125,7 @@ function truecolorBar(cells: number): string {
 function notifyProtocolLabel(): string {
 	switch (TERMINAL.notifyProtocol) {
 		case NotifyProtocol.Osc99:
-			return "OSC 99 (kitty)";
+			return t("tui.apps.debug.protocolProbe.osc99Kitty");
 		case NotifyProtocol.Osc9:
 			return "OSC 9 (iTerm2/WezTerm)";
 		default:
@@ -135,7 +136,7 @@ function notifyProtocolLabel(): string {
 function imageProtocolLabel(): string {
 	switch (TERMINAL.imageProtocol) {
 		case ImageProtocol.Kitty:
-			return "Kitty graphics";
+			return t("tui.apps.debug.protocolProbe.kittyGraphics");
 		case ImageProtocol.Iterm2:
 			return "iTerm2 inline images";
 		case ImageProtocol.Sixel:
@@ -182,11 +183,13 @@ export class ProtocolProbeComponent extends Container {
 		const yesNo = (on: boolean) => (on ? theme.fg("success", "supported") : theme.fg("muted", "unsupported"));
 
 		this.addChild(new DynamicBorder());
-		this.addChild(new Text(theme.bold(theme.fg("accent", "Terminal Protocol Test")), 1, 0));
+		this.addChild(
+			new Text(theme.bold(theme.fg("accent", t("tui.apps.debug.protocolProbe.terminalProtocolTest"))), 1, 0),
+		);
 
 		// Styling: SGR attributes, themed foregrounds, and a truecolor sweep.
 		const styling = [
-			theme.fg("muted", "Styling (SGR)"),
+			theme.fg("muted", t("tui.apps.debug.protocolProbe.stylingSgr")),
 			`  ${theme.bold("bold")}  ${theme.italic("italic")}  ${theme.underline("underline")}  ${theme.strikethrough("strike")}  ${theme.inverse(" inverse ")}  ${theme.fg("dim", "dim")}`,
 			`  ${theme.fg("accent", "accent")}  ${theme.fg("success", "success")}  ${theme.fg("warning", "warning")}  ${theme.fg("error", "error")}`,
 			`  truecolor: ${truecolorBar(32)} (${theme.fg("muted", `24-bit ${TERMINAL.trueColor ? "on" : "off"}`)})`,
@@ -198,7 +201,7 @@ export class ProtocolProbeComponent extends Container {
 		this.addChild(
 			new Text(
 				[
-					`${theme.fg("muted", "Hyperlinks (OSC 8)")} — ${yesNo(hyperlinksOn)}`,
+					`${theme.fg("muted", t("tui.apps.debug.protocolProbe.hyperlinksOsc8"))} — ${yesNo(hyperlinksOn)}`,
 					`  \x1b]8;;https://github.com/can1357/oh-my-pi\x07omp repo\x1b]8;;\x07`,
 				].join("\n"),
 				1,
@@ -208,7 +211,9 @@ export class ProtocolProbeComponent extends Container {
 		this.addChild(new Spacer(1));
 
 		// Text sizing: OSC 66.
-		this.addChild(new Text(`${theme.fg("muted", "Text sizing (OSC 66)")} — ${yesNo(sizingOn)}`, 1, 0));
+		this.addChild(
+			new Text(`${theme.fg("muted", t("tui.apps.debug.protocolProbe.textSizingOsc66"))} — ${yesNo(sizingOn)}`, 1, 0),
+		);
 		if (sizingOn) {
 			this.addChild(new RawLines(buildLargeTextLines()));
 		} else {

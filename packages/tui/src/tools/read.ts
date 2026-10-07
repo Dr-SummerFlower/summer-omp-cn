@@ -40,6 +40,7 @@ import { describeProcRead, renderProcRead, type ProcReadDetails } from "./proc-r
 import { describeCfgRead, renderCfgRead, type CfgReadDetails } from "./cfg-render";
 import type { CardToolResult } from "./result-card";
 import { type InternalUrlSchemeSpec, internalUrlSchemeSpec, splitUrlScheme } from "./url-scheme-host";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Read result metadata retains truncation statistics, not a second copy of the body. */
 export type ReadTruncationStats = Omit<TruncationResult, "content">;
@@ -486,7 +487,7 @@ export const readToolRenderer = {
 
 		if (result.isError) {
 			const rawErrorText = result.content?.find(c => c.type === "text")?.text ?? "";
-			const errorText = (rawErrorText || "Unknown error").replace(/^Error:\s*/, "");
+			const errorText = (rawErrorText || t("tui.tools.read.unknownError")).replace(/^Error:\s*/, "");
 			const rawPath =
 				typeof args?.file_path === "string" ? args.file_path : typeof args?.path === "string" ? args.path : "";
 			const filePath =
@@ -674,7 +675,7 @@ export const readToolRenderer = {
 		}
 
 		if (result.isError) {
-			const message = (resultText(result) || "Unknown error").replace(/^Error:\s*/, "");
+			const message = (resultText(result) || t("tui.tools.read.unknownError2")).replace(/^Error:\s*/, "");
 			return inlineErrorView(readNativeHead(rawPath, args, details), message);
 		}
 

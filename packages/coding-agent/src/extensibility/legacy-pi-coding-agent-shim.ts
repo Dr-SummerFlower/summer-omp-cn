@@ -89,6 +89,7 @@ import type { Skill } from "./skills";
 import { loadSkillsFromDir } from "./skills";
 
 import { cfgDisabledExtensions, cfgExtensions, cfgSkills } from "./settings";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const TOOL_DEFINITION_MARKER = "__isToolDefinition";
 const LEGACY_BUILTIN_TOOL_MARKER = "__ompLegacyBuiltinTool";
@@ -184,34 +185,46 @@ export interface WriteToolOptions {
 }
 
 const legacyBashSchema = Type.Object({
-	command: Type.String({ description: "Bash command to execute" }),
-	timeout: Type.Optional(Type.Number({ description: "Timeout in seconds" })),
+	command: Type.String({ description: t("tui.ca.extensibility.legacyPiCodingAgentShim.bashCommandToExecute") }),
+	timeout: Type.Optional(
+		Type.Number({ description: t("tui.ca.extensibility.legacyPiCodingAgentShim.timeoutInSeconds") }),
+	),
 });
 
 const legacyReadSchema = Type.Object({
-	path: Type.String({ description: "Path to read" }),
+	path: Type.String({ description: t("tui.ca.extensibility.legacyPiCodingAgentShim.pathToRead") }),
 	offset: Type.Optional(Type.Number({ description: "1-based line offset" })),
-	limit: Type.Optional(Type.Number({ description: "Maximum lines to read" })),
+	limit: Type.Optional(
+		Type.Number({ description: t("tui.ca.extensibility.legacyPiCodingAgentShim.maximumLinesToRead") }),
+	),
 });
 
 const legacyGrepSchema = Type.Object({
-	pattern: Type.String({ description: "Search pattern" }),
-	path: Type.Optional(Type.String({ description: "Directory or file to search" })),
-	glob: Type.Optional(Type.String({ description: "Glob filter" })),
-	ignoreCase: Type.Optional(Type.Boolean({ description: "Case-insensitive search" })),
-	literal: Type.Optional(Type.Boolean({ description: "Treat pattern as a literal string" })),
-	context: Type.Optional(Type.Number({ description: "Context lines" })),
+	pattern: Type.String({ description: t("tui.ca.extensibility.legacyPiCodingAgentShim.searchPattern") }),
+	path: Type.Optional(
+		Type.String({ description: t("tui.ca.extensibility.legacyPiCodingAgentShim.directoryOrFileToSearch") }),
+	),
+	glob: Type.Optional(Type.String({ description: t("tui.ca.extensibility.legacyPiCodingAgentShim.globFilter") })),
+	ignoreCase: Type.Optional(
+		Type.Boolean({ description: t("tui.ca.extensibility.legacyPiCodingAgentShim.caseInsensitiveSearch") }),
+	),
+	literal: Type.Optional(
+		Type.Boolean({ description: t("tui.ca.extensibility.legacyPiCodingAgentShim.treatPatternAsALiteralString") }),
+	),
+	context: Type.Optional(Type.Number({ description: t("tui.ca.extensibility.legacyPiCodingAgentShim.contextLines") })),
 });
 
 const legacyFindSchema = Type.Object({
-	pattern: Type.String({ description: "Glob pattern to match files" }),
-	path: Type.Optional(Type.String({ description: "Directory to search" })),
-	limit: Type.Optional(Type.Number({ description: "Maximum results" })),
+	pattern: Type.String({ description: t("tui.ca.extensibility.legacyPiCodingAgentShim.globPatternToMatchFiles") }),
+	path: Type.Optional(
+		Type.String({ description: t("tui.ca.extensibility.legacyPiCodingAgentShim.directoryToSearch") }),
+	),
+	limit: Type.Optional(Type.Number({ description: t("tui.ca.extensibility.legacyPiCodingAgentShim.maximumResults") })),
 });
 
 const legacyLsSchema = Type.Object({
-	path: Type.Optional(Type.String({ description: "Directory to list" })),
-	limit: Type.Optional(Type.Number({ description: "Maximum entries" })),
+	path: Type.Optional(Type.String({ description: t("tui.ca.extensibility.legacyPiCodingAgentShim.directoryToList") })),
+	limit: Type.Optional(Type.Number({ description: t("tui.ca.extensibility.legacyPiCodingAgentShim.maximumEntries") })),
 });
 
 function markToolDefinition<TParams extends TSchema, TDetails>(
@@ -399,7 +412,7 @@ async function executeLegacyBashOperations(
 		const snapshot = legacyBashSnapshot(output);
 		const text = snapshot.text;
 		if (err instanceof Error && err.message === "aborted") {
-			throw new Error(appendStatus(text, "Command aborted"));
+			throw new Error(appendStatus(text, t("tui.ca.extensibility.legacyPiCodingAgentShim.commandAborted")));
 		}
 		if (err instanceof Error && err.message.startsWith("timeout:")) {
 			throw new Error(appendStatus(text, `Command timed out after ${err.message.slice("timeout:".length)} seconds`));
@@ -567,7 +580,7 @@ export function createBashTool(cwd: string, options?: BashToolOptions): ToolDefi
 export function createGrepToolDefinition(cwd: string, options?: GrepToolOptions): ToolDefinition {
 	if (options?.operations) {
 		throw new Error(
-			"Legacy GrepToolOptions.operations is not supported: the built-in grep tool searches the local " +
+			t("tui.ca.extensibility.legacyPiCodingAgentShim.legacyGreptooloptionsOperationsIsNotSupported") +
 				"filesystem natively and exposes no pluggable filesystem seam (the historical seam only customized " +
 				"context-line reads; the search itself always ran locally). Register a custom grep tool via " +
 				"defineTool() instead of passing operations to createGrepTool()/createGrepToolDefinition().",
@@ -734,7 +747,7 @@ export function createLsTool(cwd: string, options?: LsToolOptions): ToolDefiniti
 export function createEditToolDefinition(cwd: string, options?: EditToolOptions): ToolDefinition {
 	if (options?.operations) {
 		throw new Error(
-			"Legacy EditToolOptions.operations is not supported: OMP's built-in edit tool writes the local " +
+			t("tui.ca.extensibility.legacyPiCodingAgentShim.legacyEdittooloptionsOperationsIsNotSupported") +
 				"filesystem natively and exposes no pluggable operations seam. Register a custom edit tool via " +
 				"defineTool() instead of passing operations to createEditTool()/createEditToolDefinition().",
 		);
@@ -751,7 +764,7 @@ export function createEditTool(cwd: string, options?: EditToolOptions): ToolDefi
 export function createWriteToolDefinition(cwd: string, options?: WriteToolOptions): ToolDefinition {
 	if (options?.operations) {
 		throw new Error(
-			"Legacy WriteToolOptions.operations is not supported: OMP's built-in write tool writes the local " +
+			t("tui.ca.extensibility.legacyPiCodingAgentShim.legacyWritetooloptionsOperationsIsNotSupported") +
 				"filesystem natively and exposes no pluggable operations seam. Register a custom write tool via " +
 				"defineTool() instead of passing operations to createWriteTool()/createWriteToolDefinition().",
 		);
@@ -1263,7 +1276,7 @@ export class DefaultResourceLoader implements ResourceLoader {
 				} else {
 					diagnostics.push({
 						type: "warning",
-						message: "Additional prompt template path is neither a directory nor a Markdown file",
+						message: t("tui.ca.extensibility.legacyPiCodingAgentShim.additionalPromptTemplatePathIsNeither"),
 						path: resolvedPath,
 					});
 				}

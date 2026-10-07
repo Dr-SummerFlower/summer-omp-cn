@@ -1,5 +1,11 @@
+import { t } from "@oh-my-pi/pi-i18n";
 import { TERMINAL } from "@oh-my-pi/pi-tui";
-import { SETTING_TABS, type SettingsDisplayEntry, type SettingsHost } from "@oh-my-pi/pi-tui/overlays/settings-defs";
+import {
+	SETTING_TABS,
+	type AnyUiMetadata,
+	type SettingsDisplayEntry,
+	type SettingsHost,
+} from "@oh-my-pi/pi-tui/overlays/settings-defs";
 import { isSettingsInitialized, Settings, settings } from "./settings";
 import { orderedSettings } from "./all-settings";
 import { type AnySetting, lookup } from "./registry";
@@ -38,9 +44,39 @@ const CONDITIONS: Record<string, () => boolean> = {
 /** Description suffix telling the panel user that an environment variable is in play. */
 function envNote(setting: AnySetting): string {
 	if (!setting.envName || setting.envValue() === undefined) return "";
+	const token = `$${setting.envName}`;
 	return setting.envFallback
-		? ` Unset, it falls back to $${setting.envName}.`
-		: ` $${setting.envName} overrides this setting while it is set.`;
+		? t("settings.item.envNote.fallback", { token })
+		: t("settings.item.envNote.override", { token });
+}
+
+/**
+ * Translate a setting's panel metadata through its derived `settings.item.<id>.*` keys.
+ * Derived from the setting id so upstream can add settings without touching call sites;
+ * runs at panel-open time, after the UI language is initialized.
+ */
+function localizedUi(setting: AnySetting): AnyUiMetadata | undefined {
+	const ui = setting.ui;
+	if (!ui) return undefined;
+	const id = setting.id;
+	const options = ui.options;
+	return {
+		...ui,
+		label: t(`settings.item.${id}.label`),
+		description: t(`settings.item.${id}.description`),
+		...(ui.warning ? { warning: t(`settings.item.${id}.warning`) } : {}),
+		...(Array.isArray(options)
+			? {
+					options: options.map(option => ({
+						value: option.value,
+						label: t(`settings.item.${id}.option.${option.value}.label`),
+						...(option.description
+							? { description: t(`settings.item.${id}.option.${option.value}.description`) }
+							: {}),
+					})),
+				}
+			: {}),
+	};
 }
 
 /**
@@ -52,7 +88,7 @@ export function createSettingsHost(): SettingsHost {
 	const entries: SettingsDisplayEntry[] = [];
 	for (const tab of SETTING_TABS) {
 		for (const setting of orderedSettings()) {
-			const ui = setting.ui;
+			const ui = localizedUi(setting);
 			if (ui?.tab !== tab) continue;
 			const note = envNote(setting);
 			entries.push({

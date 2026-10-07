@@ -78,6 +78,7 @@ import {
 } from "../exec/settings";
 import { cfgSkillful } from "../session/settings";
 import { cfgWorktreeClone } from "../task/settings";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const BASH_APPROVAL_SHELL_CONTROL_CHARS: Record<string, true> = {
 	"\n": true,
@@ -970,7 +971,7 @@ export class BashTool implements AgentTool<BashToolSchema, BashToolDetails> {
 		} else if (ready !== undefined) {
 			// Nothing can honour ready without a service to attach it to;
 			// running the command the caller did ask for beats failing the call.
-			pendingNotices.push("Ignored ready: service-only, and no service name was given.");
+			pendingNotices.push(t("tui.ca.tools.bash.ignoredReadyServiceOnlyAndNo"));
 		}
 		if (asyncRequested && !cfgAsyncEnabled.get(this.session.settings)) {
 			throw new ToolError("Async bash execution is disabled. Enable async.enabled to use async mode.");
@@ -1182,7 +1183,7 @@ export class BashTool implements AgentTool<BashToolSchema, BashToolDetails> {
 			// the command (it keeps running) so the message injects promptly.
 			const notices =
 				waitResult.kind === "steer"
-					? [...pendingNotices, "Backgrounded early to handle an incoming message; the command keeps running."]
+					? [...pendingNotices, t("tui.ca.tools.bash.backgroundedEarlyToHandleAnIncoming")]
 					: pendingNotices;
 			return this.#buildBackgroundStartResult(job.jobId, job.getLatestText(), timeoutSec, {
 				requestedTimeoutSec,
@@ -1528,7 +1529,7 @@ export class BashTool implements AgentTool<BashToolSchema, BashToolDetails> {
 					? out
 					: out
 						? `${out}\n\n[Command aborted]`
-						: "Command aborted";
+						: t("tui.ca.tools.bash.commandAborted");
 				if (result.artifactError) message += `\n\n[${formatArtifactErrorNotice(result.artifactError)}]`;
 				if (signal?.aborted) {
 					throw new ToolAbortError(message);

@@ -1,168 +1,171 @@
 import type { CommandMetadata } from "@oh-my-pi/pi-utils/cli";
-import { t } from "../i18n";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export const acpHelp = {
-	description: "Run omp as an ACP (Agent Client Protocol) server over stdio",
+	description: t("cli.commandHelp.runOmpAsAnAcpAgent"),
 } satisfies CommandMetadata;
 
-export const agentsHelp = { description: "Manage bundled task agents" } satisfies CommandMetadata;
+export const agentsHelp = { description: t("cli.commandHelp.manageBundledTaskAgents") } satisfies CommandMetadata;
 
 export const authBrokerHelp = {
-	description: "Manage the omp auth-broker (credential vault)",
+	description: t("cli.commandHelp.manageTheOmpAuthBrokerCredential"),
 } satisfies CommandMetadata;
 
 export const authGatewayHelp = {
-	description: "Run an auth-gateway forward proxy backed by the configured broker",
+	description: t("cli.commandHelp.runAnAuthGatewayForwardProxy"),
 } satisfies CommandMetadata;
 
 export const benchHelp = {
-	description:
-		"Benchmark models: TTFT/prefill vs decode throughput with p50/p95, across chat, prefill, generation, and prompt-cache workloads, or single-user vs parallel load (--detailed)",
+	description: t("cli.commandHelp.benchmarkModelsTtftPrefillVsDecode"),
 } satisfies CommandMetadata;
 
 export const browserRelayHelp = {
-	description: "Run the local CDP relay that lets the browser prelude drive your own Chrome tabs",
+	description: t("cli.commandHelp.runTheLocalCdpRelayThat"),
 } satisfies CommandMetadata;
 
 export const cleanseHelp = {
-	description: "Detect and fix project diagnostics with weighted parallel subagents",
+	description: t("slash.cleanse.description"),
 } satisfies CommandMetadata;
 
 export const collabHelp = {
-	description:
-		"List active local Collab host metadata without URLs; use collab link <instanceId|pid> to retrieve a control link (--view for view-only)",
+	description: t("cli.commandHelp.listActiveLocalCollabHostMetadata"),
 } satisfies CommandMetadata;
 
 export const clipHelp = {
-	description: "Upload a /record recording to live.omp.sh as a public clip and print its URL",
+	description: t("cli.commandHelp.uploadARecordRecordingToLive"),
 } satisfies CommandMetadata;
 
-export const commitHelp = { description: "Generate a commit message and update changelogs" } satisfies CommandMetadata;
+export const commitHelp = {
+	description: t("cli.commandHelp.generateACommitMessageAndUpdate"),
+} satisfies CommandMetadata;
 
 export const completionsHelp = {
-	description: "Print a shell completion script (bash, zsh, or fish)",
+	description: t("cli.commandHelp.printAShellCompletionScriptBash"),
 } satisfies CommandMetadata;
 
 export const completeHelp = { hidden: true } satisfies CommandMetadata;
 
 export const compressHelp = {
-	description: "Rewrite a text file into the dense prompt register, reporting what it drops",
+	description: t("cli.commandHelp.rewriteATextFileIntoThe"),
 } satisfies CommandMetadata;
 
-export const configHelp = { description: "Manage configuration settings" } satisfies CommandMetadata;
+export const configHelp = { description: t("cli.commandHelp.manageConfigurationSettings") } satisfies CommandMetadata;
 
 export const dryBalanceHelp = {
-	description: "Dry-run OAuth account balancing across random session ids",
+	description: t("cli.commandHelp.dryRunOauthAccountBalancingAcross"),
 } satisfies CommandMetadata;
 
 export const galleryHelp = {
-	description: "Preview tool, composer, and status-line renderers in a deterministic visual gallery",
+	description: t("cli.commandHelp.previewToolComposerAndStatusLine"),
 } satisfies CommandMetadata;
 
-export const gcHelp = { description: "Run storage garbage collection" } satisfies CommandMetadata;
+export const gcHelp = { description: t("cli.commandHelp.runStorageGarbageCollection") } satisfies CommandMetadata;
 export const ifBenchHelp = {
-	description:
-		"Benchmark instruction following and working memory: one cached thread of glyph array actions with a moving cat-sound directive",
+	description: t("cli.commandHelp.benchmarkInstructionFollowingAndWorkingMemory"),
 } satisfies CommandMetadata;
 export const gitHelp = {
-	description: "Interactive fullscreen git UI: split diff viewer, staging sidebar, and commit composer",
+	description: t("cli.commandHelp.interactiveFullscreenGitUiSplitDiff"),
 } satisfies CommandMetadata;
 
 export const findHelp = {
-	description: "Semantic search: describe a behavior, get the files and line ranges that implement it",
+	description: t("cli.commandHelp.semanticSearchDescribeABehaviorGet"),
 } satisfies CommandMetadata;
 
-export const grepHelp = { description: "Test grep tool" } satisfies CommandMetadata;
+export const grepHelp = { description: t("cli.commandHelp.testGrepTool") } satisfies CommandMetadata;
 
 export const grievancesHelp = {
-	description: "View, clean, or push reported tool issues (auto-QA grievances)",
+	description: t("cli.commandHelp.viewCleanOrPushReportedTool"),
 } satisfies CommandMetadata;
 
 export const loginHelp = {
-	description: "Log in to a model provider (terminal counterpart of /login)",
+	description: t("cli.commandHelp.logInToAModelProvider"),
 } satisfies CommandMetadata;
 
 export const imagesHelp = {
-	description: "Inspect, diagnose, probe, and purge image publication backends",
+	description: t("cli.commandHelp.inspectDiagnoseProbeAndPurgeImage"),
 } satisfies CommandMetadata;
 
 export const installHelp = {
-	description: "Install or link an extension package (alias of `plugin install`/`plugin link`)",
+	description: t("cli.commandHelp.installOrLinkAnExtensionPackage"),
 } satisfies CommandMetadata;
 
-export const joinHelp = { description: "Join a shared collab session (same as /join)" } satisfies CommandMetadata;
+export const joinHelp = { description: t("cli.commandHelp.joinASharedCollabSessionSame") } satisfies CommandMetadata;
 
-export const modelsHelp = { description: "List, search, and refresh available models" } satisfies CommandMetadata;
+export const modelsHelp = {
+	description: t("cli.commandHelp.listSearchAndRefreshAvailableModels"),
+} satisfies CommandMetadata;
 
-export const pluginHelp = { description: "Manage plugins (install, uninstall, list, etc.)" } satisfies CommandMetadata;
+export const pluginHelp = {
+	description: t("cli.commandHelp.managePluginsInstallUninstallListEtc"),
+} satisfies CommandMetadata;
 
 export const playHelp = {
-	description: "Replay a /record session recording in the terminal (space pauses, q quits)",
+	description: t("cli.commandHelp.replayARecordSessionRecordingIn"),
 } satisfies CommandMetadata;
 
 export const predictHelp = {
-	description: "Type a prompt and compare every word-completion engine's ghost text live",
+	description: t("cli.commandHelp.typeAPromptAndCompareEvery"),
 } satisfies CommandMetadata;
 
 export const psHelp = {
-	description: t("ps.description"),
+	description: t("cli.ps.description"),
 } satisfies CommandMetadata;
 
 export const readHelp = {
-	description: "Show what the read tool will return for a path, URL, or internal URI",
+	description: t("cli.commandHelp.showWhatTheReadToolWill"),
 } satisfies CommandMetadata;
 export const renderHelp = {
-	description: "Draw a session's entire thread through the production transcript pipeline (with repaint timing)",
+	description: t("cli.commandHelp.drawASessionSEntireThread"),
 } satisfies CommandMetadata;
 
 export const sayHelp = {
-	description: "Synthesize text with the local TTS engine and play it through the speakers",
+	description: t("cli.commandHelp.synthesizeTextWithTheLocalTts"),
 } satisfies CommandMetadata;
 
-export const searchHelp = { description: "Test web search providers" } satisfies CommandMetadata;
+export const searchHelp = { description: t("cli.commandHelp.testWebSearchProviders") } satisfies CommandMetadata;
 
 export const shareHelp = {
-	description: "Share a saved session via an encrypted link (same as /share)",
+	description: t("cli.commandHelp.shareASavedSessionViaAn"),
 } satisfies CommandMetadata;
 
 export const setupHelp = {
-	description: "Run onboarding setup or install dependencies for optional features",
+	description: t("cli.commandHelp.runOnboardingSetupOrInstallDependencies"),
 } satisfies CommandMetadata;
 
-export const shellHelp = { description: "Interactive shell console" } satisfies CommandMetadata;
+export const shellHelp = { description: t("cli.commandHelp.interactiveShellConsole") } satisfies CommandMetadata;
 
 export const skillHelp = {
-	description: "Install, search, publish, and manage skills on the Skillshare registry (skills.omp.sh)",
+	description: t("cli.commandHelp.installSearchPublishAndManageSkills"),
 } satisfies CommandMetadata;
 
-export const sshHelp = { description: "Manage SSH host configurations" } satisfies CommandMetadata;
+export const sshHelp = { description: t("cli.commandHelp.manageSshHostConfigurations") } satisfies CommandMetadata;
 
-export const statsHelp = { description: "View usage statistics" } satisfies CommandMetadata;
+export const statsHelp = { description: t("cli.commandHelp.viewUsageStatistics") } satisfies CommandMetadata;
 
 export const streamHelp = {
-	description: "Broadcast local omp session screens and chat to your public live channel",
+	description: t("cli.commandHelp.broadcastLocalOmpSessionScreensAnd"),
 } satisfies CommandMetadata;
 
 export const tinyModelsHelp = {
-	description: "Download tiny local models (session titles, memory, word completion)",
+	description: t("cli.commandHelp.downloadTinyLocalModelsSessionTitles"),
 } satisfies CommandMetadata;
 
-export const tokenHelp = { description: "Get the API key or OAuth token for a provider" } satisfies CommandMetadata;
+export const tokenHelp = { description: t("cli.commandHelp.getTheApiKeyOrOauth") } satisfies CommandMetadata;
 
 export const toksHelp = {
-	description: "Count a file or text with every embedded offline tokenizer (OpenAI, Claude, Qwen, …)",
+	description: t("cli.commandHelp.countAFileOrTextWith"),
 } satisfies CommandMetadata;
 
 export const ttsrHelp = {
-	description: "Inspect and test Time-Traveling Stream Rules (TTSR)",
+	description: t("cli.commandHelp.inspectAndTestTimeTravelingStream"),
 } satisfies CommandMetadata;
 
-export const updateHelp = { description: "Check for and install updates" } satisfies CommandMetadata;
+export const updateHelp = { description: t("cli.commandHelp.checkForAndInstallUpdates") } satisfies CommandMetadata;
 
 export const usageHelp = {
-	description: "Show provider usage limits for every authenticated account",
+	description: t("cli.commandHelp.showProviderUsageLimitsForEvery"),
 } satisfies CommandMetadata;
 
 export const worktreeHelp = {
-	description: "Add, list, or clear git worktrees (clone-first when enabled)",
+	description: t("cli.commandHelp.addListOrClearGitWorktrees"),
 } satisfies CommandMetadata;

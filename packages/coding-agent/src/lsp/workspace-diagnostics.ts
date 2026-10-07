@@ -1,6 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { ToolAbortError, throwIfAborted } from "../tools/tool-errors";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Project type detection result */
 export interface ProjectType {
@@ -114,7 +115,11 @@ export async function detectProjectTypes(cwd: string, signal?: AbortSignal): Pro
 
 	if (marker("tsconfig.json")) {
 		const command = ["npx", "tsc", "--noEmit"];
-		detected.push({ type: "typescript", command, description: "TypeScript (tsc --noEmit)" });
+		detected.push({
+			type: "typescript",
+			command,
+			description: t("tui.ca.lsp.workspaceDiagnostics.typescriptTscNoemit"),
+		});
 	}
 
 	// Check for Go workspaces before single-module Go projects.

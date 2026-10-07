@@ -3,6 +3,7 @@
  * Handles data loading, tree building, filtering, and toggle persistence.
  */
 import * as path from "node:path";
+import { t } from "@oh-my-pi/pi-i18n";
 import { getMCPConfigPath, logger } from "@oh-my-pi/pi-utils";
 import type { ContextFile } from "../../../capability/context-file";
 import type { ExtensionModule } from "../../../capability/extension-module";
@@ -126,7 +127,7 @@ export async function loadAllExtensions(cwd?: string, disabledIds?: string[]): P
 		const rules = await loadCapability<Rule>("rules", loadOpts);
 		addItems(rules.all, "rule", {
 			getDescription: r => r.description,
-			getTrigger: r => r.globs?.join(", ") || (r.alwaysApply ? "always" : undefined),
+			getTrigger: r => r.globs?.join(", ") || (r.alwaysApply ? t("tui.extensions.trigger.always") : undefined),
 		});
 	} catch (error) {
 		logger.warn("Failed to load rules capability", { error: String(error) });
@@ -275,7 +276,10 @@ export async function loadAllExtensions(cwd?: string, disabledIds?: string[]): P
 				kind: "context-file",
 				name,
 				displayName: name,
-				description: file.level === "user" ? "User-level context" : "Project-level context",
+				description:
+					file.level === "user"
+						? t("tui.extensions.contextFile.userLevel")
+						: t("tui.extensions.contextFile.projectLevel"),
 				path: file.path,
 				source: sourceFromMeta(file._source),
 				state,

@@ -1,3 +1,4 @@
+import { t } from "@oh-my-pi/pi-i18n";
 import { formatKeyHint, formatKeyHints } from "../app-keybindings";
 import { matchesKey } from "../keys";
 import { replaceTabs, truncateToWidth, visibleWidth } from "../utils";
@@ -261,7 +262,10 @@ function describeTitle(runtime: AutoresearchDashboardRuntime): TspSpan[] {
 /** Widget shown while the very first run is in flight. */
 function describeRunningOnly(runtime: AutoresearchDashboardRuntime, state: ExperimentState): NativeNode {
 	const children: NativeNode[] = [
-		node("spinner", { label: [span("autoresearch", "accent"), span(" running", "warning")], tone: "warning" }),
+		node("spinner", {
+			label: [span("autoresearch", "accent"), span(t("tui.apps.autoresearchDashboard.running"), "warning")],
+			tone: "warning",
+		}),
 	];
 	if (runtime.runningExperiment) children.push(elapsed(Date.now() - runtime.runningExperiment.startedAt));
 	const details: TspSpan[] = [];
@@ -289,8 +293,8 @@ function describeCollapsed(runtime: AutoresearchDashboardRuntime, state: Experim
 				),
 			);
 		}
-		spans.push(span(" | log_experiment required", "warning"));
-		if (!runtime.autoresearchMode) spans.push(span(" | mode off", "dim"));
+		spans.push(span(t("tui.apps.autoresearchDashboard.logExperimentRequired"), "warning"));
+		if (!runtime.autoresearchMode) spans.push(span(t("tui.apps.autoresearchDashboard.modeOff2"), "dim"));
 		return text(spans, { truncate: "end", role });
 	}
 	if (state.results.length === 0) {
@@ -299,7 +303,7 @@ function describeCollapsed(runtime: AutoresearchDashboardRuntime, state: Experim
 			span(` ${runtime.autoresearchMode ? "baseline pending" : "mode off"}`, "warning"),
 		];
 		if (state.name) spans.push(span(` | ${replaceTabs(state.name)}`, "dim"));
-		if (runtime.autoresearchMode) spans.push(span(" | run the baseline", "dim"));
+		if (runtime.autoresearchMode) spans.push(span(t("tui.apps.autoresearchDashboard.runTheBaseline"), "dim"));
 		return text(spans, { truncate: "end", role });
 	}
 	const current = currentResults(state.results, state.currentSegment);
@@ -321,7 +325,7 @@ function describeCollapsed(runtime: AutoresearchDashboardRuntime, state: Experim
 	} else if (state.bestMetric !== null) {
 		spans.push(span(`baseline ${formatNum(state.bestMetric, state.metricUnit)}`, "warning"));
 	} else {
-		spans.push(span("no kept runs yet", "warning"));
+		spans.push(span(t("tui.apps.autoresearchDashboard.noKeptRunsYet"), "warning"));
 	}
 	if (state.confidence !== null) {
 		spans.push(span(" | ", "dim"));
@@ -329,7 +333,10 @@ function describeCollapsed(runtime: AutoresearchDashboardRuntime, state: Experim
 	}
 	const children: NativeNode[] = [text(spans, { truncate: "end" })];
 	if (runtime.runningExperiment) {
-		children.push(text([span("| running", "dim")]), elapsed(Date.now() - runtime.runningExperiment.startedAt));
+		children.push(
+			text([span(t("tui.apps.autoresearchDashboard.running2"), "dim")]),
+			elapsed(Date.now() - runtime.runningExperiment.startedAt),
+		);
 	} else if (!runtime.autoresearchMode) {
 		children.push(text([span(`| ${renderModeStatus(runtime, state)}`, "dim")]));
 	}
@@ -347,12 +354,15 @@ function describeDashboard(runtime: AutoresearchDashboardRuntime, maxRows: numbe
 		const pending = runtime.lastRunSummary;
 		if (pending) {
 			const items: { k: string; v: TspText }[] = [
-				{ k: "Pending run", v: `#${pending.runNumber}` },
+				{ k: t("tui.apps.autoresearchDashboard.pendingRun"), v: `#${pending.runNumber}` },
 				{
 					k: "Result",
 					v: `${pending.passed ? "passed" : "failed"}${pending.parsedPrimary !== null ? `  ${state.metricName} ${formatNum(pending.parsedPrimary, state.metricUnit)}` : ""}`,
 				},
-				{ k: "Next action", v: "finish log_experiment before starting another run." },
+				{
+					k: t("tui.apps.autoresearchDashboard.nextAction"),
+					v: "finish log_experiment before starting another run.",
+				},
 			];
 			if (!runtime.autoresearchMode) items.push({ k: "Mode", v: "off" });
 			return [node("kv", { items, layout: "grid" }, undefined, "summary")];
@@ -363,9 +373,9 @@ function describeDashboard(runtime: AutoresearchDashboardRuntime, maxRows: numbe
 					"kv",
 					{
 						items: [
-							{ k: "Current segment", v: "0 runs" },
+							{ k: t("tui.apps.autoresearchDashboard.currentSegment"), v: "0 runs" },
 							{ k: "Baseline", v: "pending" },
-							{ k: "Next action", v: "run and log the baseline experiment." },
+							{ k: t("tui.apps.autoresearchDashboard.nextAction2"), v: "run and log the baseline experiment." },
 						],
 						layout: "grid",
 					},
@@ -374,7 +384,7 @@ function describeDashboard(runtime: AutoresearchDashboardRuntime, maxRows: numbe
 				),
 			];
 		}
-		return [keyed(text([span("No experiments logged yet.", "dim")]), "summary")];
+		return [keyed(text([span(t("tui.apps.autoresearchDashboard.noExperimentsLoggedYet"), "dim")]), "summary")];
 	}
 
 	const current = currentResults(state.results, state.currentSegment);
@@ -385,7 +395,7 @@ function describeDashboard(runtime: AutoresearchDashboardRuntime, maxRows: numbe
 	const best = findBestResult(state);
 	const items: { k: string; v: TspText }[] = [
 		{
-			k: "Current segment",
+			k: t("tui.apps.autoresearchDashboard.currentSegment2"),
 			v: [
 				span(`${current.length} runs  `),
 				span(`${counts.keep} kept`, "success"),
@@ -404,10 +414,10 @@ function describeDashboard(runtime: AutoresearchDashboardRuntime, maxRows: numbe
 	}
 	if (runtime.lastRunSummary) {
 		items.push({
-			k: "Pending run",
+			k: t("tui.apps.autoresearchDashboard.pendingRun2"),
 			v: [
 				span(`#${runtime.lastRunSummary.runNumber} (${runtime.lastRunSummary.passed ? "passed" : "failed"})`),
-				span(" — log_experiment required", "warning"),
+				span(t("tui.apps.autoresearchDashboard.logExperimentRequired2"), "warning"),
 			],
 		});
 	}
@@ -638,21 +648,21 @@ export function renderDashboardLines(
 					`Result: ${runtime.lastRunSummary.passed ? "passed" : "failed"}${runtime.lastRunSummary.parsedPrimary !== null ? `  ${state.metricName} ${formatNum(runtime.lastRunSummary.parsedPrimary, state.metricUnit)}` : ""}`,
 					width,
 				),
-				truncateToWidth("Next action: finish log_experiment before starting another run.", width),
+				truncateToWidth(t("tui.apps.autoresearchDashboard.nextActionFinishLogExperimentBefore"), width),
 			];
 			if (!runtime.autoresearchMode) {
-				lines.push(truncateToWidth("Mode: off", width));
+				lines.push(truncateToWidth(t("tui.apps.autoresearchDashboard.modeOff"), width));
 			}
 			return lines;
 		}
 		if (runtime.autoresearchMode) {
 			return [
-				truncateToWidth("Current segment: 0 runs", width),
-				truncateToWidth("Baseline: pending", width),
-				truncateToWidth("Next action: run and log the baseline experiment.", width),
+				truncateToWidth(t("tui.apps.autoresearchDashboard.currentSegment0Runs"), width),
+				truncateToWidth(t("tui.apps.autoresearchDashboard.baselinePending"), width),
+				truncateToWidth(t("tui.apps.autoresearchDashboard.nextActionRunAndLogThe"), width),
 			];
 		}
-		return [theme.fg("dim", "No experiments logged yet.")];
+		return [theme.fg("dim", t("tui.apps.autoresearchDashboard.noExperimentsLoggedYet2"))];
 	}
 
 	const current = currentResults(state.results, state.currentSegment);

@@ -44,6 +44,7 @@ import type { TspSpan, TspTableColumn, TspText, TspTone } from "@oh-my-pi/pi-wir
 import { col, elapsed, node, span, text } from "../native/describe";
 import { type DescribeContext, leafKey, type NativeChild, type NativeNode, type NativeUiEvent } from "../native/node";
 import { actionButton } from "../native/overlay";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Local calendar-day activity consumed by the usage heatmap. */
 export interface DailyActivityPoint {
@@ -384,7 +385,7 @@ function statusDot(status: UsageLimit["status"]): NativeNode {
 		status === "exhausted"
 			? "Exhausted"
 			: status === "warning"
-				? "Under pressure"
+				? t("tui.overlays.usageDashboard.underPressure")
 				: status === "ok"
 					? "OK"
 					: "Unknown";
@@ -828,7 +829,7 @@ export class UsageDashboardComponent implements Component {
 			return [theme.fg("dim", detail ? `Usage history unavailable (${detail}).` : "Usage history unavailable.")];
 		}
 		const points = this.#activity;
-		if (!points) return [theme.fg("dim", "Loading usage history…")];
+		if (!points) return [theme.fg("dim", t("tui.overlays.usageDashboard.loadingUsageHistory"))];
 
 		const labelWidth = 2;
 		const weeks = Math.max(4, Math.min(53, Math.floor((innerWidth - labelWidth) / 2)));
@@ -1007,7 +1008,12 @@ export class UsageDashboardComponent implements Component {
 		const children: NativeChild[] = [];
 		if (this.#cards.length === 0) {
 			children.push(
-				node("text", { spans: [span("No usage data available.")], role: "omp.usage.untouched" }, undefined, "none"),
+				node(
+					"text",
+					{ spans: [span(t("tui.overlays.usageDashboard.noUsageDataAvailable"))], role: "omp.usage.untouched" },
+					undefined,
+					"none",
+				),
 			);
 		} else {
 			// Unlimited providers keep a frame reading "No limits"; only untouched ones collapse.
@@ -1133,10 +1139,17 @@ export class UsageDashboardComponent implements Component {
 		if (this.#activityError) {
 			const detail = formatActivityErrorDetail(this.#activityError);
 			children.push(
-				mutedText(detail ? `Usage history unavailable (${detail}).` : "Usage history unavailable.", true),
+				mutedText(
+					detail
+						? `Usage history unavailable (${detail}).`
+						: t("tui.overlays.usageDashboard.usageHistoryUnavailable"),
+					true,
+				),
 			);
 		} else if (!points) {
-			children.push(node("spinner", { label: [span("Loading usage history…", "muted")] }));
+			children.push(
+				node("spinner", { label: [span(t("tui.overlays.usageDashboard.loadingUsageHistory"), "muted")] }),
+			);
 		} else {
 			const layout = buildHeatmapLayout(points, NATIVE_HEATMAP_WEEKS);
 			const summary =

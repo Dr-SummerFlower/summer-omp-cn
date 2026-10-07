@@ -45,6 +45,7 @@ import { isNativeRendering } from "../native/state";
 import { isQueuedMessageList, parseQueueShorthand, QUEUE_LIST_MARKER_RE } from "./queue-input";
 import { type WordCompletionMethod, WordCompletionProvider } from "./word-completion";
 import { fgOrPlain, theme } from "../theme/theme";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** A shell-mode draft's sigil (`!`, `!!`, `$`, `$$`) with its surrounding blanks; the mode chip stands in for it natively. */
 const SHELL_SIGIL_RE = /^\s*(?:!!?|\$\$?)[ \t]?/;
@@ -1141,7 +1142,12 @@ export class CustomEditor extends Editor {
 			row(
 				compact([
 					shell.excluded &&
-						node("icon", { name: "eye-off", title: "Not sent to the model" }, undefined, "excluded"),
+						node(
+							"icon",
+							{ name: "eye-off", title: t("tui.prompt.customEditor.notSentToTheModel") },
+							undefined,
+							"excluded",
+						),
 					node(
 						"text",
 						{ spans: [span(shell.kind, shell.kind === "bash" ? "bashMode" : "pythonMode")], wrap: "none" },

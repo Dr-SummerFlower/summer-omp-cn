@@ -15,6 +15,7 @@ import * as typebox from "../legacy-typebox";
 import { resolvePath, withHostGuard } from "../utils";
 import { execCommand } from "./runner";
 import type { ExecOptions, HookAPI, HookFactory, HookMessageRenderer, RegisteredCommand } from "./types";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /**
  * Generic handler function type.
@@ -152,7 +153,7 @@ async function loadHook(hookPath: string, cwd: string): Promise<{ hook: LoadedHo
 		const factory = module.default as HookFactory;
 
 		if (typeof factory !== "function") {
-			return { hook: null, error: "Hook must export a default function" };
+			return { hook: null, error: t("tui.ca.extensibility.hooks.loader.hookMustExportADefaultFunction") };
 		}
 
 		// Create handlers map and API

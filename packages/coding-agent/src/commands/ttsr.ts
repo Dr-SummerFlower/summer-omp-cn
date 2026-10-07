@@ -18,46 +18,47 @@ import {
 	type TtsrTestArgs,
 } from "../cli/ttsr-cli";
 import type { TtsrMatchSource } from "../export/ttsr";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export default class Ttsr extends Command {
 	static description = commandHelp.description;
 	static args = {
 		action: Args.string({
-			description: "TTSR action",
+			description: t("cli.ttsr.ttsrAction"),
 			required: false,
 			options: TTSR_ACTIONS,
 		}),
 		snippet: Args.string({
-			description: "Inline snippet text to test (ttsr test) or directory to scan (ttsr scan)",
+			description: t("cli.ttsr.inlineSnippetTextToTestTtsr"),
 			required: false,
 		}),
 	};
 
 	static flags = {
-		file: Flags.string({ description: "Snippet file path, or - for stdin (ttsr test)" }),
+		file: Flags.string({ description: t("cli.ttsr.snippetFilePathOrForStdin") }),
 		rule: Flags.string({
 			char: "r",
-			description: "Rule markdown file to test in isolation (skips project rule loading)",
+			description: t("cli.ttsr.ruleMarkdownFileToTestIn"),
 		}),
 		source: Flags.string({
-			description: "Match source: text, thinking, or tool (inferred from --file when omitted)",
+			description: t("cli.ttsr.matchSourceTextThinkingOrTool"),
 			options: TTSR_SOURCES,
 		}),
 		tool: Flags.string({
-			description: "Tool name when source is tool (e.g. edit, write); defaults to edit",
+			description: t("cli.ttsr.toolNameWhenSourceIsTool"),
 		}),
 		path: Flags.string({
 			char: "p",
-			description: "Candidate file path for scope/glob matching and AST language inference",
+			description: t("cli.ttsr.candidateFilePathForScopeGlob"),
 		}),
 		agent: Flags.string({
-			description: "Agent name to evaluate rule `agents` scoping as (ttsr test); defaults to main",
+			description: t("cli.ttsr.agentNameToEvaluateRuleAgents"),
 		}),
-		verbose: Flags.boolean({ char: "v", description: "Show every evaluated rule, not just triggered ones" }),
-		json: Flags.boolean({ description: "Output JSON" }),
-		"no-gitignore": Flags.boolean({ description: "Include files excluded by .gitignore (ttsr scan)" }),
+		verbose: Flags.boolean({ char: "v", description: t("cli.ttsr.showEveryEvaluatedRuleNotJust") }),
+		json: Flags.boolean({ description: t("cli.agents.outputJson") }),
+		"no-gitignore": Flags.boolean({ description: t("cli.ttsr.includeFilesExcludedByGitignoreTtsr") }),
 		"max-bytes": Flags.integer({
-			description: "Maximum file size to scan in bytes; 0 disables the limit (ttsr scan)",
+			description: t("cli.ttsr.maximumFileSizeToScanIn"),
 		}),
 	};
 

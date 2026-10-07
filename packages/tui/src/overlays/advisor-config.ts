@@ -43,6 +43,7 @@ import type { TspPrefsProps, TspPrefsRow, TspSpan } from "@oh-my-pi/pi-wire";
 import { col, node, span, text } from "../native/describe";
 import type { DescribeContext, NativeChild, NativeNode, NativeUiEvent } from "../native/node";
 import { actionHint, hintsRow, type NativeHint, overlayCard } from "../native/overlay";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** One advisor declared in `WATCHDOG.yml`; its instructions specialize the shared baseline. */
 export interface AdvisorConfig {
@@ -210,12 +211,15 @@ function screenHints(screen: Screen): (NativeHint | undefined)[] {
 				actionHint("tui.select.cancel", "close"),
 			];
 		case "detail":
-			return [actionHint("tui.select.confirm", "edit field"), actionHint("tui.select.cancel", "back")];
+			return [
+				actionHint("tui.select.confirm", t("tui.overlays.advisorConfig.editField")),
+				actionHint("tui.select.cancel", "back"),
+			];
 		case "name":
 			return [actionHint("tui.input.submit", "save"), actionHint("tui.select.cancel", "cancel")];
 		case "model":
 			return [
-				{ keys: [], label: "type to search" },
+				{ keys: [], label: t("tui.overlays.advisorConfig.typeToSearch") },
 				{ keys: ["enter"], label: "pick" },
 				actionHint("tui.select.cancel", "back"),
 			];
@@ -224,7 +228,7 @@ function screenHints(screen: Screen): (NativeHint | undefined)[] {
 		case "tools":
 			return [
 				actionHint("tui.select.confirm", "toggle"),
-				{ keys: [], label: "Done applies (empty = no tools; read/grep/glob = default)" },
+				{ keys: [], label: t("tui.overlays.advisorConfig.doneAppliesEmptyNoToolsRead") },
 				actionHint("tui.select.cancel", "apply"),
 			];
 		case "instructions":
@@ -398,18 +402,23 @@ export class AdvisorConfigOverlayComponent implements Component {
 			icon: "advisor",
 			group: "Advisors",
 		}));
-		pages.push({ id: "shared", label: "Shared instructions", icon: "doc", group: "All advisors" });
+		pages.push({
+			id: "shared",
+			label: t("tui.overlays.advisorConfig.sharedInstructions"),
+			icon: "doc",
+			group: "All advisors",
+		});
 
 		const sections: TspPrefsProps["sections"][number][] = [];
 		if (doc.warnings?.length) {
 			sections.push({
 				id: "warnings",
-				title: "Config problems",
+				title: t("tui.overlays.advisorConfig.configProblems"),
 				rows: sanitizeDisplayWarnings(doc.warnings).map((warning, i) => ({
 					id: `warning:${i}`,
-					label: "Dropped while loading",
+					label: t("tui.overlays.advisorConfig.droppedWhileLoading"),
 					warning,
-					control: { k: "action", label: "Save to rewrite", act: "save" },
+					control: { k: "action", label: t("tui.overlays.advisorConfig.saveToRewrite"), act: "save" },
 				})),
 			});
 		}
@@ -420,7 +429,7 @@ export class AdvisorConfigOverlayComponent implements Component {
 				{
 					id: "toggleEnabled",
 					label: "Enabled",
-					hint: "Run this advisor alongside the session.",
+					hint: t("tui.overlays.advisorConfig.runThisAdvisorAlongsideTheSession"),
 					control: { k: "switch", on: advisor.enabled !== false },
 				},
 				{ id: "name", label: "Name", control: { k: "text", value: advisor.name } },
@@ -435,7 +444,7 @@ export class AdvisorConfigOverlayComponent implements Component {
 				{
 					id: "tools",
 					label: "Tools",
-					hint: "None means no tools; read, grep and glob are the default.",
+					hint: t("tui.overlays.advisorConfig.noneMeansNoToolsReadGrep"),
 					control: {
 						k: "multi",
 						values: tools,
@@ -448,7 +457,11 @@ export class AdvisorConfigOverlayComponent implements Component {
 					hint: previewLineOrNone(advisor.instructions),
 					control: { k: "action", label: "Edit…", act: "edit" },
 				},
-				{ id: "delete", label: "Delete this advisor", control: { k: "action", label: "Delete", act: "delete" } },
+				{
+					id: "delete",
+					label: t("tui.overlays.advisorConfig.deleteThisAdvisor"),
+					control: { k: "action", label: "Delete", act: "delete" },
+				},
 			];
 			sections.push({ id: "advisor", title: advisor.name || "Advisor", rows });
 		} else {
@@ -471,15 +484,15 @@ export class AdvisorConfigOverlayComponent implements Component {
 			rows: [
 				{
 					id: "save",
-					label: "Save & apply",
-					hint: "Write this file and reload the live advisors without a restart.",
+					label: t("tui.overlays.advisorConfig.saveApply"),
+					hint: t("tui.overlays.advisorConfig.writeThisFileAndReloadThe"),
 					warning: this.#dirty ? "Unsaved changes" : undefined,
 					control: { k: "action", label: "Save", act: "save" },
 				},
 				{
 					id: "add",
-					label: "Add advisor",
-					hint: "Create a new advisor entry, then set its model, tools and instructions.",
+					label: t("tui.overlays.advisorConfig.addAdvisor"),
+					hint: t("tui.overlays.advisorConfig.createANewAdvisorEntryThen"),
 					control: { k: "action", label: "Add", act: "add" },
 				},
 				{
@@ -511,8 +524,8 @@ export class AdvisorConfigOverlayComponent implements Component {
 			pages,
 			page: shared ? "shared" : `advisor:${index}`,
 			lead: shared
-				? "Instructions every advisor gets before its own."
-				: "An advisor watches the session and leaves notes; set its model, tools and instructions here.",
+				? t("tui.overlays.advisorConfig.instructionsEveryAdvisorGetsBeforeIts")
+				: t("tui.overlays.advisorConfig.anAdvisorWatchesTheSessionAnd"),
 			sections,
 			focus,
 			editing,
@@ -610,7 +623,7 @@ export class AdvisorConfigOverlayComponent implements Component {
 			return prev.node;
 		}
 		const head: TspSpan[] = [span(`Advisor configuration · ${this.#scope}`)];
-		if (this.#dirty) head.push(span("  ● unsaved", "warning"));
+		if (this.#dirty) head.push(span(t("tui.overlays.advisorConfig.unsaved"), "warning"));
 		const body: NativeNode = preview
 			? node(
 					"row",
@@ -638,7 +651,7 @@ export class AdvisorConfigOverlayComponent implements Component {
 					"col",
 					{ tone: "warning" },
 					[
-						text([span("⚠ Config problems — dropped while loading:", "warning")]),
+						text([span(t("tui.overlays.advisorConfig.configProblemsDroppedWhileLoading"), "warning")]),
 						...sanitizeDisplayWarnings(this.#doc.warnings).map(warning =>
 							text([span(warning, "warning")], { wrap: "word" }),
 						),
@@ -656,19 +669,19 @@ export class AdvisorConfigOverlayComponent implements Component {
 		} else if (value === "shared") {
 			const instructions = this.#doc.instructions?.trim();
 			children.push(
-				text([span("Shared instructions", "strong")]),
+				text([span(t("tui.overlays.advisorConfig.sharedInstructions"), "strong")]),
 				instructions ? text(instructions, { wrap: "word" }) : text([span("(none)", "muted")]),
 			);
 		} else {
 			const help =
 				value === "add"
-					? "Create a new advisor entry, then edit its model, tools, and instructions."
+					? t("tui.overlays.advisorConfig.createANewAdvisorEntryThen2")
 					: value === "scope"
 						? `Switch between the project and user WATCHDOG.yml. Currently editing the ${this.#scope}-level file.`
 						: value === "save"
-							? "Write this scope's WATCHDOG.yml and reload the live advisors without a restart."
+							? t("tui.overlays.advisorConfig.writeThisScopeSWatchdogYml")
 							: value === "close"
-								? "Close the editor. Unsaved changes are discarded."
+								? t("tui.overlays.advisorConfig.closeTheEditorUnsavedChangesAre")
 								: "";
 			if (help) children.push(text([span(help, "muted")], { wrap: "word" }));
 		}
@@ -801,20 +814,20 @@ export class AdvisorConfigOverlayComponent implements Component {
 			if (advisor) return [...warnings, ...this.#advisorPreview(advisor, bodyWidth)];
 		}
 		if (value === "shared") {
-			const lines = [...warnings, theme.bold("Shared instructions"), ""];
+			const lines = [...warnings, theme.bold(t("tui.overlays.advisorConfig.sharedInstructions2")), ""];
 			const text = this.#doc.instructions?.trim();
 			lines.push(...(text ? wrap(text, bodyWidth) : [theme.fg("muted", "(none)")]));
 			return lines.map(line => truncateToWidth(line, bodyWidth));
 		}
 		const help =
 			value === "add"
-				? "Create a new advisor entry, then edit its model, tools, and instructions."
+				? t("tui.overlays.advisorConfig.createANewAdvisorEntryThen3")
 				: value === "scope"
 					? `Switch between the project and user WATCHDOG.yml. Currently editing the ${this.#scope}-level file.`
 					: value === "save"
-						? "Write this scope's WATCHDOG.yml and reload the live advisors without a restart."
+						? t("tui.overlays.advisorConfig.writeThisScopeSWatchdogYml2")
 						: value === "close"
-							? "Close the editor. Unsaved changes are discarded."
+							? t("tui.overlays.advisorConfig.closeTheEditorUnsavedChangesAre2")
 							: "";
 		return [...warnings, ...wrap(help, bodyWidth).map(line => truncateToWidth(theme.fg("muted", line), bodyWidth))];
 	}
@@ -913,7 +926,7 @@ export class AdvisorConfigOverlayComponent implements Component {
 			label: `${advisor.enabled === false ? "○" : "●"} ${advisor.name || "(unnamed)"}`,
 			description: this.#advisorSummary(advisor),
 		}));
-		items.push({ value: "add", label: "+ Add advisor" });
+		items.push({ value: "add", label: t("tui.overlays.advisorConfig.addAdvisor2") });
 		items.push({
 			value: "shared",
 			label: "Shared instructions",
@@ -1010,7 +1023,7 @@ export class AdvisorConfigOverlayComponent implements Component {
 			{ value: "model", label: "Model", description: modelDescription },
 		];
 		if (advisor.model?.trim()) {
-			items.push({ value: "resetModel", label: "Reset model to advisor-role default" });
+			items.push({ value: "resetModel", label: t("tui.overlays.advisorConfig.resetModelToAdvisorRoleDefault") });
 		}
 		items.push(
 			{ value: "tools", label: "Tools", description: toolsDescription },
@@ -1121,7 +1134,7 @@ export class AdvisorConfigOverlayComponent implements Component {
 	}
 
 	#showThinkingPicker(index: number, selector: string, efforts: readonly string[]): void {
-		const items: SelectItem[] = [{ value: "", label: "(model default thinking)" }];
+		const items: SelectItem[] = [{ value: "", label: t("tui.overlays.advisorConfig.modelDefaultThinking") }];
 		for (const effort of efforts) items.push({ value: effort, label: effort });
 		const list = new SelectList(items, Math.max(1, items.length), getSelectListTheme());
 		list.onSelect = item => {
@@ -1179,7 +1192,9 @@ export class AdvisorConfigOverlayComponent implements Component {
 		const shared = index < 0;
 		this.#detailIndex = index;
 		const current = shared ? this.#doc.instructions : this.#doc.advisors[index].instructions;
-		const title = shared ? "Shared advisor instructions" : `Instructions — ${this.#doc.advisors[index].name}`;
+		const title = shared
+			? t("tui.overlays.advisorConfig.sharedAdvisorInstructions")
+			: `Instructions — ${this.#doc.advisors[index].name}`;
 		const editor = new HookEditorComponent(
 			this.#tui,
 			title,

@@ -26,6 +26,7 @@ import vibeWaitDescription from "../prompts/tools/vibe-wait.md" with { type: "te
 import { type VibeScreenSnapshot, type VibeWaitOutcome } from "@oh-my-pi/pi-tui/tools/vibe";
 import { VibeSessionRegistry } from "../vibe/runtime";
 import type { Tool, ToolSession } from "./index";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export const VIBE_TOOL_NAMES = ["vibe_spawn", "vibe_send", "vibe_wait", "vibe_kill", "vibe_list"] as const;
 
@@ -199,7 +200,7 @@ export class VibeWaitTool implements AgentTool<typeof vibeWaitSchema, VibeToolDe
 			lines.push(`Still running: ${outcome.stillRunning.map(id => `\`${id}\``).join(", ")}.`);
 		}
 		if (outcome.timedOut) {
-			lines.push("Wait window elapsed before any turn settled — re-issue vibe_wait to keep waiting.");
+			lines.push(t("tui.ca.tools.vibe.waitWindowElapsedBeforeAnyTurn"));
 		}
 		const result = textResult(lines.join("\n").trimEnd(), details);
 		// A pure "still waiting" frame is noise once a newer wait exists.
@@ -259,7 +260,9 @@ export class VibeListTool implements AgentTool<typeof vibeListSchema, VibeToolDe
 			return parts.join(" · ");
 		});
 		if (lines.length === 0) {
-			lines.push(hiddenKilled ? "No live vibe sessions." : "No vibe sessions. Spawn one with vibe_spawn.");
+			lines.push(
+				hiddenKilled ? t("tui.ca.tools.vibe.noLiveVibeSessions") : "No vibe sessions. Spawn one with vibe_spawn.",
+			);
 		}
 		if (hiddenKilled) {
 			const recent = hiddenKilled.slice(-KILLED_IDS_LISTED).map(id => `\`${id}\``);

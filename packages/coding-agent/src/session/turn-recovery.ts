@@ -25,6 +25,7 @@ import { fallbackCreditTargets } from "@oh-my-pi/pi-catalog/compat/fallback-cred
 import { resolveModelPolicy } from "@oh-my-pi/pi-catalog/compat/resolve";
 import { isFireworksFastModelId, toFireworksBaseModelId } from "@oh-my-pi/pi-catalog/fireworks-model-id";
 import { modelsAreEqual } from "@oh-my-pi/pi-catalog/models";
+import { t } from "@oh-my-pi/pi-i18n";
 import { isUnexpectedSocketCloseMessage, logger, prompt, sleepLong } from "@oh-my-pi/pi-utils";
 import type { ModelRegistry } from "../config/model-registry";
 import { formatModelStringWithRouting, resolveModelOverride } from "../config/model-resolver";
@@ -2145,7 +2146,9 @@ export class TurnRecovery {
 				const previousEditMode = this.#host.resolveActiveEditMode();
 				const applied = await this.applyRetryFallbackCandidate(role, selector, currentSelector, {
 					...options,
-					reason: `Request failed: ${failedMessage.errorMessage ?? "provider returned an error without details"}`,
+					reason: t("tui.session.retryRequestFailed", {
+						message: failedMessage.errorMessage ?? t("tui.session.retryErrorWithoutDetails"),
+					}),
 				});
 				const editModeChanged = this.#host.resolveActiveEditMode() !== previousEditMode;
 				if (applied && options?.pinFallback === true && canRedeemFallbackCredit && !editModeChanged) {
@@ -2265,7 +2268,7 @@ export class TurnRecovery {
 			from: currentSelector,
 			to: baseSelector,
 			role: "fireworks-fast",
-			reason: "Request rejected by the Fast tier. Retrying on the Standard tier.",
+			reason: t("tui.session.fireworksFastTierRejected"),
 		});
 		return true;
 	}

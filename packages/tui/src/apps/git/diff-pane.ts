@@ -15,6 +15,7 @@
  */
 import type { DiffStreamResult, HighlightStream } from "@oh-my-pi/pi-natives";
 import { diffWords, structuredPatchHunks } from "@oh-my-pi/pi-natives";
+import { t } from "@oh-my-pi/pi-i18n";
 import { Image, type ImageBudget } from "../../components/image";
 import { clampScrollOffset, scrollOffsetForRow, viewportRange } from "../../components/scroll-viewport";
 import { centerLine, sliceWithWidth, truncateToWidth, visibleWidth } from "../../utils";
@@ -577,7 +578,7 @@ export class DiffPane {
 	#asset: AssetDocument | null = null;
 	state: DiffPaneState = "empty";
 	/** Message shown in the empty state. */
-	emptyMessage = "No changes";
+	emptyMessage = t("tui.diffPane.empty.noChanges");
 	mode: ViewMode = "split";
 	wrap = false;
 	/** Which hunk buttons apply: staging (unstaged), unstaging (staged), or none. */
@@ -1033,7 +1034,7 @@ export class DiffPane {
 		if (this.state === "streaming" && this.#streaming) return this.#renderStreaming(width, height);
 		if (this.state === "asset" && this.#asset) return this.#renderAsset(width, height);
 		if (!doc || this.state !== "ready") {
-			const message = this.state === "loading" ? "Loading diff…" : this.emptyMessage;
+			const message = this.state === "loading" ? t("tui.diffPane.status.loading") : this.emptyMessage;
 			const lines: string[] = [];
 			for (let i = 0; i < height; i++) {
 				lines.push(
@@ -1079,17 +1080,15 @@ export class DiffPane {
 		const bodyHeight = Math.max(0, height - 1);
 		const oldLines = this.#renderAssetSide(asset.old, leftWidth, bodyHeight, `old:${asset.filePath}`);
 		const newLines = this.#renderAssetSide(asset.new, rightWidth, bodyHeight, `new:${asset.filePath}`);
+		const beforeTitle = this.#assetTitle(t("tui.diffPane.asset.before"), asset.old);
+		const afterTitle = this.#assetTitle(t("tui.diffPane.asset.after"), asset.new);
 		const border = theme.fg("borderMuted", "│");
 		const lines: string[] = [];
 		for (let index = 0; index < height; index++) {
 			const leftSource =
-				index === 0
-					? centerLine(theme.bold(this.#assetTitle("Before", asset.old)), leftWidth).trimEnd()
-					: (oldLines[index - 1] ?? "");
+				index === 0 ? centerLine(theme.bold(beforeTitle), leftWidth).trimEnd() : (oldLines[index - 1] ?? "");
 			const rightSource =
-				index === 0
-					? centerLine(theme.bold(this.#assetTitle("After", asset.new)), rightWidth).trimEnd()
-					: (newLines[index - 1] ?? "");
+				index === 0 ? centerLine(theme.bold(afterTitle), rightWidth).trimEnd() : (newLines[index - 1] ?? "");
 			const left = truncateToWidth(leftSource, leftWidth);
 			const right = truncateToWidth(rightSource, rightWidth);
 			lines.push(
@@ -1121,26 +1120,30 @@ export class DiffPane {
 			let details: string[];
 			switch (side.kind) {
 				case "empty":
-					details = ["No file"];
+					details = [t("tui.diffPane.asset.noFile")];
 					break;
 				case "text":
-					details = ["Text object", formatBytes(side.byteLength)];
+					details = [t("tui.diffPane.asset.textObject"), formatBytes(side.byteLength)];
 					break;
 				case "binary":
 					details = [
-						"Binary object",
-						side.byteLength === undefined ? "Size unavailable" : formatBytes(side.byteLength),
+						t("tui.diffPane.asset.binaryObject"),
+						side.byteLength === undefined
+							? t("tui.diffPane.asset.sizeUnavailable")
+							: formatBytes(side.byteLength),
 					];
 					break;
 				case "tooLarge":
 					details = [
-						"Object too large to preview",
-						side.byteLength === undefined ? "Exceeds preview limit" : formatBytes(side.byteLength),
+						t("tui.diffPane.asset.tooLargeToPreview"),
+						side.byteLength === undefined
+							? t("tui.diffPane.asset.exceedsPreviewLimit")
+							: formatBytes(side.byteLength),
 					];
 					break;
 				case "lfsMissing":
 					details = [
-						"Git LFS object unavailable",
+						t("tui.diffPane.asset.lfsUnavailable"),
 						`sha256:${side.oid.slice(0, 12)}… · ${formatBytes(side.byteLength)}`,
 					];
 					break;
@@ -1165,19 +1168,19 @@ export class DiffPane {
 				lfs = side.image.lfsOid !== undefined;
 				break;
 			case "text":
-				kind = "Text";
+				kind = t("tui.diffPane.asset.kindText");
 				lfs = side.lfsOid !== undefined;
 				break;
 			case "binary":
-				kind = "Binary";
+				kind = t("tui.diffPane.asset.kindBinary");
 				lfs = side.lfsOid !== undefined;
 				break;
 			case "tooLarge":
-				kind = "Too large";
+				kind = t("tui.diffPane.asset.kindTooLarge");
 				lfs = side.lfsOid !== undefined;
 				break;
 			case "lfsMissing":
-				kind = "LFS missing";
+				kind = t("tui.diffPane.asset.kindLfsMissing");
 				lfs = true;
 				break;
 		}
@@ -1190,7 +1193,9 @@ export class DiffPane {
 		const total = this.#total();
 		if (total === 0) {
 			return Array.from({ length: height }, (_, index) =>
-				index === Math.floor(height / 2) ? centerLine(theme.fg("dim", "Streaming file…"), width).trimEnd() : "",
+				index === Math.floor(height / 2)
+					? centerLine(theme.fg("dim", t("tui.diffPane.status.streaming")), width).trimEnd()
+					: "",
 			);
 		}
 		this.#clampScroll();
@@ -1295,10 +1300,12 @@ export class DiffPane {
 		if (this.patchTarget && doc.canPatch) {
 			const primaryLabel =
 				this.patchTarget === "stage"
-					? pill(" Stage Hunk ", theme.getColorHex("toolDiffAdded"))
-					: pill(" Unstage Hunk ", theme.getColorHex("warning"));
+					? pill(` ${t("tui.diffPane.hunk.stage")} `, theme.getColorHex("toolDiffAdded"))
+					: pill(` ${t("tui.diffPane.hunk.unstage")} `, theme.getColorHex("warning"));
 			const discardLabel =
-				this.patchTarget === "stage" ? pill(" Discard Hunk ", theme.getColorHex("toolDiffRemoved")) : "";
+				this.patchTarget === "stage"
+					? pill(` ${t("tui.diffPane.hunk.discard")} `, theme.getColorHex("toolDiffRemoved"))
+					: "";
 			const total = visibleWidth(primaryLabel) + (discardLabel ? visibleWidth(discardLabel) + 1 : 0);
 			const from = Math.max(0, width - 2 - total);
 			let cursor = from;

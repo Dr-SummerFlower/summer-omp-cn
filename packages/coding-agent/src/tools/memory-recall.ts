@@ -8,6 +8,7 @@ import { sessionMemoryToolRefs } from "../memory-backend/tool-names";
 import type { ToolSession } from ".";
 
 import { cfgMemoryBackend } from "../memory-backend/settings";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const memoryRecallSchema = type({
 	query: type("string").describe("natural language search query"),
@@ -44,7 +45,7 @@ export class MemoryRecallTool implements AgentTool<typeof memoryRecallSchema> {
 			if (backend === "mnemopi") {
 				const state = this.session.getMnemopiSessionState?.();
 				if (!state) {
-					throw new Error("Mnemopi backend is not initialised for this session.");
+					throw new Error(t("tui.ca.tools.memoryRecall.mnemopiBackendIsNotInitialisedFor"));
 				}
 				try {
 					const results = await state.recallResultsScoped(params.query);
@@ -73,7 +74,7 @@ export class MemoryRecallTool implements AgentTool<typeof memoryRecallSchema> {
 
 			const state = this.session.getHindsightSessionState?.();
 			if (!state) {
-				throw new Error("Hindsight backend is not initialised for this session.");
+				throw new Error(t("tui.ca.tools.memoryRecall.hindsightBackendIsNotInitialisedFor"));
 			}
 
 			try {

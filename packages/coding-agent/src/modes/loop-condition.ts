@@ -15,6 +15,7 @@
  * work, which is the failure mode this whole feature exists to avoid.
  */
 
+import { t } from "@oh-my-pi/pi-i18n";
 import { logger } from "@oh-my-pi/pi-utils";
 import type { LoopConditionConfig } from "@oh-my-pi/pi-tui/status-line/loop";
 import type { BashResult } from "../exec/bash-executor";
@@ -80,7 +81,10 @@ function formatTimeout(timeoutMs: number): string {
 
 /** Human-readable form of the condition, for enable/status messages. */
 export function describeLoopCondition(condition: LoopConditionConfig): string {
-	return `${condition.until ? "until" : "while"} ${quoteCommand(condition.command)} succeeds`;
+	const command = quoteCommand(condition.command);
+	return condition.until
+		? t("tui.loop.condition.describeUntil", { command })
+		: t("tui.loop.condition.describeWhile", { command });
 }
 
 /**
@@ -105,7 +109,10 @@ export async function evaluateLoopCondition(
 		logger.error("loop condition failed to start", { command: condition.command, error: String(error) });
 		return {
 			kind: "error",
-			message: `Loop condition ${quoteCommand(condition.command)} could not run: ${truncateToWidth(sanitizeStatusText(String(error)), OUTPUT_PREVIEW_WIDTH)}. Loop mode disabled.`,
+			message: t("tui.loop.condition.couldNotRun", {
+				command: quoteCommand(condition.command),
+				reason: truncateToWidth(sanitizeStatusText(String(error)), OUTPUT_PREVIEW_WIDTH),
+			}),
 		};
 	}
 
@@ -114,7 +121,10 @@ export async function evaluateLoopCondition(
 	if (result.timedOut) {
 		return {
 			kind: "error",
-			message: `Loop condition ${quoteCommand(condition.command)} timed out after ${formatTimeout(options.timeoutMs)}. Loop mode disabled.`,
+			message: t("tui.loop.condition.timedOut", {
+				command: quoteCommand(condition.command),
+				timeout: formatTimeout(options.timeoutMs),
+			}),
 		};
 	}
 	if (result.cancelled) return { kind: "aborted" };
@@ -124,24 +134,27 @@ export async function evaluateLoopCondition(
 		if (!condition.until) return { kind: "continue" };
 		return {
 			kind: "halt",
-			message: `Loop condition ${quoteCommand(condition.command)} is now satisfied. Loop mode disabled.`,
+			message: t("tui.loop.condition.satisfied", { command: quoteCommand(condition.command) }),
 		};
 	}
 	if (exitCode === 1) {
 		if (condition.until) return { kind: "continue" };
 		return {
 			kind: "halt",
-			message: `Loop condition ${quoteCommand(condition.command)} no longer holds. Loop mode disabled.`,
+			message: t("tui.loop.condition.noLongerHolds", { command: quoteCommand(condition.command) }),
 		};
 	}
 
 	// Exit >1 (or a missing status) is the condition breaking, not answering.
 	const preview = previewOutput(result.output);
 	const detail = preview ? `: ${preview}` : "";
-	const status = exitCode === undefined ? "no exit status" : `exit ${exitCode}`;
+	const status =
+		exitCode === undefined
+			? t("tui.loop.condition.statusNoExit")
+			: t("tui.loop.condition.statusExit", { code: exitCode });
 	logger.warn("loop condition command failed", { command: condition.command, exitCode });
 	return {
 		kind: "error",
-		message: `Loop condition ${quoteCommand(condition.command)} failed (${status})${detail}. Loop mode disabled.`,
+		message: t("tui.loop.condition.failed", { command: quoteCommand(condition.command), status, detail }),
 	};
 }

@@ -1,3 +1,4 @@
+import { t } from "@oh-my-pi/pi-i18n";
 import { type SgrMouseEvent } from "../../mouse";
 import { type SelectItem, SelectList } from "../../components/select-list";
 import { Container } from "../../tui";
@@ -14,8 +15,8 @@ import { Memo } from "../../native/memo";
 import type { SetupScene, SetupSceneController, SetupSceneHost } from "./types";
 
 class ComposerSceneController implements SetupSceneController {
-	title = "Choose composer shape";
-	subtitle = "Pick the prompt and status line layout for your workflow.";
+	title = t("tui.setup.composer.title");
+	subtitle = t("tui.setup.composer.subtitle");
 	#selectList: SelectList;
 	#shapes: readonly ComposerShape[];
 	#items: readonly SelectItem[];
@@ -78,16 +79,10 @@ class ComposerSceneController implements SetupSceneController {
 	}
 
 	render(width: number, maxLines?: number): readonly string[] {
-		const intro = new Text(
-			theme.fg(
-				"muted",
-				`Select a layout; live preview updates below. Press ${editorKey("tui.select.confirm")} to confirm.`,
-			),
-			0,
-			0,
-		);
+		const confirm = editorKey("tui.select.confirm");
+		const intro = new Text(theme.fg("muted", t("tui.setup.composer.intro", { confirm })), 0, 0);
 		const preview = new Container();
-		preview.addChild(new Text(theme.fg("muted", "Preview:"), 0, 0));
+		preview.addChild(new Text(theme.fg("muted", t("tui.overlays.composerShapePreview.label")), 0, 0));
 		for (const line of renderComposerShapePreview(this.#currentShape, width, this.#host.ctx.statusLine)) {
 			preview.addChild(new Text(line, 0, 0));
 		}
@@ -121,10 +116,10 @@ class ComposerSceneController implements SetupSceneController {
 		return this.#native.get([this.#currentShape, cx.cols, confirm], () =>
 			col(
 				[
-					text([span(`Select a layout; live preview updates below. Press ${confirm} to confirm.`, "muted")]),
+					text([span(t("tui.setup.composer.intro", { confirm }), "muted")]),
 					this.#selectList,
 					col([
-						text([span("Preview:", "muted")]),
+						text([span(t("tui.overlays.composerShapePreview.label"), "muted")]),
 						ansi(renderComposerShapePreview(this.#currentShape, cx.cols, this.#host.ctx.statusLine).join("\n"), {
 							cols: cx.cols,
 						}),
@@ -154,7 +149,7 @@ class ComposerSceneController implements SetupSceneController {
 /** Select and persist the prompt composer layout. */
 export const composerSetupScene: SetupScene = {
 	id: "composer-shape",
-	title: "Choose composer shape",
+	title: t("tui.setup.composer.title"),
 	minVersion: 2,
 	mount: host => new ComposerSceneController(host),
 };

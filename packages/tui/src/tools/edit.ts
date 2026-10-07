@@ -45,6 +45,7 @@ import type { ToolActivityContext, ToolActivitySummary } from "./renderer";
 import { fileHyperlink, Hasher, type RenderCache, renderStatusLine, truncateToWidth, WidthAwareText } from "../render";
 import { framedToolCard } from "../render/tool-card";
 import { HL_FILE_PREFIX, HL_FILE_SUFFIX, HL_MOVE_KEYWORD, HL_REM_KEYWORD } from "./hashline-format";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Edit payload syntax selected by the caller. */
 export type EditMode = "replace" | "patch" | "hashline" | "apply_patch" | "sloppy";
@@ -632,7 +633,7 @@ function getCallPreview(
 	return "";
 }
 
-const MISSING_APPLY_PATCH_END_ERROR = "The last line of the patch must be '*** End Patch'";
+const MISSING_APPLY_PATCH_END_ERROR = t("tui.tools.edit.theLastLineOfThePatch");
 
 function normalizeHashlineInputPreviewPath(rawPath: string): string {
 	const trimmed = rawPath.trim();

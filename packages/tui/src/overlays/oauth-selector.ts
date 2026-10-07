@@ -18,6 +18,7 @@ import { Input } from "../components/input";
 import { MenuSelection } from "../components/menu-selection";
 import { centeredViewportRange } from "../components/scroll-viewport";
 import type { TspPickerItem, TspSpan, TspTone } from "@oh-my-pi/pi-wire";
+import { t } from "@oh-my-pi/pi-i18n";
 import { node, span, text } from "../native/describe";
 import type { DescribeContext, NativeNode, NativeUiEvent } from "../native/node";
 import { CLOSE_ACTION, dockedPicker, PICKER_KEY, pickerAction, pickerEvent, pickerQuery } from "../native/picker";
@@ -89,7 +90,10 @@ export class OAuthSelectorComponent extends OverlayPanel {
 			requestRender?: () => void;
 		},
 	) {
-		super(mode === "login" ? "Select provider to login" : "Select provider to logout", "omp.overlay.oauth");
+		super(
+			t(mode === "login" ? "tui.oauthSelector.title.login" : "tui.oauthSelector.title.logout"),
+			"omp.overlay.oauth",
+		);
 		this.#mode = mode;
 		this.#authStorage = authStorage;
 		this.#onSelectCallback = onSelect;
@@ -242,21 +246,29 @@ export class OAuthSelectorComponent extends OverlayPanel {
 		if (state === "checking") {
 			const frameCount = theme.spinnerFrames.length;
 			const spinner = frameCount > 0 ? theme.spinnerFrames[this.#spinnerFrame % frameCount] : theme.status.pending;
-			return theme.fg("warning", ` ${spinner} checking`) + source;
+			return theme.fg("warning", ` ${spinner} ${t("tui.oauthSelector.status.checking")}`) + source;
 		}
 		if (state === "invalid") {
-			return theme.fg("error", ` ${theme.status.error} invalid`) + source;
+			return theme.fg("error", ` ${theme.status.error} ${t("tui.oauthSelector.status.invalid")}`) + source;
 		}
 		if (state === "valid") {
-			return theme.fg("success", ` ${theme.status.enabled} logged in`) + source;
+			return theme.fg("success", ` ${theme.status.enabled} ${t("tui.oauthSelector.status.loggedIn")}`) + source;
 		}
 		return this.#hasSelectableAuth(providerId)
-			? theme.fg("success", ` ${theme.status.enabled} logged in`) + source
+			? theme.fg("success", ` ${theme.status.enabled} ${t("tui.oauthSelector.status.loggedIn")}`) + source
 			: "";
 	}
 
 	#isSearchEnabled(): boolean {
 		return this.#menu.items.length > this.#maxVisible;
+	}
+
+	/** "Nothing to show" text shared by the legacy list and the native picker. */
+	#emptyMessage(): string {
+		if (this.#menu.items.length !== 0) return t("tui.oauthSelector.empty.noMatch");
+		return this.#mode === "login"
+			? t("tui.oauthSelector.empty.noProviders")
+			: t("tui.oauthSelector.empty.noCredentials");
 	}
 
 	#shouldRenderSearchStatus(): boolean {
@@ -265,9 +277,9 @@ export class OAuthSelectorComponent extends OverlayPanel {
 
 	#renderStatusLine(_total: number): string {
 		const query = this.#menu.query.trim();
-		if (!query) return theme.fg("muted", "Type to search");
+		if (!query) return theme.fg("muted", t("tui.oauthSelector.search.placeholder"));
 		const width = visibleWidth(this.#search.getValue()) + 1;
-		return theme.fg("muted", "Search: ") + (this.#search.render(width)[0] ?? "");
+		return theme.fg("muted", t("tui.oauthSelector.search.prefix")) + (this.#search.render(width)[0] ?? "");
 	}
 
 	#getProviderSearchText(provider: OAuthProviderInfo): string {
@@ -346,7 +358,7 @@ export class OAuthSelectorComponent extends OverlayPanel {
 				height: rows.length,
 				scrollbar: "auto",
 				totalRows: total,
-				theme: { track: t => theme.fg("muted", t), thumb: t => theme.fg("accent", t) },
+				theme: { track: s => theme.fg("muted", s), thumb: s => theme.fg("accent", s) },
 			});
 			sv.setScrollOffset(startIndex);
 			this.#listContainer.addChild(sv);
@@ -358,13 +370,7 @@ export class OAuthSelectorComponent extends OverlayPanel {
 		}
 
 		if (total === 0) {
-			const message =
-				this.#menu.items.length === 0
-					? this.#mode === "login"
-						? "No OAuth providers available"
-						: "No stored provider credentials to log out"
-					: "No matching providers";
-			this.#listContainer.addChild(new TruncatedText(theme.fg("muted", message), 0, 0));
+			this.#listContainer.addChild(new TruncatedText(theme.fg("muted", this.#emptyMessage()), 0, 0));
 		}
 		if (this.#statusMessage) {
 			this.#listContainer.addChild(new Spacer(1));
@@ -419,7 +425,7 @@ export class OAuthSelectorComponent extends OverlayPanel {
 			this.stopValidation();
 			this.#onSelectCallback(selectedProvider.id);
 		} else if (selectedProvider) {
-			this.#statusMessage = "Provider unavailable in this environment.";
+			this.#statusMessage = t("tui.oauthSelector.status.unavailable");
 			this.#updateList();
 		}
 	}
@@ -436,10 +442,12 @@ export class OAuthSelectorComponent extends OverlayPanel {
 				]
 			: undefined;
 		const state = this.#authState.get(providerId);
-		if (state === "checking") return { value: [span("checking", "warning", { fx: "pulse" })], detail };
-		if (state === "invalid") return { value: [span("invalid", "error")], detail };
+		if (state === "checking") {
+			return { value: [span(t("tui.oauthSelector.status.checking"), "warning", { fx: "pulse" })], detail };
+		}
+		if (state === "invalid") return { value: [span(t("tui.oauthSelector.status.invalid"), "error")], detail };
 		if (state === "valid" || this.#hasSelectableAuth(providerId)) {
-			return { value: [span("logged in", "success")], detail };
+			return { value: [span(t("tui.oauthSelector.status.loggedIn"), "success")], detail };
 		}
 		return { detail };
 	}
@@ -462,10 +470,10 @@ export class OAuthSelectorComponent extends OverlayPanel {
 				: ORIGIN_LABELS[origin.kind]
 			: undefined;
 		const detail = !source
-			? "Not configured"
+			? t("tui.oauthSelector.detail.notConfigured")
 			: origin?.kind === "oauth"
-				? `Signed in · ${source}`
-				: `API key · ${source}`;
+				? t("tui.oauthSelector.detail.signedIn", { source })
+				: t("tui.oauthSelector.detail.apiKey", { source });
 		const initials = provider.name
 			.split(/[^\p{L}\p{N}]+/u)
 			.filter(word => word.length > 0)
@@ -478,7 +486,7 @@ export class OAuthSelectorComponent extends OverlayPanel {
 			detail,
 			mark: { text: initials, seed: provider.id },
 			dot,
-			...(provider.available ? {} : { disabled: "Provider unavailable in this environment" }),
+			...(provider.available ? {} : { disabled: t("tui.oauthSelector.status.unavailableShort") }),
 		};
 	}
 
@@ -490,25 +498,25 @@ export class OAuthSelectorComponent extends OverlayPanel {
 		const login = this.#mode === "login";
 		const search = this.#shouldRenderSearchStatus() ? pickerQuery(this.#search) : pickerQuery(null);
 		this.#pickerRoot = dockedPicker({
-			title: login ? "Sign in" : "Sign out",
-			subtitle: login ? "Pick a provider" : "Remove stored credentials",
+			title: login ? t("tui.oauthSelector.picker.signIn") : t("tui.oauthSelector.picker.signOut"),
+			subtitle: login ? t("tui.oauthSelector.picker.subtitle.login") : t("tui.oauthSelector.picker.subtitle.logout"),
 			icon: "key-round",
-			noun: "providers",
+			noun: t("tui.oauthSelector.picker.noun"),
 			size: "md",
 			layout: "cards",
 			preview: "none",
 			...search,
-			placeholder: "Search providers…",
+			placeholder: t("tui.oauthSelector.picker.placeholder"),
 			items: this.#pickerItems,
 			...(query.length > 0 ? { order: this.#menu.visibleItems.map(provider => provider.id) } : {}),
 			selected: this.#menu.selectedKey ?? null,
 			total: all.length,
-			empty: login ? "No OAuth providers available" : "No stored provider credentials to log out",
+			empty: login ? t("tui.oauthSelector.empty.noProviders") : t("tui.oauthSelector.empty.noCredentials"),
 			...(this.#statusMessage ? { message: this.#statusMessage } : {}),
 			actions: [
 				pickerAction(
 					"confirm",
-					login ? "Sign in" : "Sign out",
+					login ? t("tui.oauthSelector.picker.signIn") : t("tui.oauthSelector.picker.signOut"),
 					"enter",
 					login ? { primary: true } : { primary: true, danger: true },
 				),
@@ -543,25 +551,23 @@ export class OAuthSelectorComponent extends OverlayPanel {
 			children.push(
 				node(
 					"input",
-					{ text: this.#search.getValue(), cursor: this.#search.getCursor(), placeholder: "Type to search" },
+					{
+						text: this.#search.getValue(),
+						cursor: this.#search.getCursor(),
+						placeholder: t("tui.oauthSelector.search.placeholder"),
+					},
 					undefined,
 					"search",
 				),
 			);
 		}
-		const empty =
-			this.#menu.items.length === 0
-				? this.#mode === "login"
-					? "No OAuth providers available"
-					: "No stored provider credentials to log out"
-				: "No matching providers";
 		children.push(
 			node(
 				"list",
 				{
 					selected: this.#menu.selectedKey ?? null,
 					filter: query.trim() || undefined,
-					empty: [span(empty, "muted")],
+					empty: [span(this.#emptyMessage(), "muted")],
 					max: { lines: OAUTH_SELECTOR_MAX_VISIBLE },
 				},
 				this.#nativeItems,

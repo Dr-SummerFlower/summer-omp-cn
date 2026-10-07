@@ -27,6 +27,7 @@ import { item, list, md, span, text } from "../native/describe";
 import { OwnerMemo } from "../native/memo";
 import { plainText } from "../native/spans";
 import { errorView, resultText, toolHead } from "./native-view";
+import { t } from "@oh-my-pi/pi-i18n";
 
 // Each stored memory renders as `<bullet> <content>`; the bullet glyph comes
 // from the active theme (`•` by default, a nerd-font dot under nerd themes).
@@ -119,7 +120,11 @@ export const retainToolRenderer = {
 		args?: RetainRenderArgs,
 	): Component {
 		if (result.isError) {
-			return new Text(formatErrorMessage(resultText(result).trim() || "Retain failed", theme), 0, 0);
+			return new Text(
+				formatErrorMessage(resultText(result).trim() || t("tui.tools.memory.retainFailed"), theme),
+				0,
+				0,
+			);
 		}
 		const contents = retainContents(args);
 		// `summary` is the tool's own "N memories stored/queued." line; drop the
@@ -166,7 +171,11 @@ export const recallToolRenderer = {
 		args?: QueryRenderArgs,
 	): Component {
 		if (result.isError) {
-			return new Text(formatErrorMessage(resultText(result).trim() || "Recall failed", theme), 0, 0);
+			return new Text(
+				formatErrorMessage(resultText(result).trim() || t("tui.tools.memory.recallFailed"), theme),
+				0,
+				0,
+			);
 		}
 		const text = resultText(result).trim();
 		const match = text.match(/^Found (\d+) relevant/);
@@ -242,7 +251,11 @@ export const reflectToolRenderer = {
 		args?: QueryRenderArgs,
 	): Component {
 		if (result.isError) {
-			return new Text(formatErrorMessage(resultText(result).trim() || "Reflect failed", theme), 0, 0);
+			return new Text(
+				formatErrorMessage(resultText(result).trim() || t("tui.tools.memory.reflectFailed"), theme),
+				0,
+				0,
+			);
 		}
 		const header = queryHeader(
 			"Reflect",

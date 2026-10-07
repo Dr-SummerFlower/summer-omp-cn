@@ -17,6 +17,7 @@ import type { ToolSession } from "./index";
 import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";
 
 import { cfgSecurityEnabled } from "./settings";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const securityScanSchema = type({
 	action:
@@ -197,7 +198,7 @@ export class SecurityScanTool implements AgentTool<typeof securityScanSchema, Se
 				).listAllConfigurations(signal);
 				return textResult(
 					configurations.length === 0
-						? "No Codex Security cloud scan configurations are available."
+						? t("tui.ca.tools.securityScan.noCodexSecurityCloudScanConfigurations")
 						: configurations
 								.map(
 									item =>

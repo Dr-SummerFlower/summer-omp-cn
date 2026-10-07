@@ -5,6 +5,7 @@
 import { Args, Command, Flags } from "@oh-my-pi/pi-utils/cli";
 import { grievancesHelp as commandHelp } from "../cli/command-help";
 import { cleanGrievances, listGrievances, pushGrievances } from "../cli/grievances-cli";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export default class Grievances extends Command {
 	static description = commandHelp.description;
@@ -13,7 +14,7 @@ export default class Grievances extends Command {
 		// arg keeps the historical `omp grievances` invocation working unchanged
 		// while reusing the same command surface for the clean/push verbs.
 		action: Args.string({
-			description: "list (default), clean, or push",
+			description: t("cli.grievances.listDefaultCleanOrPush"),
 			required: false,
 			options: ["list", "clean", "push"],
 			default: "list",
@@ -21,11 +22,11 @@ export default class Grievances extends Command {
 	};
 
 	static flags = {
-		limit: Flags.integer({ char: "n", description: "Number of recent issues to show (list)", default: 20 }),
-		tool: Flags.string({ char: "t", description: "Filter by tool name (list, clean)" }),
-		json: Flags.boolean({ char: "j", description: "Output as JSON", default: false }),
-		id: Flags.integer({ description: "Delete a single grievance by id (clean)" }),
-		all: Flags.boolean({ description: "Delete every grievance (clean)", default: false }),
+		limit: Flags.integer({ char: "n", description: t("cli.grievances.numberOfRecentIssuesToShow"), default: 20 }),
+		tool: Flags.string({ char: "t", description: t("cli.grievances.filterByToolNameListClean") }),
+		json: Flags.boolean({ char: "j", description: t("cli.grievances.outputAsJson"), default: false }),
+		id: Flags.integer({ description: t("cli.grievances.deleteASingleGrievanceById") }),
+		all: Flags.boolean({ description: t("cli.grievances.deleteEveryGrievanceClean"), default: false }),
 	};
 
 	static examples = [

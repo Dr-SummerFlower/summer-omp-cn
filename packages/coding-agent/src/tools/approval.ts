@@ -10,6 +10,7 @@ import type { AgentTool, ToolApprovalDecision, ToolTier } from "@oh-my-pi/pi-age
 import type { Settings } from "../config/settings";
 
 import { cfgToolsApproval, cfgToolsApprovalMode } from "./settings";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export type { ToolApproval, ToolApprovalDecision, ToolTier } from "@oh-my-pi/pi-agent-core";
 
@@ -367,7 +368,7 @@ export function formatApprovalPrompt(tool: ApprovalSubject, args: unknown, reaso
 	const lines = [`Allow tool: ${tool.name}`];
 
 	if (tool.name.startsWith("mcp__") && tool.approval === undefined) {
-		lines.push("Origin: MCP server tool");
+		lines.push(t("tui.ca.tools.approval.originMcpServerTool"));
 	}
 
 	if (reason) {

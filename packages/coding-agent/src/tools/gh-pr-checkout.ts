@@ -33,6 +33,7 @@ import { throwIfAborted } from "./tool-errors";
 import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";
 
 import { cfgIsolationBackend, cfgWorktreeClone } from "../task/settings";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export const GH_REPO_CLONE_FIELDS = ["nameWithOwner", "sshUrl", "url"];
 export const GH_PR_CHECKOUT_FIELDS = [
@@ -270,21 +271,21 @@ export function formatPrCheckoutResult(options: {
 	pushLine(lines, "URL", data.url);
 	pushLine(lines, "Base", data.baseRefName);
 	pushLine(lines, "Head", data.headRefName);
-	pushLine(lines, "Local branch", localBranch);
+	pushLine(lines, t("tui.ca.tools.ghPrCheckout.localBranch"), localBranch);
 	pushLine(
 		lines,
 		"Worktree",
 		clonedWith != null ? `${worktreePath} (cloned via ${formatIsolationBackend(clonedWith)})` : worktreePath,
 	);
 	pushLine(lines, "Remote", remoteName);
-	pushLine(lines, "Remote URL", remoteUrl);
-	pushLine(lines, "Cross repository", data.isCrossRepository);
-	pushLine(lines, "Maintainer can modify", data.maintainerCanModify);
+	pushLine(lines, t("tui.ca.tools.ghPrCheckout.remoteUrl"), remoteUrl);
+	pushLine(lines, t("tui.ca.tools.ghPrCheckout.crossRepository"), data.isCrossRepository);
+	pushLine(lines, t("tui.ca.tools.ghPrCheckout.maintainerCanModify"), data.maintainerCanModify);
 	lines.push("");
 	lines.push(
 		reused
-			? "Reused the existing PR worktree."
-			: "Created a dedicated worktree for this PR and configured the local branch to push back to the PR head branch.",
+			? t("tui.ca.tools.ghPrCheckout.reusedTheExistingPrWorktree")
+			: t("tui.ca.tools.ghPrCheckout.createdADedicatedWorktreeForThis"),
 	);
 	return lines.join("\n").trim();
 }
@@ -298,12 +299,12 @@ export function formatPrPushResult(options: {
 	forceWithLease: boolean;
 }): string {
 	const lines: string[] = ["# Pushed Pull Request Branch", ""];
-	pushLine(lines, "Local branch", options.localBranch);
+	pushLine(lines, t("tui.ca.tools.ghPrCheckout.localBranch2"), options.localBranch);
 	pushLine(lines, "Remote", options.remoteName);
-	pushLine(lines, "Remote branch", options.remoteBranch);
-	pushLine(lines, "Remote URL", options.remoteUrl);
+	pushLine(lines, t("tui.ca.tools.ghPrCheckout.remoteBranch"), options.remoteBranch);
+	pushLine(lines, t("tui.ca.tools.ghPrCheckout.remoteUrl2"), options.remoteUrl);
 	pushLine(lines, "PR", options.prUrl);
-	pushLine(lines, "Force with lease", options.forceWithLease);
+	pushLine(lines, t("tui.ca.tools.ghPrCheckout.forceWithLease"), options.forceWithLease);
 	lines.push("");
 	lines.push(`Pushed ${options.localBranch} to ${options.remoteName}:${options.remoteBranch}.`);
 	return lines.join("\n").trim();

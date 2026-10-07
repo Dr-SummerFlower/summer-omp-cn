@@ -13,15 +13,18 @@ import {
 } from "../skillshare/installer";
 import { clearSubmittedText } from "./helpers/draft";
 import { errorMessage, parseSubcommand } from "./helpers/parse";
+import { t } from "@oh-my-pi/pi-i18n";
 import type { SlashCommandSpec } from "./types";
 
-const USAGE = [
-	"Skill registry (skills.omp.sh) commands:",
-	"  /skills search <query>                        Search the registry",
-	"  /skills install <@scope/name[@range]>… [-g]   Install into this project (-g: user-global)",
-	"  /skills installed                             List installed registry skills",
-	"  /skills update [@scope/name…] [-g]            Update within the ranges in skills.json",
-].join("\n");
+function skillsUsage(): string {
+	return [
+		t("slash.skills.usage.header"),
+		t("slash.skills.usage.search"),
+		t("slash.skills.usage.install"),
+		t("slash.skills.usage.installed"),
+		t("slash.skills.usage.update"),
+	].join("\n");
+}
 
 /** Split `<name…> [--global|-g]`; unknown flags are errors. */
 function parseTargets(rest: string): { names: string[]; global: boolean } | { error: string } {
@@ -30,7 +33,8 @@ function parseTargets(rest: string): { names: string[]; global: boolean } | { er
 	for (const token of rest.split(/\s+/)) {
 		if (!token) continue;
 		if (token === "--global" || token === "-g") global = true;
-		else if (token.startsWith("-")) return { error: `Unknown option: ${token}\n\n${USAGE}` };
+		else if (token.startsWith("-"))
+			return { error: `${t("slash.skills.unknownOption", { option: token })}\n\n${skillsUsage()}` };
 		else names.push(token);
 	}
 	return { names, global };
@@ -48,13 +52,13 @@ async function withClient<T>(run: (client: SkillshareClient) => Promise<T>): Pro
 function tuiHooks(ctx: InteractiveModeContext): SkillInstallHooks {
 	return {
 		warn: message => ctx.showWarning(message),
-		confirmScripts: request => ctx.showHookConfirm("Install skill with scripts?", formatScriptApproval(request)),
+		confirmScripts: request => ctx.showHookConfirm(t("slash.skills.confirmScripts"), formatScriptApproval(request)),
 	};
 }
 
 async function reportChanges(ctx: InteractiveModeContext, changes: SkillChange[]): Promise<void> {
 	if (changes.length === 0) {
-		ctx.showStatus("Registry skills are already up to date.");
+		ctx.showStatus(t("slash.skills.upToDate"));
 		return;
 	}
 	await ctx.refreshSkillState();
@@ -65,14 +69,35 @@ export const BUILTIN_SKILLS_SLASH_COMMANDS: ReadonlyArray<SlashCommandSpec> = [
 	{
 		name: "skills",
 		icon: "skill",
-		description: "Search, install, and update skills from the skills.omp.sh registry",
+		get description() {
+			return t("slash.skills.description");
+		},
 		subcommands: [
-			{ name: "search", description: "Search the skill registry", usage: "<query>" },
-			{ name: "install", description: "Install registry skills", usage: "<@scope/name[@range]>… [--global]" },
-			{ name: "installed", description: "List installed registry skills" },
+			{
+				name: "search",
+				get description() {
+					return t("slash.skills.sub.search.description");
+				},
+				usage: "<query>",
+			},
+			{
+				name: "install",
+				get description() {
+					return t("slash.skills.sub.install.description");
+				},
+				usage: "<@scope/name[@range]>… [--global]",
+			},
+			{
+				name: "installed",
+				get description() {
+					return t("slash.skills.sub.installed.description");
+				},
+			},
 			{
 				name: "update",
-				description: "Update registry skills within their ranges",
+				get description() {
+					return t("slash.skills.sub.update.description");
+				},
 				usage: "[@scope/name…] [--global]",
 			},
 		],
@@ -86,7 +111,7 @@ export const BUILTIN_SKILLS_SLASH_COMMANDS: ReadonlyArray<SlashCommandSpec> = [
 				switch (verb) {
 					case "search": {
 						if (!rest) {
-							ctx.showError("Usage: /skills search <query>");
+							ctx.showError(t("slash.skills.search.usageError"));
 							return;
 						}
 						const response = await withClient(client => client.search(rest));
@@ -100,10 +125,10 @@ export const BUILTIN_SKILLS_SLASH_COMMANDS: ReadonlyArray<SlashCommandSpec> = [
 							return;
 						}
 						if (targets.names.length === 0) {
-							ctx.showError("Usage: /skills install <@scope/name[@range]>… [--global]");
+							ctx.showError(t("slash.skills.install.usageError"));
 							return;
 						}
-						ctx.showStatus(`Installing ${targets.names.join(", ")}…`, { dim: true });
+						ctx.showStatus(t("slash.skills.installing", { names: targets.names.join(", ") }), { dim: true });
 						const changes = await withClient(client =>
 							installSkillPackages(
 								client,
@@ -124,7 +149,7 @@ export const BUILTIN_SKILLS_SLASH_COMMANDS: ReadonlyArray<SlashCommandSpec> = [
 							ctx.showError(targets.error);
 							return;
 						}
-						ctx.showStatus("Checking the registry for updates…", { dim: true });
+						ctx.showStatus(t("slash.skills.checkingUpdates"), { dim: true });
 						const changes = await withClient(client =>
 							updateSkillPackages(client, { names: targets.names, global: targets.global, cwd }, tuiHooks(ctx)),
 						);
@@ -133,14 +158,14 @@ export const BUILTIN_SKILLS_SLASH_COMMANDS: ReadonlyArray<SlashCommandSpec> = [
 					}
 					case "":
 					case "help":
-						ctx.showStatus(USAGE);
+						ctx.showStatus(skillsUsage());
 						return;
 					default:
-						ctx.showError(`Unknown /skills subcommand: ${verb}\n\n${USAGE}`);
+						ctx.showError(`${t("slash.skills.unknownSubcommand", { verb })}\n\n${skillsUsage()}`);
 						return;
 				}
 			} catch (error) {
-				ctx.showError(`Skills: ${errorMessage(error)}`);
+				ctx.showError(t("slash.skills.error", { message: errorMessage(error) }));
 			}
 		},
 	},

@@ -1,347 +1,225 @@
-# Development Rules
+# 开发规则 · 个人汉化版 oh-my-pi
 
-## Default Context
+> 本仓库是 [`can1357/oh-my-pi`](https://github.com/can1357/oh-my-pi) 的个人**简体中文汉化分支**。核心目标只有一个：**在不改变任何程序逻辑与协议的前提下，把「启动后」的用户可见文本统一汉化为简体中文**。任何改动都必须能直接追溯到这一目标。
 
-This repo contains multiple packages, but **`packages/coding-agent/`** is the primary focus. Unless otherwise specified, assume work refers to this package.
+## 一、仓库定位与默认上下文
 
-**Terminology**: When the user says "agent" or asks "why is agent doing X", they mean the **coding-agent package implementation**, not you (the assistant). The coding-agent is a CLI tool — questions about its behavior refer to code in `packages/coding-agent/`, not your current session.
+- **远程**：`origin` = `Dr-SummerFlower/summer-omp-cn`（自建汉化仓库，提交与推送目标）；`upstream` = `can1357/oh-my-pi`（上游源）。
+- **默认焦点包**：`packages/coding-agent/`。除非另有说明，工作均指此包。
+- **术语**：用户说「agent」「agent 为什么这样做」时，指的是 **coding-agent 包的实现**，不是助手本身；其行为指 `packages/coding-agent/` 中的代码。
+- **沟通语言**：默认中文；代码、命令、变量名、键名用英文。
 
-### Package Structure
+### 1.1 包结构
 
-| Package                 | Description                                                                             |
-| ----------------------- | --------------------------------------------------------------------------------------- |
-| `packages/ai`           | Multi-provider LLM client with streaming support                                        |
-| `packages/catalog`      | Model catalog: bundled models.json, provider descriptors, model identity/classification |
-| `packages/agent`        | Agent runtime with tool calling and state management                                    |
-| `packages/coding-agent` | Main CLI application (primary focus)                                                    |
-| `packages/tui`          | Terminal UI library with differential rendering                                         |
-| `packages/natives`      | Bindings for native text/image/grep operations                                          |
-| `packages/stats`        | Local observability dashboard (`omp stats`)                                             |
-| `packages/omptype`      | ArkType-compatible schema validation with a lazy JIT runtime                            |
-| `packages/utils`        | Shared utilities (logger, streams, temp files)                                          |
-| `crates/pi-natives`     | Rust crate for performance-critical text/grep ops                                       |
-| `crates/pi-shell`       | Embedded shell, PTY, process management, and output minimization                        |
-| `crates/pi-builtins`    | Bash builtins and consolidated in-process command-line utilities                        |
-
-**Catalog import convention**: code in this repo imports catalog _values_ (bundled models, model-thinking helpers, identity, descriptors, model manager/cache) from `@oh-my-pi/pi-catalog/<module>` — never via `@oh-my-pi/pi-ai`. The pi-ai barrel re-exports only the model/effort _types_ its own signatures use (`Model`, `Api`, `ThinkingConfig`, `Effort`, …); type-only imports of those from `@oh-my-pi/pi-ai` are fine.
-
-## GitHub
-
-- Before posting a GitHub comment or creating an issue, MUST show the target and proposed text and obtain user confirmation. An explicit instruction to post supplied text to a specified target already counts as confirmation.
-- A request to address or fix PR feedback permits drafting replies, not posting them without confirmation. A request only to get or check comments is read-only.
-- When authorized to resolve review feedback, MUST verify the fix, obtain approval for a factual reply citing the change and verification, and post it in the existing thread before resolving. NEVER resolve if the reply is unapproved or posting fails.
-- Permission to work on a PR does not authorize unrelated comments or issue creation.
-
-### Pull requests
-
-When authorized to create or edit a contributor-submitted PR, follow the checklist below. RoboOMP-managed PRs follow their dedicated workflow and enforced body format in `python/robomp/src/prompts/system_append.md` instead.
-
-- MUST read `CONTRIBUTING.md` and `.github/PULL_REQUEST_TEMPLATE.md` first. Preserve the template sections and checklist, including when shortening an existing description.
-- MUST obtain at least one sentence written by the contributor in their own words explaining what changed and why, as required by `CONTRIBUTING.md`. If it is missing, ask the contributor; NEVER generate a substitute. Preserve that sentence during edits.
-- For user-facing changes, MUST follow the [Changelog](#changelog) attribution rules. Internal issue fixes keep their issue links. For external contributions, add the PR link and contributor credit after GitHub assigns the number, then push the entry before marking the changelog checklist item complete.
-- MUST read back the published PR description after creating or editing it. Check only verified checklist items; explain skipped or inapplicable checks in `Testing`.
-
-## Code Quality
-
-- No `any` unless absolutely necessary.
-- **NEVER use `ReturnType<>`** — use the actual type name.
-- **NEVER use inline imports** — no `await import()`, no `import("pkg").Type` in type positions, no dynamic type imports. Always top-level.
-- Check `node_modules` for external API types instead of guessing.
-- **Barrel exports**: prefer `export * from "./module"` over named re-exports, including `export type { ... } from`. In pure `index.ts` barrels, use star re-exports even for single-specifier cases. If stars create ambiguity, remove the redundant export path; do not keep duplicates.
-- **Class privacy**: use ES `#private` fields; leave externally accessible members bare. **No `private`/`protected`/`public` keyword on fields or methods**, except on **constructor parameter properties** where TypeScript requires it (e.g. `constructor(private readonly session: ToolSession)`).
-- **Promises**: use `Promise.withResolvers()` instead of `new Promise((resolve, reject) => ...)`.
-- **Prompts**: never build prompts in code (no inline strings, template literals, or concatenation). Prompts live in static `.md` files; use Handlebars for dynamic content. Import them via `import content from "./prompt.md" with { type: "text" }` — not `readFile`.
-- **Worker scripts**: workers re-enter the CLI entrypoint; never spawn separate worker entry modules. `cli.ts` declares itself as the worker host at startup (`declareWorkerHostEntry()` from `@oh-my-pi/pi-utils/env`) and dispatches hidden argv selectors (`__omp_worker_stats_sync`, `__omp_worker_tab`, `__omp_worker_js_eval`, `__omp_worker_tiny_inference`) before loading the command registry. Spawn sites use:
-  ```ts
-  import { workerHostEntry } from "@oh-my-pi/pi-utils";
-  const hostEntry = workerHostEntry();
-  const worker = hostEntry
-  	? new Worker(hostEntry, { type: "module", argv: ["__omp_worker_<name>"] })
-  	: new Worker(new URL("./<worker>.ts", import.meta.url).href, { type: "module" });
-  ```
-  When the process was started from the omp CLI — source `cli.ts`, npm-bundle `dist/cli.js`, or compiled binary — `workerHostEntry()` is `Bun.main` and the worker re-enters the single entry module, so no per-worker `--compile` entrypoints or bundle entries exist. Outside a CLI host (`bun test`, SDK embedding, standalone `omp-stats`) it returns `null` and the direct-module fallback loads the worker source. New worker kinds MUST add their selector to the dispatch table in `cli.ts` and keep the fallback branch.
-  History: `with { type: "file" }` only copied the entry as a raw asset (workers crashed silently in compiled binaries — issues #1011, #1027), and the later literal-path + extra-entrypoint pattern required keeping spawn literals and two build scripts in sync (issue #1150). The smoke probe below is the live validation of this contract.
-  Validate any new worker with the dedicated smoke probe: `omp --smoke-test` spawns the stats sync worker and the tiny-model subprocess, pings them, and exits — it's wired into `ci:test:smoke` and `scripts/install-tests/run-ci.sh` so binary, source-link, and tarball installs all exercise it. Add a sibling smoke if the new worker is on a different module graph.
-
-## Central Utilities
-
-Before writing a helper, check whether one already exists — `packages/coding-agent/src/utils/`, `@oh-my-pi/pi-utils`, `@oh-my-pi/pi-tui`, and the domain modules next to your callsite. This applies to **everything**: VCS wrappers, formatting/truncation/path-display helpers, image handling, clipboard, streams, temp files, caching. The central versions carry hardening a fresh copy always loses (timeouts, output caps, non-interactive env, lock avoidance, caching, TUI sanitization).
-
-- Search first: `grep` for the operation before implementing it. Two implementations of the same thing is a bug even when both work.
-- Examples of the pattern: `@oh-my-pi/pi-natives/vcs` and `src/utils/active-repo-context.ts` are the only sanctioned way to run git/jj (`import * as vcs from "@oh-my-pi/pi-natives/vcs"` — never hand-spawn via `$`/`Bun.spawn`); rendering goes through the helpers in TUI Sanitization below (`replaceTabs`, `truncateToWidth`, `shortenPath`, `PREVIEW_LIMITS`) rather than ad-hoc string math.
-- Missing capability? Extend the central helper (new option, new sub-function on the namespace) and call it — don't fork its logic locally.
-
-## Bun Over Node
-
-Use Bun APIs where they provide a cleaner alternative; fall back to `node:*` only for what Bun doesn't cover. **Never spawn shell commands for operations with proper APIs** (e.g., don't `Bun.spawnSync(["mkdir", "-p", dir])` — use `mkdirSync`).
-
-### Quick reference
-
-| Operation       | Use                                       | Not                                |
-| --------------- | ----------------------------------------- | ---------------------------------- |
-| File read/write | `Bun.file()`, `Bun.write()`               | `readFileSync`, `writeFileSync`    |
-| Spawn process   | `` $`cmd` ``, `Bun.spawn()`               | `child_process`                    |
-| Sleep           | `Bun.sleep(ms)`                           | `setTimeout` promise               |
-| Binary lookup   | `$which("git")` from `@oh-my-pi/pi-utils` | `spawnSync(["which", "git"])`      |
-| HTTP server     | `Bun.serve()`                             | `http.createServer()`              |
-| SQLite          | `bun:sqlite`                              | `better-sqlite3`                   |
-| Hashing         | `Bun.hash()`, `Bun.password.*`, WebCrypto | `node:crypto`                      |
-| Path resolution | `import.meta.dir`, `import.meta.path`     | `fileURLToPath` dance              |
-| JSON5           | `Bun.JSON5.parse()` / `.stringify()`      | `json5` package                    |
-| JSONL           | `Bun.JSONL.parse()` / `.parseChunk()`     | `text.split("\n").map(JSON.parse)` |
-| String width    | `Bun.stringWidth()`                       | `get-east-asian-width`, custom     |
-| Text wrapping   | `Bun.wrapAnsi()`                          | custom ANSI-aware wrappers         |
-
-### Process execution
-
-Prefer Bun Shell (`` $`cmd` ``) for simple commands:
-
-```typescript
-import { $ } from "bun";
-
-const result = await $`git status`.cwd(dir).quiet().nothrow();
-if (result.exitCode === 0) {
-	const text = result.text();
-}
-
-$`do-stuff ${tmpFile}`.quiet().nothrow(); // fire and forget
-```
-
-Methods: `.quiet()`, `.nothrow()`, `.text()`, `.cwd(path)`.
-
-Use `Bun.spawn`/`Bun.spawnSync` only for: long-running processes (LSP, kernels), streaming stdin/stdout/stderr (SSE, JSON-RPC), or process control (signals, kill, complex lifecycle).
-
-When using `pipe` mode, cast the stream:
-
-```typescript
-const child = Bun.spawn(["cmd"], { stdout: "pipe", stderr: "pipe" });
-const reader = (child.stdout as ReadableStream<Uint8Array>).getReader();
-```
-
-### Node module imports
-
-Always use **namespace imports** for `node:fs`, `node:path`, `node:os`:
-
-```typescript
-import * as fs from "node:fs/promises";
-import * as path from "node:path";
-import * as os from "node:os";
-```
-
-- Async-only file → `node:fs/promises`.
-- Needs both sync and async → `node:fs`, then `fs.promises.xxx` for async.
-
-### File I/O
-
-Prefer Bun:
-
-```typescript
-const text = await Bun.file(path).text();
-const data = await Bun.file(path).json();
-await Bun.write(path, data); // auto-creates parent dirs
-```
-
-Use `node:fs/promises` for directory ops (`fs.mkdir`, `fs.rm`, `fs.readdir`) — Bun has no native directory APIs. Avoid sync APIs in async flows; use sync only when forced by a synchronous interface.
-
-**Anti-patterns:**
-
-- `existsSync`/`readFileSync`/`writeFileSync` in async code → `Bun.file()` APIs.
-- `mkdir(dirname(path), …)` before `Bun.write(path, …)` → redundant; `Bun.write` handles it.
-- `if (await file.exists()) { await file.json() }` → two syscalls plus race. Use try-catch with `isEnoent`:
-  ```typescript
-  import { isEnoent } from "@oh-my-pi/pi-utils";
-  try {
-  	return await Bun.file(path).json();
-  } catch (err) {
-  	if (isEnoent(err)) return null;
-  	throw err;
-  }
-  ```
-- Multiple `Bun.file(path)` handles for the same path (including across `checkX`/`loadX` helpers).
-- `Buffer.from(await Bun.file(x).arrayBuffer())` → `await fs.readFile(path)`.
-- Existence check + try-catch around the same read → drop the existence check.
-
-### Streams
-
-Prefer centralized helpers:
-
-```typescript
-import { readStream, readLines } from "./utils/stream";
-const text = await readStream(child.stdout);
-for await (const line of readLines(stream)) {
-	/* ... */
-}
-```
-
-Manual reader loops only when the protocol requires it (SSE, streaming JSON-RPC).
-
-### Misc
-
-- **Sleep**: `await Bun.sleep(ms)`, never `new Promise(r => setTimeout(r, ms))`.
-- **Password hashing**: `Bun.password.hash(pw, "bcrypt")` / `Bun.password.verify(pw, hash)`.
-- **String width**: `Bun.stringWidth(text, { countAnsiEscapeCodes?: false })`.
-- **Wrapping**: `Bun.wrapAnsi(text, width, { wordWrap, hard, trim })`.
-
-## Model/Provider Policy Lives in KDL
-
-**NEVER hard-code model- or provider-conditional policy in TypeScript.** No `id.includes("claude")`, no model-name regexes, no per-model lookup tables (effort ladders, pricing, context windows, modalities, API routing, quirk flags). All of it belongs in the KDL rule tree at `packages/catalog/src/compat/rules/`, compiled by `bun run gen:compat` into the committed `rules.json` and resolved at build time via `resolveModelPolicy`/`buildModel`.
-
-Ownership strata (see `src/compat/rules/README.md`):
-
-- `taxonomy/*.kdl` — identity: class membership, families, revision extraction, reviewed overrides, suffix collapse.
-- `classes/*.kdl` — model-lineage truths (behavior inherent to a model line, on any host).
-- `providers/*.kdl` — deployment contracts (behavior a host imposes), plus documented exact-id residue.
-- `runtime/behavior.kdl` — heuristics that run before/outside exact model lookup (`api-routes`, `model-limits`, `exclude-models`, `pricing-peer`, hosted defaults).
-
-Rules for TS code:
-
-- Branching on model identity in TS is allowed **only** through structured facts from `classifyModel()` (`class`/`family`/`revision`/effort facts) — never through string matching on ids, and prefer a KDL axis when one can express the policy.
-- Discovery mappers map authoritative upstream fields as reported; seed neutral values only for fields the upstream omits or misreports **and** KDL explicitly owns via a correction axis (`input-modalities`, `cost-patch`, `limits-patch`, `context-window-floor`, thinking axes). Assert rule-owned corrections through `buildModel`; raw discovery specs remain the right assertion surface for parsing/normalization contracts.
-- An id that no selector can isolate gets an exact-id `models` residue rule with a comment — never a special case in TS.
-- Equal-rank rule overlaps throw `AmbiguousOverlapError` at resolve time; fix with an explicit `priority=` in KDL, not code.
-- After editing rules: `bun run gen:compat` and commit `rules.json` alongside the `.kdl` change.
-
-## Generated Files
-
-**NEVER edit `packages/catalog/src/models.json` directly.** It is generated from upstream sources (stencil.so, provider catalog discovery, OpenCode docs) by `packages/catalog/scripts/generate-models.ts` and the descriptors/resolvers in `packages/catalog/src/provider-models/`. Hand-edits get overwritten on the next regen. The same applies to `packages/catalog/src/compat/rules.json`, compiled from the KDL tree by `bun run gen:compat`.
-
-To change an entry, fix the source:
-
-- **Model/provider policy** (identity, thinking ladders, wire quirks, modality/limit/pricing corrections, API routing, roster exclusions) → the KDL tree in `packages/catalog/src/compat/rules/` (see the section above).
-- **Provider catalog entries** (default model, discovery factory/flags) → the `CATALOG_PROVIDERS` table in `packages/catalog/src/provider-models/descriptors.ts`.
-- **Discovery/request plumbing** (endpoint shapes, auth, response parsing) → the mappers in `packages/catalog/src/provider-models/openai-compat.ts`.
-- **Generator wiring** (upstream merges, premium multipliers, post-processing order) → `packages/catalog/scripts/generate-models.ts`.
-
-Regenerate with `bun run gen:compat` and/or `bun run gen:models` and commit the generated files alongside the source change. Add a regression test against the **rule/descriptor/mapper**, not the bundled JSON, so it survives upstream metadata shifts.
-
-## Logging and CLI Output
-
-Code that may run while the TUI, RPC, SDK, workers, or background runtimes are active MUST NOT use `console.log`/`error`/`warn`; it corrupts rendering or protocols. Use the centralized logger:
-
-```typescript
-import { logger } from "@oh-my-pi/pi-utils";
-
-logger.error("MCP request failed", { url, method });
-logger.warn("Theme file invalid, using fallback", { path });
-logger.debug("LSP fallback triggered", { reason });
-```
-
-Logs go to `~/.omp/logs/omp.YYYY-MM-DD.log` with automatic rotation. Standalone CLI commands that exit without entering the TUI MAY use `console.*` or process streams for intentional user-facing output. Keep structured stdout clean. This exception is semantic, not filename-based; shared code must use `logger` or an explicit output sink.
-
-## TUI Sanitization
-
-All text displayed in tool renderers must be sanitized. Raw content (file contents, error messages, tool output) breaks terminal rendering: tabs → visual holes, long lines → overflow, paths → leak home directory.
-
-**Rules:**
-
-- **Tabs → spaces** via `replaceTabs()` (from `@oh-my-pi/pi-tui` or `../tools/render-utils`).
-- **Truncate** lines with `truncateToWidth()` / `ui.truncate()`. Use `TRUNCATE_LENGTHS` constants.
-- **Shorten paths** with `shortenPath()` (replaces home with `~`).
-- **Preview limits** from `PREVIEW_LIMITS`. No ad-hoc numbers.
-
-**Apply to every render path**, not just the happy one:
-
-- Success output (file previews, command output, search results).
-- **Error messages** — these often embed file content (e.g., patch failure messages include unmatched lines). If a message contains file content, it needs `replaceTabs()`.
-- Diff content (added and removed).
-- Streaming previews.
-
-### Streaming tool previews
-
-Tool-call previews can have **multiple render paths**. If you add preview-only fields or depend on partially streamed args, update every path — not only the final renderer. Streamed argument buffers decode into display args via `decodeStreamedToolArgs` / `ToolArgsRevealController` (`modes/controllers/tool-args-reveal.ts`); both the live event path and transcript rebuilds must go through them — never spread provider-parsed `arguments` next to a raw `__partialJson` (parsed args lag the stream by a throttled parse window).
-
-For the bash tool specifically:
-
-- The pending preview may need raw `partialJson`, not just parsed `arguments`. Parsed args lag until a JSON object closes, which makes inline env assignments appear only at the end.
-- Preserve preview-only fields (e.g. `__partialJson`) through `event-controller.ts`, transcript rebuilds in `ui-helpers.ts`, and merged call/result rendering in `tool-execution.ts`. Missing one path causes inconsistent previews.
-- `ToolExecutionComponent.#buildRenderContext()` for bash must work even before a result exists — the renderer uses call args plus render context to show the command preview while streaming.
-- Verify both live streaming and rebuilt transcript paths after any bash preview change. A fix in one path does not fix the other.
-
-## Commands
-
-- NEVER commit unless asked.
-- Never use `tsc`/`npx tsc` — always `bun check`.
-- Never run `cargo test` directly for Rust tests — use `bun run test:rs`. It runs `cargo nextest run` (config: `.config/nextest.toml`) followed by a `cargo test --doc` pass, because nextest does not execute doctests. The doctest pass runs every runnable doctest in the workspace's lib crates; today that is tree-sitter-go's one example (pi-natives is a `cdylib`, which rustdoc skips; pi-builtins' examples are `ignore`d vendored uutils docs).
-- Merge commits (maintainer merges of PRs) follow: `Merge PR #<number>: <conventional PR subject> (@<author>)` — e.g. `Merge PR #6386: feat(catalog): add native Meta Model API provider (@eggpeat)`.
-## Rust Build Profiles
-
-Profiles live in the root `Cargo.toml`; `.cargo/config.toml` carries the settings Cargo.toml cannot express. Both are committed, so no local `~/.cargo/config.toml` is required.
-
-| Profile | Use |
+| 包 | 说明 |
 | --- | --- |
-| `dev` | Default. Line tables for our crates, no debuginfo for deps, deps at `opt-level = 2`. |
-| `release` | Shipping build: fat LTO, 1 codegen unit, stripped. |
-| `local` | Fast local release iteration: thin LTO, 16 codegen units, incremental. |
-| `profiling` | `release` codegen with symbols kept, for `perf`/`samply`/Instruments. |
-| `ci` | Thin LTO, no debuginfo, stripped. |
+| `packages/i18n` | **汉化唯一机制** `@oh-my-pi/pi-i18n`：取值 `t()`、语言状态、`en`/`zh-CN` 词库 |
+| `packages/coding-agent` | 主 CLI 应用（汉化主战场） |
+| `packages/tui` | 终端 UI 库（大量展示文案） |
+| `packages/ai`、`packages/agent`、`packages/catalog` | LLM 客户端、Agent 运行时、模型目录 |
+| `packages/natives`、`packages/stats`、`packages/omptype`、`packages/utils` | 原生绑定、观测面板、schema、共享工具 |
+| `crates/pi-natives`、`crates/pi-shell`、`crates/pi-builtins` | Rust 原生实现（汉化不涉及） |
 
-**Never set `split-debuginfo = "off"` on a profile that has debuginfo.** On Mach-O the linker never merges DWARF into the executable — it writes a debug map (`N_OSO`) pointing at the `.o` files, and `"unpacked"` is what keeps those files. With `"off"` every backtrace frame in our own crates silently loses `file:line`; the `panicked at foo.rs:3` header still prints (that is `#[track_caller]`, not debuginfo), which makes the loss easy to miss. `ci` may use `"off"` only because it sets `debug = false`.
+## 二、汉化规范（唯一机制）
 
-`embed-metadata = false` (in `.cargo/config.toml`) keeps crate metadata in `.rmeta` instead of duplicating it into every rlib — measured 196 MB → 130 MB on a reqwest-sized graph at identical build times. Its accepted spelling is toolchain-coupled; keep it in sync with `rust-toolchain.toml`.
+### 2.1 唯一机制
 
-Rejected, with measurements, so nobody re-litigates them: **sccache** (cannot cache incremental, bin, or proc-macro crates — measured slower than not using it), **mold** (ELF-only; no Mach-O support), and **`panic = "abort"` on `dev`** (Cargo ignores `panic` for the test profile, so the whole dep graph builds twice — 131 MB → 214 MB).
+唯一机制 = 独立包 **`@oh-my-pi/pi-i18n`**，`coding-agent` 与 `tui` 共同依赖。取值与语言切换全部经此包；**不得存在别名包、转发层或第二套本地化通道**。
 
-## Testing Guidance
+### 2.2 取值与回退
 
-Test the contract the system exposes — not the easiest internal detail to assert.
+```
+取值(键) = 语言为 en    → en[键] ?? 键
+          语言为 zh-CN → zhCN[键] ?? en[键] ?? 键
+```
 
-- Every new test must defend one **concrete, externally observable contract**: behavior, output shape, state transition, error mapping, or a regression-prone parsing boundary. If you cannot name the contract, do not add the test.
+- `en` 是**权威源**：键的类型由 `en` 定义，`zh-CN` 必须与其键集对齐。
+- 缺键时回退英文，再回退键名本身（便于发现遗漏，绝不静默为空）。
 
-### Good vs. bad test filter
+### 2.3 键命名
 
-- **Name the failure mode.** Every test MUST state what a consumer observes if it regresses. Cannot name one? NEVER add it.
-- **Good: transformation.** One fixture MAY prove parse/render/normalize/encode/resolve behavior when output is computed, not echoed.
-- **Good: branch or boundary.** Distinct inputs, empty values, malformed input, version/provider routing, and state transitions MUST prove distinct outcomes.
-- **Good: external contract.** Exact bytes/shape MAY be asserted when a provider, parser, protocol, or persisted consumer reads them.
-- **Good: precedence or negative contract.** Keep explicit `false`/override-wins assertions and required absence only when they prevent a documented leak, downgrade, 400, or incompatible wire field.
-- **Good: regression.** A repro MUST trigger the prior real failure path and assert the corrected observable result.
-- **Bad: static echo.** NEVER test a constructor/builder merely copied a fixture or baked constant into an in-memory config/metadata field.
-- **Bad: success passthrough.** NEVER assert `fn(x) === x` when `x` was already supplied/declared valid; assert a transform, rejection, or downstream effect instead.
-- **Bad: wording/defaults.** NEVER assert prompt/UI boilerplate, a default literal, object existence, non-empty output, or length growth without a consumer contract.
-- **Bad: duplicate rows.** Parameterized/loop rows MUST each cover a distinct branch, provider/model path, or consumer contract; delete same-path duplicates.
-- **Metadata exception.** Exact metadata, identity, ordering, or `undefined` MAY remain only when a downstream consumer depends on it and the test establishes branch, precedence, negative-contract, wire, or regression evidence.
-- **Termination exception.** For cyclic/large inputs, assert a bounded output, surfaced error, or state change; bare `not.toThrow()` is insufficient.
-- No placeholder tests, tautologies, or "the code ran" assertions (`expect(true).toBe(true)`, bare `not.toThrow()`, non-empty string checks, length-grew checks, "prompt exists" checks without semantic assertion).
-- Prefer contract-level tests over implementation details. Avoid asserting internal helper wiring, field assignment, singleton identity, incidental ordering, prompt boilerplate, or passthrough option forwarding unless another component depends on that exact detail.
-- Don't duplicate coverage across abstraction levels. If an integration test already proves the behavior, drop the narrower unit test that restates it through mocks.
-- Tests **must be full-suite safe**, not just file-local safe. No long-lived file-wide mutations of `Bun.*`, `process.platform`, `process.env`, or `Bun.env` when a narrower seam exists. Prefer per-test `vi.spyOn(...)` with `vi.restoreAllMocks()` in `afterEach`. A test that passes alone but poisons later files is broken.
-- **Never use `mock.module()`**. Bun's `mock.module()` mutates the global module registry and leaks across files ([oven-sh/bun#12823](https://github.com/oven-sh/bun/issues/12823)). Use `spyOn` on the imported module object instead. For pass deps, import the pass and spy on `.run`. For package deps, namespace-import and spy on the exported function.
-- For lifecycle/stateful code, prefer one test per invariant or transition over several tiny tests asserting one field each from the same transition.
-- For error handling, trigger the real failure path and assert the surfaced contract — don't instantiate error classes directly or inspect internal metadata.
-- Smoke tests are acceptable only when they catch a failure mode narrower tests would miss. "Package boots" or "command starts" alone is not enough.
-- Assert exact strings, ordering, and formatting only when downstream code parses or depends on the exact bytes. Otherwise assert semantic content.
-- Compile-time guarantees → type checks/type tests, not runtime placeholders.
-- **Never source-grep.** A test that reads an implementation file (`.ts`/`.rs`/build script) and asserts on its _text_ — `expect(src).toContain("someCall()")`, `.toMatch(/import .../)`, `.not.toContain("oldName")`, or "comment must say X" — is banned. It tests how code _looks_, not what it _does_: it breaks on harmless refactors (comment reflow, rename, import reorder) and passes while the behavior is broken. Assert the observable contract instead (run the code, check output/state/error), use the runtime smoke probe for wiring you cannot exercise in-process, and enforce structural invariants (no value-import of X, no self-import) with a type test or an oxlint rule — never a string scan of the source. (Reading a file your code _wrote_ — apply-patch result, generated bundle, temp fixture — and asserting on that output is fine; that is behavior, not a source grep.)
-- Don't add tests for tiny low-risk changes unless they protect a real contract or fix a regression-prone edge case.
-- Prefer focused package-local verification for the changed area.
+- **形态**：`<域>.<模块>.<场景>.<字段>`，各段小写 camelCase。
+- **域前缀仅六个**：`tui.` / `cli.` / `slash.` / `settings.` / `prompt.` / `common.`。
+  - `common.` 固定三段。
+  - 其余默认四段；必要时可少一段（例如 `cli.<命令>.help`）。
+- **键名是语义描述，不是英文原文**：禁止拿英文文本当键。
 
-## Changelog
+### 2.4 占位符
 
-Location: `packages/*/CHANGELOG.md` (per package).
+- 插值**只支持命名占位**：`{{name}}`、`{name}`、`%{name}` 三种写法等价；**不支持任意表达式**。
+- 源码模板里的 `${expr}` 必须先转成 `{{name}}` 占位，表达式在**调用处**求值后作为命名参数传入：`t("键", { name: 表达式 })`。
+- 未传值的占位符原样保留（用于排查漏传参）。
 
-**Format** — sections under `## [Unreleased]`:
+### 2.5 语言接线（两条入口）
 
-- `### Breaking Changes` (first if present)
-- `### Added`
-- `### Changed`
-- `### Fixed`
-- `### Removed`
+| 入口 | 接线方式 |
+| --- | --- |
+| TUI / 交互会话 | 设置项 `language` 的响应式副作用：值变化即调用 `setLanguage`，无需重启 |
+| CLI | 进程启动时、**在动态加载命令模块之前**读取配置的 `language`（环境变量可覆盖）并固化语言 |
 
-**Rules:**
+CLI 关键约束：CLI 是**一次性进程**。只要 `setLanguage` 早于模块求值，模块级字段（命令描述、帮助对象）在求值时即固化正确语言，**无需惰性 getter**。
 
-- New entries always go under `## [Unreleased]`.
-- Entries are one line, brief, and user-facing: lead with what the user will see or can now do. Root-cause narration and implementation detail belong in the commit/PR, not the changelog.
-- Never modify already-released sections (e.g., `## [0.12.2]`) — they are immutable.
-- Don't flag changelog section order or formatting in reviews or PRs — `bun run release` runs `fix-changelogs` which normalizes everything automatically.
+### 2.6 模块级静态字段
 
-**Attribution:**
+当本地化文本位于**模块加载时求值**的静态结构（注册表、常量表、对象字段）中，且语言可能在运行中变化（TUI 场景），必须改为**惰性 getter**：
 
-- Internal (from issues): `Fixed foo bar ([#123](https://github.com/can1357/oh-my-pi/issues/123))`.
-- External contributions: `Added feature X ([#456](https://github.com/can1357/oh-my-pi/pull/456) by [@username](https://github.com/username))`.
+```ts
+get 字段() { return t("键"); }
+```
 
-## Releasing
+使语言切换即时生效、无需重启。仅在**一次性进程**（CLI）中，模块级字段可保持普通取值。
 
-1. Ensure all changes since last release are in each affected package's `[Unreleased]` section.
-2. Run `bun run release`.
+### 2.7 禁止项
 
-The script handles version bump, CHANGELOG finalization, commit, tag, publish, and adding new `[Unreleased]` sections.
+- 禁止在代码中拼接面向用户的文本（含帮助/提示/消息）——一律进词库。
+- 禁止硬编码中文（词库文件本身与注释除外）。
+- 禁止新增第二套本地化通道、别名包或转发层。
+- 禁止把「键的形状」当普通字符串使用而产生歧义（见 §6 风险 5）。
+
+## 三、覆盖边界（负边界）
+
+> 本章合并「不可译」与「有意不译」：前者改了会坏逻辑/挂测试，后者是终态。二者共同构成汉化的**负边界**。
+
+### 3.1 结构性 / 协议性排除（改了会坏逻辑或挂测试）
+
+选项哨兵标签及其等值比较、注入消息内容的协议占位标记、注入系统提示的工具元数据（供模型消费，非用户 UI）、程序化结果文本、程序化错误类型、API 契约错误、平台异常对象、JSON Schema、主题资源、语言无关的资源目录与静态夹具、枚举/结构字段值（`id`/`kind`/`action`/`tone`/`format`/`role`/`value`/`key`）、正则、日志调用、代码注释、提示词内部的压缩映射表。
+
+### 3.2 机器可读输出恒英文
+
+供消费方按字段/格式解析的输出**一律不译**：结构化序列化产物（JSON 等）、需列对齐的数据行、状态数据行、以分隔符拼接的数据、旗标与枚举值、命令示例、单 token、骨架标签、URL/命令串、空值。
+
+### 3.3 专有名词保留英文
+
+主题名、字体与符号集名、图床/服务品牌、外部检查器命令名、模型与提供方名。
+
+### 3.4 有意保留终态项（不再推进）
+
+技术性字符串（系统路径变量名、HTTP 头值、SVG 路径、ASCII art、类型签名文本等）、注入式代码（写入页面世界的脚本片段与模板文本段）、类型位置字面量、CHANGELOG 类目名、喂给模型的框架/产品显示名、设置面板元数据（由中心化钩子按派生键翻译）、CLI 机器可读输出。
+
+### 3.5 语义禁翻（静态扫描抓不到，需人工审）
+
+- **模板文本段 / 原始字符串**中的代码：语法上是字面量，语义上是注入内容——替换后失效或污染目标页面。
+- **类型位置**的字面量：AST 合法，替换即报错。
+- **类目名 / 映射名**：语法合法，却是下游文件的输出契约。
+- **字符串内嵌引号短语**：外层字符串内的引号片段会被独立匹配，替换会把取值调用插进字符串内部产生乱码。
+
+> 判定准则：**只要文本被下游程序消费（解析、写文件、喂模型、注入执行），就不译**——无论它看起来多像 UI 文案。
+
+## 四、上游同步与汉化维护（标准流程）
+
+### 4.1 同步上游
+
+1. `git fetch upstream`，把目标版本（`upstream/main` 或 tag）合并到 `main`：冲突时**以上游逻辑为准，同时保留本仓汉化改动**。
+2. 合并后立即复检：词库对齐、派生设置键覆盖、类型检查、i18n 测试、冒烟（见 §5）。
+3. 上游新增的用户可见文本，按 §4.2 补译。
+
+### 4.2 汉化落地流程
+
+1. **提取**：扫描目标范围的显示位，导出待译清单（编号 + 英文原文 + 定位 + 中文栏）。机器可读/结构性文本在提取阶段即过滤。
+2. **人工翻译**：命令名/旗标/示例/专有名词保持英文，只译描述性文字；保留占位与转义形态。
+3. **落地**：新键写入词库（每条**必须**带中文，缺中文为硬错误，绝不猜测）；源码字面量 → `t("键")`；`${expr}` → `{{name}}` + 调用处命名参数；补 import（注意 §6 风险 7）。
+4. **校验**：按 §5.1 逐项通过。
+
+### 4.3 词库写入约定
+
+- 只追加条目，保留既有手写顺序；不改已发布的历史值。
+- 值为单行字符串；换行/引号/制表符按字符串转义写入。
+- 键名冲突按**英文原文一致性**处置：同文复用、异文加后缀。
+- **词库一律经 `scripts/` 工具写入，不手工追加。**
+
+### 4.4 改写工具约束
+
+- 改写必须**幂等可核对**：先 dry-run 核对定位与键值，再实际写入。
+- 改写前备份原文件；改写后立刻格式化 + 类型检查 + 键集校验。
+- 改写不得引入模型/提供方策略分支（见 §7.4）。
+
+### 4.5 工具一览
+
+| 脚本 | 用途 |
+| --- | --- |
+| `packages/i18n/scripts/add-keys.ts <keys.json>` | 把 `{ key, en, zh }[]` 追加进两本词库；缺 `zh` 或键重复即中止 |
+| `packages/i18n/scripts/verify-keys.ts <source.ts> <prefix>` | 比对某源文件用到的 `t("prefix.…")` 字面量与两本词库（双向缺失/未用） |
+| `packages/coding-agent/scripts/gen-settings-keys.ts` | 从设置注册表派生 `settings.item.<id>.<字段>` 键，生成 `keys.json` |
+| `packages/coding-agent/scripts/verify-settings-keys.ts` | 校验派生设置键在 `en`/`zh-CN` 中齐全且 `en` 值一致 |
+
+## 五、验证判据
+
+### 5.1 每批
+
+1. 键集校验：源码字面量键在两本词库「无缺」（双侧缺失集为空）。
+2. 词库对齐：`en` / `zh-CN` 双向差集为空。
+3. 格式与静态检查：格式化与 lint **0 error 0 warning**（既有白名单除外）。
+4. 类型检查：目标包**无新增错误**（基线已归零，以「无新增」判定）。
+5. 相关测试全绿。
+
+### 5.2 全局收尾
+
+- 派生设置键覆盖：缺失/不匹配均为 **0**。
+- 旧本地化通道残留：代码内 **0**。
+- 词库目录仅保留 `en` + `zh-CN` 两文件。
+- 目标包类型检查 **0 error**。
+- 冒烟测试通过。
+
+### 5.3 环境注意
+
+- 本地沙箱可能禁止写用户数据目录，导致测试/冒烟以非零码退出并附带受限文件清单——**不代表失败**；把输出重定向到仓库内路径再读取，或把数据目录重定向进仓库。
+- 子进程测试若在无界面环境运行，需确保数据目录可写。
+
+## 六、已知风险与坑
+
+| # | 风险 | 处置 |
+| --- | --- | --- |
+| 1 | 覆盖计数是**下界** | 以文件为单位滚动推进，不以计数判定「改完」 |
+| 2 | 主题名/字体名保留英文 | 已接受（§3.3） |
+| 3 | 小写 hint/label 零散 | 扫描口径覆盖不到，需人工逐个过 |
+| 4 | 类型回归 | 「常量字符串 → 函数/变量」后使用点必须同步；以「基线无新增错误」判定 |
+| 5 | 键形状字面量假阳性 | 结构校验器会把一切「键形状」字符串当引用误报缺键；此类为定义键/映射值，**不补**，需人工定性 |
+| 6 | 模块级静态字段的语言时序 | TUI 用惰性 getter；CLI 一次性进程在模块求值前接线即可（§2.5/§2.6） |
+| 7 | 自动补 import 的启发式误插 | 按「最后一条 import 行」插入会被模板字面量里的 `import ` 文本行误判，把 import 插进字符串内部；**改造后必须类型检查**，报「找不到符号」优先查 import 位置 |
+| 8 | 外部译文列混入定位后缀 | 交付译文表可能在文本列尾追写转义的反斜杠+定位串；剥离时不能连同文本自身结尾转义一起删，否则丢失结尾换行/缩进 |
+| 9 | 超长属性被格式化器折行 | 超长「键: 值」会被折成两行；按行改写词库值时须同时处理下一行残留，改完立即格式化校验语法 |
+
+## 七、通用工程规则（沿用上游，汉化改动同样遵守）
+
+### 7.1 Bun 优先
+
+能用 Bun API 就用，`node:*` 只兜底。**禁止为已有 API 的操作 spawn shell**。要点：文件读写用 `Bun.file()`/`Bun.write()`；进程用 `` $`cmd` ``/`Bun.spawn()`；睡眠用 `Bun.sleep()`；`node:fs`/`node:path`/`node:os` 用命名空间导入；`existsSync` 后再读改为 try-catch + `isEnoent`。
+
+### 7.2 代码质量
+
+不要 `any`（除非确有必要）；不用 `ReturnType<>`；不用内联/动态 import（全部顶层）；barrel 用 `export *`；类私有用 `#private`（字段/方法不加 `private`/`protected`/`public`，构造参数属性除外）；Promise 用 `Promise.withResolvers()`；**提示词不得写在代码里**（静态 `.md` + Handlebars）。
+
+### 7.3 集中式工具
+
+写辅助函数前先查现成的：`packages/coding-agent/src/utils/`、`@oh-my-pi/pi-utils`、`@oh-my-pi/pi-tui` 及调用点邻近的领域模块（VCS、格式化/截断/路径展示、图像、剪贴板、流、临时文件、缓存）。缺能力就扩展中心工具，不本地分叉。git/jj 只经 `@oh-my-pi/pi-natives/vcs`。
+
+### 7.4 模型/提供方策略在 KDL
+
+**绝不在 TS 里硬编码模型/提供方条件策略**（`id.includes("claude")`、模型名正则、按模型查表）。全部属于 `packages/catalog/src/compat/rules/` 的 KDL 规则树，经 `bun run gen:compat` 编译为 `rules.json`。TS 只允许通过 `classifyModel()` 的结构化事实分支。catalog 值经 `@oh-my-pi/pi-catalog/<模块>` 导入，绝不经 `@oh-my-pi/pi-ai`（其 barrel 只导出类型）。汉化改造不得引入此类分支。
+
+### 7.5 生成文件
+
+**绝不直接编辑** `packages/catalog/src/models.json` 与 `packages/catalog/src/compat/rules.json`——它们由脚本生成，手改会被下次再生成覆盖。改源头后 `bun run gen:compat` / `bun run gen:models` 并一并提交生成物。
+
+### 7.6 日志与 CLI 输出
+
+TUI/RPC/SDK/worker/后台运行时可能活动时，**禁用 `console.log/error/warn`**（会破坏渲染或协议），改用 `@oh-my-pi/pi-utils` 的 `logger`。仅在不进入 TUI 的独立 CLI 命令中，才可用 `console.*` 作有意的用户输出。
+
+### 7.7 TUI 文本净化
+
+渲染路径的所有文本都要净化：制表符用 `replaceTabs()`、超宽用 `truncateToWidth()`/`ui.truncate()`（用 `TRUNCATE_LENGTHS`）、路径用 `shortenPath()`、预览上限用 `PREVIEW_LIMITS`。**成功、错误、diff、流式预览每条路径都要覆盖**（错误消息常内嵌文件内容）。
+
+### 7.8 测试
+
+只测**对外可观察的契约**（行为、输出形状、状态迁移、错误映射、回归边界）；说不出契约就别加。禁止占位/同义反复/「跑过了」断言、静态回显、成功直通、措辞/默认值断言、重复行、源码 grep 断言。测试必须**全量套件安全**（用 `vi.spyOn` + `afterEach` 的 `restoreAllMocks`，不做文件级全局 mutation）。**禁用 `mock.module()`**（全局污染、跨文件泄漏），改用 `spyOn`。
+
+### 7.9 Changelog
+
+位置 `packages/*/CHANGELOG.md`。新条目一律写在 `## [Unreleased]` 下；一节一行、面向用户；已发布版本段落不可修改。
+
+### 7.10 命令
+
+- 未获明确要求前**不提交**；未经确认不得向任何仓库发布评论、开 issue 或改 PR。
+- 不用 `tsc`/`npx tsc`——一律 `bun check`。
+- 测试：`bun test <paths>`；Rust 相关用 `bun run test:rs`。
+- 汉化回归最小集：`bun packages/coding-agent/scripts/verify-settings-keys.ts` + `bun test packages/coding-agent/test/i18n.test.ts packages/coding-agent/test/slash-commands/language.test.ts`。

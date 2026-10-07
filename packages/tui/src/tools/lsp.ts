@@ -35,6 +35,7 @@ import { plainText } from "../native/spans";
 import { walkGroupedOutput } from "./grouped-file-output";
 import { diagnosticGlyph, fileHref, fileRow, inlineErrorView } from "./native-view";
 import { activeThemeSymbol } from "../theme/active-symbols";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Display arguments for an LSP tool request. */
 export interface LspParams {
@@ -175,7 +176,7 @@ export function renderResult(
 	if (content?.type !== "text" || !("text" in content) || !content.text) {
 		const icon = formatStatusIcon("warning", theme, options.spinnerFrame);
 		const header = `${icon} LSP`;
-		return new Text([header, theme.fg("dim", "No result")].join("\n"), 0, 0);
+		return new Text([header, theme.fg("dim", t("tui.tools.lsp.noResult"))].join("\n"), 0, 0);
 	}
 
 	const text = content.text;
@@ -648,7 +649,7 @@ function renderGeneric(text: string, lines: string[], expanded: boolean, theme: 
 		return output.split("\n");
 	}
 
-	const firstLine = lines[0] || "No output";
+	const firstLine = lines[0] || t("tui.tools.lsp.noOutput");
 	const expandHint = formatExpandHint(theme, expanded, lines.length > 1);
 	let output = `${icon} ${theme.fg("dim", truncateToWidth(firstLine, TRUNCATE_LENGTHS.TITLE))}${expandHint}`;
 
@@ -870,7 +871,7 @@ function describeLspDiagnostics(request: Partial<LspParams> | undefined, fallbac
 	];
 	if (parsed.other.length > 0) rows.push(keyed(code(parsed.other.join("\n"), { wrap: true }), "other"));
 	const hasErrors = parsed.failures.length > 0 || parsed.diagnostics.some(d => d.severity === "error");
-	const meta = compact<TspText>([counts, failed, !counts && !failed && "No issues"]);
+	const meta = compact<TspText>([counts, failed, !counts && !failed && t("tui.tools.lsp.noIssues")]);
 	const head = lspNativeHead(request, fallbackAction, meta);
 	if (parsed.diagnostics.length === 0 && parsed.failures.length === 0) {
 		return { tool: head, inline: true, body: rows.length > 0 ? rows : undefined } satisfies NativeToolView;
@@ -949,8 +950,14 @@ function describeLspResult(result: ToolRenderResult<LspToolDetails>, args: LspPa
 	const fallbackAction = result.details?.action ?? "request";
 	const content = result.content?.[0];
 	const text = content?.type === "text" ? (content.text ?? "") : "";
-	if (result.isError) return inlineErrorView(lspNativeHead(request, fallbackAction), text || "LSP request failed");
-	if (!text) return { tool: lspNativeHead(request, fallbackAction, ["No result"]), tone: "warning", inline: true };
+	if (result.isError)
+		return inlineErrorView(lspNativeHead(request, fallbackAction), text || t("tui.tools.lsp.lspRequestFailed"));
+	if (!text)
+		return {
+			tool: lspNativeHead(request, fallbackAction, [t("tui.tools.lsp.noResult2")]),
+			tone: "warning",
+			inline: true,
+		};
 
 	const lines = text.split("\n");
 	const statusError = activeThemeSymbol("status.error");

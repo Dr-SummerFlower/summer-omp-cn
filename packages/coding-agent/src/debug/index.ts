@@ -36,34 +36,75 @@ import { getRemoteDebugger, type RemoteDebuggerInfo, startRemoteDebuggerServer }
 import { clearArtifactCache, createDebugLogSource, createReportBundle, getArtifactCacheStats } from "./report-bundle";
 import { collectSystemInfo, formatSystemInfo } from "./system-info";
 import { collectTerminalState, formatTerminalState } from "@oh-my-pi/pi-tui/apps/debug/terminal-info";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Debug menu options */
 const DEBUG_MENU_ITEMS: SelectItem[] = [
-	{ value: "open-artifacts", label: "Open: artifact folder", description: "Open session artifacts in file manager" },
-	{ value: "performance", label: "Report: performance issue", description: "Profile CPU, reproduce, then bundle" },
-	{ value: "work", label: "Profile: work scheduling", description: "Open flamegraph of last 30s" },
-	{ value: "dump", label: "Report: dump session", description: "Create report bundle immediately" },
-	{ value: "memory", label: "Report: memory issue", description: "Memory statistics + bundle" },
-	{ value: "logs", label: "View: recent logs", description: "Show last 50 log entries" },
-	{ value: "system", label: "View: system info", description: "Show environment details" },
-	{ value: "terminal", label: "View: terminal state", description: "Subprotocols, geometry, scrollback strategy" },
+	{
+		value: "open-artifacts",
+		label: t("tui.ca.debug.index.openArtifactFolder"),
+		description: t("tui.ca.debug.index.openSessionArtifactsInFileManager"),
+	},
+	{
+		value: "performance",
+		label: t("tui.ca.debug.index.reportPerformanceIssue"),
+		description: t("tui.ca.debug.index.profileCpuReproduceThenBundle"),
+	},
+	{
+		value: "work",
+		label: t("tui.ca.debug.index.profileWorkScheduling"),
+		description: t("tui.ca.debug.index.openFlamegraphOfLast30s"),
+	},
+	{
+		value: "dump",
+		label: t("tui.ca.debug.index.reportDumpSession"),
+		description: t("tui.ca.debug.index.createReportBundleImmediately"),
+	},
+	{
+		value: "memory",
+		label: t("tui.ca.debug.index.reportMemoryIssue"),
+		description: t("tui.ca.debug.index.memoryStatisticsBundle"),
+	},
+	{
+		value: "logs",
+		label: t("tui.ca.debug.index.viewRecentLogs"),
+		description: t("tui.ca.debug.index.showLast50LogEntries"),
+	},
+	{
+		value: "system",
+		label: t("tui.ca.debug.index.viewSystemInfo"),
+		description: t("tui.ca.debug.index.showEnvironmentDetails"),
+	},
+	{
+		value: "terminal",
+		label: t("tui.ca.debug.index.viewTerminalState"),
+		description: t("tui.ca.debug.index.subprotocolsGeometryScrollbackStrategy"),
+	},
 	{
 		value: "protocols",
-		label: "Test: terminal protocols",
-		description: "Styling, links, text sizing, graphics, notify",
+		label: t("tui.ca.debug.index.testTerminalProtocols"),
+		description: t("tui.ca.debug.index.stylingLinksTextSizingGraphicsNotify"),
 	},
-	{ value: "raw-sse", label: "View: raw SSE stream", description: "Show live provider SSE frames" },
+	{
+		value: "raw-sse",
+		label: t("tui.ca.debug.index.viewRawSseStream"),
+		description: t("tui.ca.debug.index.showLiveProviderSseFrames"),
+	},
 	{
 		value: "remote-debugger",
-		label: "Start: JS remote debugger",
-		description: "Expose JavaScriptCore inspector socket (experimental)",
+		label: t("tui.ca.debug.index.startJsRemoteDebugger"),
+		description: t("tui.ca.debug.index.exposeJavascriptcoreInspectorSocketExperimental"),
 	},
 	{
 		value: "transcript",
-		label: "Export: TUI transcript",
-		description: "Write visible TUI conversation to a temp txt",
+		label: t("tui.ca.debug.index.exportTuiTranscript"),
+		description: t("tui.ca.debug.index.writeVisibleTuiConversationToA"),
 	},
-	{ value: "clear-cache", label: "Clear: artifact cache", description: "Remove old session artifacts" },
+	{
+		value: "clear-cache",
+		label: t("tui.ca.debug.index.clearArtifactCache"),
+		description: t("tui.ca.debug.index.removeOldSessionArtifacts"),
+	},
 ];
 
 const formatFileHyperlink = (path: string): string => {
@@ -81,7 +122,7 @@ export class DebugSelectorComponent extends OverlayPanel {
 		private ctx: InteractiveModeContext,
 		onDone: () => void,
 	) {
-		super("Debug Tools");
+		super(t("tui.ca.debug.index.debugTools"));
 
 		this.addChild(new Spacer(1));
 
@@ -198,7 +239,7 @@ export class DebugSelectorComponent extends OverlayPanel {
 			this.ctx.ui,
 			spinner => theme.fg("accent", spinner),
 			text => theme.fg("muted", text),
-			"Generating report...",
+			t("tui.ca.debug.index.generatingReport"),
 			getSymbolTheme().spinnerFrames,
 		);
 		this.ctx.statusContainer.addChild(loader);
@@ -259,7 +300,7 @@ export class DebugSelectorComponent extends OverlayPanel {
 			this.ctx.ui,
 			spinner => theme.fg("accent", spinner),
 			text => theme.fg("muted", text),
-			"Creating report bundle...",
+			t("tui.ca.debug.index.creatingReportBundle"),
 			getSymbolTheme().spinnerFrames,
 		);
 		this.ctx.statusContainer.addChild(loader);
@@ -292,7 +333,7 @@ export class DebugSelectorComponent extends OverlayPanel {
 			this.ctx.ui,
 			spinner => theme.fg("accent", spinner),
 			text => theme.fg("muted", text),
-			"Collecting memory statistics...",
+			t("tui.ca.debug.index.collectingMemoryStatistics"),
 			getSymbolTheme().spinnerFrames,
 		);
 		this.ctx.statusContainer.addChild(loader);
@@ -317,14 +358,7 @@ export class DebugSelectorComponent extends OverlayPanel {
 			block.addChild(new Text(theme.fg("dim", formatFileHyperlink(result.path)), 1, 0));
 			block.addChild(new Text(theme.fg("dim", `Files: ${result.files.length}`), 1, 0));
 			block.addChild(
-				new Text(
-					theme.fg(
-						"warning",
-						"Review before sharing: session data, artifacts, logs and settings may contain secrets.",
-					),
-					1,
-					0,
-				),
+				new Text(theme.fg("warning", t("tui.ca.debug.index.reviewBeforeSharingSessionDataArtifacts")), 1, 0),
 			);
 			this.ctx.present(block);
 		} catch (err) {
@@ -339,7 +373,7 @@ export class DebugSelectorComponent extends OverlayPanel {
 			const logSource = await createDebugLogSource();
 			const logs = await logSource.getInitialText();
 			if (!logs && !logSource.hasOlderLogs()) {
-				this.ctx.showWarning("No log entries found for today.");
+				this.ctx.showWarning(t("tui.ca.debug.index.noLogEntriesFoundForToday"));
 				return;
 			}
 
@@ -480,7 +514,7 @@ export class DebugSelectorComponent extends OverlayPanel {
 			const sessionName = this.ctx.sessionManager.getSessionName();
 			const notification: TerminalNotification = {
 				title: sessionName || "omp",
-				body: "Terminal protocol test",
+				body: t("tui.ca.debug.index.terminalProtocolTest"),
 				type: "test",
 				actions: "focus",
 			};
@@ -503,7 +537,7 @@ export class DebugSelectorComponent extends OverlayPanel {
 	async #handleOpenArtifacts(): Promise<void> {
 		const sessionFile = this.ctx.sessionManager.getSessionFile();
 		if (!sessionFile) {
-			this.ctx.showWarning("No active session file.");
+			this.ctx.showWarning(t("tui.ca.debug.index.noActiveSessionFile"));
 			return;
 		}
 
@@ -512,11 +546,11 @@ export class DebugSelectorComponent extends OverlayPanel {
 		try {
 			const stat = await fs.stat(artifactsDir);
 			if (!stat.isDirectory()) {
-				this.ctx.showWarning("Artifact folder does not exist yet.");
+				this.ctx.showWarning(t("tui.ca.debug.index.artifactFolderDoesNotExistYet"));
 				return;
 			}
 		} catch {
-			this.ctx.showWarning("Artifact folder does not exist yet.");
+			this.ctx.showWarning(t("tui.ca.debug.index.artifactFolderDoesNotExistYet2"));
 			return;
 		}
 
@@ -531,7 +565,7 @@ export class DebugSelectorComponent extends OverlayPanel {
 		const stats = await getArtifactCacheStats(sessionsDir);
 
 		if (stats.count === 0) {
-			this.ctx.showStatus("Artifact cache is empty.");
+			this.ctx.showStatus(t("tui.ca.debug.index.artifactCacheIsEmpty"));
 			return;
 		}
 
@@ -540,12 +574,12 @@ export class DebugSelectorComponent extends OverlayPanel {
 
 		// Show confirmation
 		const confirmed = await this.ctx.showHookConfirm(
-			"Clear Artifact Cache",
+			t("tui.ca.debug.index.clearArtifactCache2"),
 			`Found ${stats.count} artifact files (${sizeStr})\nOldest: ${oldestStr}\n\nRemove artifacts older than 30 days?`,
 		);
 
 		if (!confirmed) {
-			this.ctx.showStatus("Cache clear cancelled.");
+			this.ctx.showStatus(t("tui.ca.debug.index.cacheClearCancelled"));
 			return;
 		}
 
@@ -554,7 +588,7 @@ export class DebugSelectorComponent extends OverlayPanel {
 			this.ctx.ui,
 			spinner => theme.fg("accent", spinner),
 			text => theme.fg("muted", text),
-			"Clearing artifact cache...",
+			t("tui.ca.debug.index.clearingArtifactCache"),
 			getSymbolTheme().spinnerFrames,
 		);
 		this.ctx.statusContainer.addChild(loader);

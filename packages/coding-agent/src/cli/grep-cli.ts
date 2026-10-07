@@ -8,6 +8,7 @@ import { GrepOutputMode, grep } from "@oh-my-pi/pi-natives";
 import { APP_NAME } from "@oh-my-pi/pi-utils";
 import chalk from "@oh-my-pi/pi-utils/chalk";
 import { expandPath } from "../tools/path-utils";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export interface GrepCommandArgs {
 	pattern: string;
@@ -132,30 +133,15 @@ export async function runGrepCommand(cmd: GrepCommandArgs): Promise<void> {
 }
 
 export function printGrepHelp(): void {
-	console.log(`${chalk.bold(`${APP_NAME} grep`)} - Test grep tool
-
-${chalk.bold("Usage:")}
-  ${APP_NAME} grep <pattern> [path] [options]
-
-${chalk.bold("Arguments:")}
-  pattern   Regex pattern to search for
-  path      Directory or file to search (default: .)
-
-${chalk.bold("Options:")}
-  -g, --glob <pattern>  Filter files by glob pattern
-  -l, --limit <n>       Max matches (default: 20)
-  -C, --context <n>     Context lines (default: 2)
-  -f, --files           Output file names only
-  -c, --count           Output match counts per file
-  -h, --help            Show this help
-  --no-gitignore        Include files excluded by .gitignore
-
-${chalk.bold("Environment:")}
-  PI_WALK_WORKERS=N    Set filesystem walker workers (default 4, 0 = auto)
-
-${chalk.bold("Examples:")}
-  ${APP_NAME} grep "import" src/
-  ${APP_NAME} grep "TODO" . --glob "*.ts"
-  ${APP_NAME} grep "function" --files
-`);
+	console.log(
+		t("cli.grep.help", {
+			title: chalk.bold(`${APP_NAME} grep`),
+			headingUsage: chalk.bold(t("cli.help.heading.usage")),
+			app: APP_NAME,
+			headingArguments: chalk.bold(t("cli.help.heading.arguments")),
+			headingOptions: chalk.bold(t("cli.help.heading.options")),
+			headingEnvironment: chalk.bold(t("cli.help.heading.environment")),
+			headingExamples: chalk.bold(t("cli.help.heading.examples")),
+		}),
+	);
 }

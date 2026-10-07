@@ -8,6 +8,7 @@ import {
 	type TUnsafe,
 } from "@oh-my-pi/omptype/typebox";
 import { upgradeJsonSchemaTo202012, validateJsonSchemaValue } from "@oh-my-pi/pi-ai/utils/schema";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export * from "@oh-my-pi/omptype/typebox";
 
@@ -105,7 +106,7 @@ function unsafe<T = unknown>(jsonSchema: Record<string, unknown> = {}): LegacyUn
 			if (message) message += "; ";
 			message += issue.path.length > 0 ? `${issue.path.join(".")}: ${issue.message}` : issue.message;
 		}
-		const failure = { message: message || "Invalid value" } as ValidationFailure;
+		const failure = { message: message || t("tui.ca.extensibility.legacyTypebox.invalidValue") } as ValidationFailure;
 		defineHidden(failure, VALIDATION_FAILURE, true);
 		return failure;
 	};

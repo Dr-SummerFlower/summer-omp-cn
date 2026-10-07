@@ -1,4 +1,5 @@
 import type { UnreleasedSection } from "../../commit/types";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const UNRELEASED_PATTERN = /^##\s+\[?Unreleased\]?/i;
 const SECTION_PATTERN = /^###\s+(.*)$/;
@@ -7,7 +8,7 @@ export function parseUnreleasedSection(content: string): UnreleasedSection {
 	const lines = content.split("\n");
 	const startIndex = lines.findIndex(line => UNRELEASED_PATTERN.test(line.trim()));
 	if (startIndex === -1) {
-		throw new Error("No [Unreleased] section found in changelog");
+		throw new Error(t("tui.ca.commit.changelog.parse.noUnreleasedSectionFoundInChangelog"));
 	}
 
 	let endIndex = lines.length;

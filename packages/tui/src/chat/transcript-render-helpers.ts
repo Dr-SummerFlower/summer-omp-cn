@@ -18,6 +18,7 @@ import { ToolActivityContainer } from "../chrome/tool-activity";
 import { type TranscriptBlock } from "../chrome/transcript-container";
 import { TranscriptStatusBlock, type TranscriptStatusRow } from "../chrome/transcript-status";
 import { theme } from "../theme";
+import { t } from "@oh-my-pi/pi-i18n";
 
 type CustomOrHookMessage = Extract<AgentMessage, { role: "custom" | "hookMessage" }>;
 type AssistantAgentMessage = Extract<AgentMessage, { role: "assistant" }>;
@@ -57,12 +58,12 @@ export function buildAsyncResultBlock(message: CustomOrHookMessage): ToolActivit
 				];
 	const rows: TranscriptStatusRow[] = [];
 	for (const job of jobs) {
-		const jobId = job.jobId ?? "unknown";
-		const typeLabel = job.type ? `[${job.type}]` : "[job]";
+		const jobId = job.jobId ?? t("tui.transcriptRenderHelpers.job.unknownId");
+		const typeLabel = job.type ? `[${job.type}]` : `[${t("tui.transcriptRenderHelpers.job.typeFallback")}]`;
 		const duration = typeof job.durationMs === "number" ? formatDuration(job.durationMs) : undefined;
 		rows.push({
 			parts: [
-				{ text: `${theme.status.done} Background job completed`, color: "success" },
+				{ text: `${theme.status.done} ${t("tui.transcript.backgroundCompleted")}`, color: "success" },
 				{ text: typeLabel, color: "dim" },
 				{ text: jobId, color: "accent" },
 				duration ? { text: `(${duration})`, color: "dim" } : undefined,
@@ -99,10 +100,12 @@ export function buildLaunchCompletionBlock(message: CustomOrHookMessage): ToolAc
 		rows.push({
 			parts: [
 				failed
-					? { text: `${theme.status.error} Supervised process failed`, color: "error" }
-					: { text: `${theme.status.done} Supervised process completed`, color: "success" },
+					? { text: `${theme.status.error} ${t("tui.transcript.supervisedFailed")}`, color: "error" }
+					: { text: `${theme.status.done} ${t("tui.transcript.supervisedCompleted")}`, color: "success" },
 				{ text: daemon.name, color: "accent" },
-				daemon.exitCode !== undefined ? { text: `(exit ${daemon.exitCode})`, color: "dim" } : undefined,
+				daemon.exitCode !== undefined
+					? { text: `(${t("tui.transcript.exitCode", { code: daemon.exitCode })})`, color: "dim" }
+					: undefined,
 				duration ? { text: `(${duration})`, color: "dim" } : undefined,
 			],
 		});
@@ -162,19 +165,22 @@ export function buildFileMentionBlock(files: FileMentionMessage["files"], indent
 	for (const file of files) {
 		let suffix: string;
 		if (file.skippedReason === "tooLarge" || file.skippedReason === "binary") {
-			const size = typeof file.byteSize === "number" ? formatBytes(file.byteSize) : "unknown size";
-			suffix = file.skippedReason === "binary" ? `(skipped: binary, ${size})` : `(skipped: ${size})`;
+			const size = typeof file.byteSize === "number" ? formatBytes(file.byteSize) : t("tui.transcript.unknownSize");
+			suffix =
+				file.skippedReason === "binary"
+					? `(${t("tui.transcript.skippedBinary", { size })})`
+					: `(${t("tui.transcript.skippedSize", { size })})`;
 		} else {
 			suffix = file.image
-				? "(image)"
+				? `(${t("tui.transcript.image")})`
 				: file.lineCount === undefined
-					? "(unknown lines)"
-					: `(${file.lineCount} lines)`;
+					? `(${t("tui.transcript.unknownLines")})`
+					: `(${t("tui.transcript.lines", { count: file.lineCount })})`;
 		}
 		rows.push({
 			parts: [
 				{ text: theme.tree.last, color: "dim", rowsOnly: true },
-				{ text: "Read", color: "muted" },
+				{ text: t("tui.transcript.read"), color: "muted" },
 				{ text: file.path, color: "accent" },
 				{ text: suffix, color: "dim" },
 			],
@@ -267,7 +273,7 @@ export type AssistantErrorPresentation =
 
 function sanitizeRecoveredRetryNote(note: string): string {
 	const normalized = replaceTabs(note).replace(/\s+/g, " ").trim();
-	return truncateToWidth(normalized || "retried", TRUNCATE_LENGTHS.CONTENT);
+	return truncateToWidth(normalized || t("tui.transcript.retried"), TRUNCATE_LENGTHS.CONTENT);
 }
 
 /**
@@ -293,7 +299,7 @@ export function resolveAssistantErrorPresentation(
 		return { kind: "full", text: resolveAbortLabel(message, retryAttempt), isError: true };
 	}
 	if (message.stopReason === "error") {
-		return { kind: "full", text: message.errorMessage || "Error", isError: true };
+		return { kind: "full", text: message.errorMessage || t("common.feedback.error"), isError: true };
 	}
 	if (message.errorMessage && shouldRenderAbortReason(message)) {
 		return { kind: "full", text: message.errorMessage, isError: true };

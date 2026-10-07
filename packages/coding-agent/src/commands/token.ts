@@ -13,6 +13,7 @@ import { isManagedMCPOAuthCredentialId, mcpOAuthCredentialProfile } from "../mcp
 import { discoverAuthStorage } from "../sdk";
 import type { AuthStorage } from "../session/auth-storage";
 import { getAvailableAuthMethods } from "../web/search/providers/perplexity-auth";
+import { t } from "@oh-my-pi/pi-i18n";
 
 async function resolveManagedMcpOAuthToken(
 	authStorage: AuthStorage,
@@ -50,27 +51,27 @@ export default class Token extends Command {
 	static description = commandHelp.description;
 	static args = {
 		provider: Args.string({
-			description: "Provider ID (e.g. anthropic, openai)",
+			description: t("cli.token.providerIdEGAnthropicOpenai"),
 			required: true,
 		}),
 	};
 
 	static flags = {
 		raw: Flags.boolean({
-			description: "Output the raw credential value without parsing nested JSON structures",
+			description: t("cli.token.outputTheRawCredentialValueWithout"),
 			default: false,
 		}),
 		"force-refresh": Flags.boolean({
-			description: "Force refresh the OAuth token even if it has not expired",
+			description: t("cli.token.forceRefreshTheOauthTokenEven"),
 			default: false,
 		}),
 		account: Flags.integer({
 			char: "a",
-			description: "Select the Nth OAuth account (1-based) in stored order instead of the round-robin default",
+			description: t("cli.token.selectTheNthOauthAccount1"),
 		}),
 		list: Flags.boolean({
 			char: "l",
-			description: "List the provider's OAuth accounts (index + identity) and exit",
+			description: t("cli.token.listTheProviderSOauthAccounts"),
 			default: false,
 		}),
 	};
@@ -130,7 +131,11 @@ export default class Token extends Command {
 				const n = flags.account;
 				if (n === undefined || n < 1 || n > accounts.length) {
 					process.stderr.write(
-						`${chalk.red(`Invalid --account ${n ?? "(missing)"}.`)} Provider "${providerName}" has ${accounts.length} OAuth account(s) (1-${accounts.length}).\n`,
+						t("cli.token.chalkRedInvalidAccountNMissing", {
+							arg: chalk.red(`Invalid --account ${n ?? "(missing)"}.`),
+							providerName: providerName,
+							"accounts.length": accounts.length,
+						}),
 					);
 					process.exitCode = 1;
 					return;

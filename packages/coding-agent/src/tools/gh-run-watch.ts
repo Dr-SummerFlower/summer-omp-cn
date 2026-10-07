@@ -39,6 +39,7 @@ import type {
 import type { GhFailedJobLog, GhRunJobSnapshot, GhRunSnapshot } from "@oh-my-pi/pi-tui/tools/github";
 import { throwIfAborted } from "./tool-errors";
 import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export const RUN_WATCH_INTERVAL_DEFAULT = 3;
 export const RUN_WATCH_INTERVAL_SLOW = 15;
@@ -273,7 +274,7 @@ export function formatRunWatchSnapshot(
 	pushLine(lines, "Updated", run.updatedAt);
 	pushLine(lines, "URL", run.url);
 	pushLine(lines, "Poll", pollCount);
-	pushLine(lines, "Failed jobs", failedJobs.length || undefined);
+	pushLine(lines, t("tui.ca.tools.ghRunWatch.failedJobs"), failedJobs.length || undefined);
 
 	if (note) {
 		lines.push("");
@@ -285,7 +286,7 @@ export function formatRunWatchSnapshot(
 
 	if (includeOutcome) {
 		lines.push("");
-		lines.push(failedJobs.length > 0 ? "Failures detected." : "All jobs passed.");
+		lines.push(failedJobs.length > 0 ? t("tui.ca.tools.ghRunWatch.failuresDetected") : "All jobs passed.");
 	}
 
 	return lines.join("\n").trim();
@@ -317,13 +318,13 @@ export function formatRunWatchResult(
 		lines.push(
 			...renderFailedJobLogs(failedJobLogs, options?.mode === "full" ? { mode: "full" } : { mode: "tail", tail }),
 		);
-		lines.push("Run failed.");
+		lines.push(t("tui.ca.tools.ghRunWatch.runFailed"));
 	} else if (getRunOutcome(run.conclusion) === "success") {
 		lines.push("");
-		lines.push("All jobs passed.");
+		lines.push(t("tui.ca.tools.ghRunWatch.allJobsPassed"));
 	} else {
 		lines.push("");
-		lines.push("Run completed without successful jobs, but no failed job logs were available.");
+		lines.push(t("tui.ca.tools.ghRunWatch.runCompletedWithoutSuccessfulJobsBut"));
 	}
 
 	return lines.join("\n").trim();
@@ -345,8 +346,8 @@ export function formatCommitRunWatchSnapshot(
 	pushLine(lines, "Commit", headSha);
 	pushLine(lines, "Poll", pollCount);
 	pushLine(lines, "Runs", runs.length);
-	pushLine(lines, "Completed runs", `${completedRuns}/${runs.length}`);
-	pushLine(lines, "Failed jobs", failedJobs.length || undefined);
+	pushLine(lines, t("tui.ca.tools.ghRunWatch.completedRuns"), `${completedRuns}/${runs.length}`);
+	pushLine(lines, t("tui.ca.tools.ghRunWatch.failedJobs2"), failedJobs.length || undefined);
 
 	if (note) {
 		lines.push("");
@@ -355,7 +356,7 @@ export function formatCommitRunWatchSnapshot(
 
 	if (runs.length === 0) {
 		lines.push("");
-		lines.push("Waiting for workflow runs for this commit.");
+		lines.push(t("tui.ca.tools.ghRunWatch.waitingForWorkflowRunsForThis"));
 		return lines.join("\n").trim();
 	}
 
@@ -393,13 +394,13 @@ export function formatCommitRunWatchResult(
 		lines.push(
 			...renderFailedJobLogs(failedJobLogs, options?.mode === "full" ? { mode: "full" } : { mode: "tail", tail }),
 		);
-		lines.push("Workflow runs for this commit failed.");
+		lines.push(t("tui.ca.tools.ghRunWatch.workflowRunsForThisCommitFailed"));
 	} else if (outcome === "success") {
 		lines.push("");
-		lines.push("All workflow runs for this commit passed.");
+		lines.push(t("tui.ca.tools.ghRunWatch.allWorkflowRunsForThisCommit"));
 	} else {
 		lines.push("");
-		lines.push("Workflow runs for this commit did not complete successfully.");
+		lines.push(t("tui.ca.tools.ghRunWatch.workflowRunsForThisCommitDid"));
 	}
 
 	return lines.join("\n").trim();
@@ -781,7 +782,7 @@ export async function executeRunWatch(
 					formatRunWatchResult(repo, run, failedJobLogs, tail),
 					run.url,
 					{ ...finalDetails, artifactId },
-					{ artifactId, artifactLabel: "Full failed-job logs" },
+					{ artifactId, artifactLabel: t("tui.ca.tools.ghRunWatch.fullFailedJobLogs") },
 				);
 			}
 
@@ -894,7 +895,7 @@ export async function executeRunWatch(
 				formatCommitRunWatchResult(repo, headSha, branch, runs, failedJobLogs, tail),
 				undefined,
 				{ ...finalDetails, artifactId },
-				{ artifactId, artifactLabel: "Full failed-job logs" },
+				{ artifactId, artifactLabel: t("tui.ca.tools.ghRunWatch.fullFailedJobLogs2") },
 			);
 		}
 

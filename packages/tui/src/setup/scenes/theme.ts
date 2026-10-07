@@ -1,3 +1,4 @@
+import { t } from "@oh-my-pi/pi-i18n";
 import { padding, visibleWidth } from "../../utils";
 import { padToWidth } from "../../render/utils";
 import { type SgrMouseEvent } from "../../mouse";
@@ -25,14 +26,33 @@ import type { SetupScene, SetupSceneController, SetupSceneHost } from "./types";
 
 type ThemeMode = "curated" | "all";
 
-const CURATED_ITEMS: readonly SelectItem[] = [
-	{ value: "auto", label: "Match terminal", description: "Titanium in dark terminals, Light in light terminals" },
-	{ value: "theme:titanium", label: "Titanium", description: "Default dark theme" },
-	{ value: "theme:light", label: "Light", description: "Default light theme" },
-	{ value: "colorblind", label: "Colorblind colors", description: "Adjust red/green contrast" },
-	{ value: "ansi", label: "ANSI-safe", description: "ASCII glyphs with the dark terminal theme" },
-	{ value: "browse", label: "Browse all…", description: "Show every built-in and custom theme" },
-];
+// Built per call so the labels follow the language active when the list mounts.
+function curatedItems(): readonly SelectItem[] {
+	return [
+		{
+			value: "auto",
+			label: t("tui.setup.theme.optAuto"),
+			description: t("tui.setup.theme.optAutoDesc"),
+		},
+		{ value: "theme:titanium", label: "Titanium", description: t("tui.setup.theme.optTitaniumDesc") },
+		{ value: "theme:light", label: "Light", description: t("tui.setup.theme.optLightDesc") },
+		{
+			value: "colorblind",
+			label: t("tui.setup.theme.optColorblind"),
+			description: t("tui.setup.theme.optColorblindDesc"),
+		},
+		{
+			value: "ansi",
+			label: t("tui.setup.theme.optAnsi"),
+			description: t("tui.setup.theme.optAnsiDesc"),
+		},
+		{
+			value: "browse",
+			label: t("tui.setup.theme.optBrowse"),
+			description: t("tui.setup.theme.optBrowseDesc"),
+		},
+	];
+}
 
 function fillStyledLine(content: string, width: number): string {
 	return content + padding(Math.max(0, width - visibleWidth(content)));
@@ -62,10 +82,13 @@ function renderMockEditor(width: number): string[] {
 	const horizontal = box.horizontal.repeat(innerWidth);
 	const top = theme.fg("borderAccent", `${box.topLeft}${horizontal}${box.topRight}`);
 	const bottom = theme.fg("borderMuted", `${box.bottomLeft}${horizontal}${box.bottomRight}`);
-	const prompt = `${theme.fg("accent", ">")} ${theme.fg("text", "Ask anything, edit files, run tools")}${theme.inverse(" ")}`;
+	const prompt = `${theme.fg("accent", ">")} ${theme.fg("text", t("tui.overlays.composerShapePreview.placeholder"))}${theme.inverse(" ")}`;
 	const hint = theme.fg(
 		"dim",
-		`${editorKey("tui.input.submit")} send · ${editorKey("tui.input.newLine")} newline · / commands`,
+		t("tui.setup.theme.editorHint", {
+			submit: editorKey("tui.input.submit"),
+			newLine: editorKey("tui.input.newLine"),
+		}),
 	);
 	return [
 		top,
@@ -78,12 +101,12 @@ function renderMockEditor(width: number): string[] {
 function renderThemePreview(width: number): string[] {
 	const previewWidth = Math.max(24, Math.min(width, 88));
 	return [
-		theme.bold("Preview"),
-		`${theme.fg("success", `${theme.status.success} success`)}  ${theme.fg("warning", `${theme.status.warning} warning`)}  ${theme.fg("error", `${theme.status.error} error`)}  ${theme.fg("accent", "accent")}`,
+		theme.bold(t("tui.setup.theme.previewHeading")),
+		`${theme.fg("success", `${theme.status.success} ${t("tui.setup.theme.legendSuccess")}`)}  ${theme.fg("warning", `${theme.status.warning} ${t("tui.setup.theme.legendWarning")}`)}  ${theme.fg("error", `${theme.status.error} ${t("tui.setup.theme.legendError")}`)}  ${theme.fg("accent", t("tui.setup.theme.legendAccent"))}`,
 		"",
-		theme.fg("muted", "Status line"),
+		theme.fg("muted", t("tui.setup.theme.statusLineHeading")),
 		renderMockStatusLine(previewWidth),
-		theme.fg("muted", "Editor"),
+		theme.fg("muted", t("tui.setup.theme.editorHeading")),
 		...renderMockEditor(previewWidth),
 	];
 }
@@ -94,19 +117,20 @@ function renderThemePreview(width: number): string[] {
  * chrome, so none of the ANSI mock's box or fill math applies.
  */
 function describeThemePreview(): NativeNode {
+	const placeholder = t("tui.overlays.composerShapePreview.placeholder");
 	return col(
 		[
-			text([span("Preview", "strong")]),
+			text([span(t("tui.setup.theme.previewHeading"), "strong")]),
 			text([
-				span(`${theme.status.success} success`, "success"),
+				span(`${theme.status.success} ${t("tui.setup.theme.legendSuccess")}`, "success"),
 				span("  "),
-				span(`${theme.status.warning} warning`, "warning"),
+				span(`${theme.status.warning} ${t("tui.setup.theme.legendWarning")}`, "warning"),
 				span("  "),
-				span(`${theme.status.error} error`, "error"),
+				span(`${theme.status.error} ${t("tui.setup.theme.legendError")}`, "error"),
 				span("  "),
-				span("accent", "accent"),
+				span(t("tui.setup.theme.legendAccent"), "accent"),
 			]),
-			text([span("Status line", "muted")]),
+			text([span(t("tui.setup.theme.statusLineHeading"), "muted")]),
 			node("status", {}, [
 				node("seg", { spans: [span(`${theme.icon.model} sonnet`, "statusLineModel")], side: "left" }),
 				node("seg", { spans: [span("~/project", "statusLinePath")], side: "left" }),
@@ -114,16 +138,19 @@ function describeThemePreview(): NativeNode {
 				node("seg", { spans: [span(`${theme.icon.context} 42%`, "statusLineContext")], side: "right" }),
 				node("seg", { spans: [span(`${theme.icon.cost} 0.18`, "statusLineCost")], side: "right" }),
 			]),
-			text([span("Editor", "muted")]),
+			text([span(t("tui.setup.theme.editorHeading"), "muted")]),
 			node("input", {
-				text: "Ask anything, edit files, run tools",
-				cursor: "Ask anything, edit files, run tools".length,
+				text: placeholder,
+				cursor: placeholder.length,
 				prompt: [span(">", "accent")],
 				readonly: true,
 			}),
 			text([
 				span(
-					`${editorKey("tui.input.submit")} send · ${editorKey("tui.input.newLine")} newline · / commands`,
+					t("tui.setup.theme.editorHint", {
+						submit: editorKey("tui.input.submit"),
+						newLine: editorKey("tui.input.newLine"),
+					}),
 					"dim",
 				),
 			]),
@@ -133,9 +160,9 @@ function describeThemePreview(): NativeNode {
 }
 
 class ThemeSceneController implements SetupSceneController {
-	title = "Pick a theme";
+	title = t("tui.setup.theme.title");
 	get subtitle(): string {
-		return `Move through the list to preview; ${editorKey("tui.select.confirm")} saves the highlighted choice.`;
+		return t("tui.setup.theme.subtitle", { confirm: editorKey("tui.select.confirm") });
 	}
 	#mode: ThemeMode = "curated";
 	#selectList: SelectList;
@@ -156,7 +183,7 @@ class ThemeSceneController implements SetupSceneController {
 		this.#host = host;
 		this.#originalSymbolPreset = host.ctx.symbolPreset;
 		this.#originalColorBlindMode = host.ctx.colorBlindMode;
-		this.#selectList = this.#createSelectList(CURATED_ITEMS, this.#currentCuratedIndex());
+		this.#selectList = this.#createSelectList(curatedItems(), this.#currentCuratedIndex());
 	}
 
 	dispose(): void {
@@ -192,19 +219,19 @@ class ThemeSceneController implements SetupSceneController {
 		const intro = new Container();
 		intro.addChild(
 			new Text(
-				theme.fg(
-					"muted",
-					`Theme changes preview live. Nothing is saved until you press ${editorKey("tui.select.confirm")}.`,
-				),
+				theme.fg("muted", t("tui.setup.theme.introHint", { confirm: editorKey("tui.select.confirm") })),
 				0,
 				0,
 			),
 		);
 		intro.addChild(
 			new Text(
-				this.#mode === "all"
-					? theme.fg("dim", `Browsing all themes · ${editorKey("tui.select.cancel")} returns to curated choices`)
-					: theme.fg("dim", `${editorKey("tui.select.cancel")} skips this step`),
+				theme.fg(
+					"dim",
+					this.#mode === "all"
+						? t("tui.setup.theme.browsingAll", { cancel: editorKey("tui.select.cancel") })
+						: t("tui.setup.theme.skipHint", { cancel: editorKey("tui.select.cancel") }),
+				),
 				0,
 				0,
 			),
@@ -217,7 +244,9 @@ class ThemeSceneController implements SetupSceneController {
 		for (const line of renderThemePreview(width)) {
 			preview.addChild(new Text(line, 0, 0));
 		}
-		const loading = this.#loadingAllThemes ? new Text(theme.fg("dim", "Loading themes…"), 0, 0) : undefined;
+		const loading = this.#loadingAllThemes
+			? new Text(theme.fg("dim", t("tui.setup.theme.loading")), 0, 0)
+			: undefined;
 		const status = this.#message ? new Text(theme.fg("error", this.#message), 0, 0) : undefined;
 		if (!this.#step) {
 			this.#step = new WizardStep({
@@ -226,7 +255,7 @@ class ThemeSceneController implements SetupSceneController {
 				preview: { component: preview, optional: true },
 				content: loading ?? this.#selectList,
 				status,
-				minContentLines: CURATED_ITEMS.length + 1,
+				minContentLines: curatedItems().length + 1,
 				fitContent: budget => {
 					if (this.#loadingAllThemes) return;
 					const visible = budget === undefined ? 10 : budget - 1;
@@ -257,19 +286,19 @@ class ThemeSceneController implements SetupSceneController {
 			() => {
 				const children: NativeChild[] = [
 					col([
-						text([span(`Theme changes preview live. Nothing is saved until you press ${confirm}.`, "muted")]),
+						text([span(t("tui.setup.theme.introHint", { confirm }), "muted")]),
 						text([
 							span(
 								this.#mode === "all"
-									? `Browsing all themes · ${cancel} returns to curated choices`
-									: `${cancel} skips this step`,
+									? t("tui.setup.theme.browsingAll", { cancel })
+									: t("tui.setup.theme.skipHint", { cancel }),
 								"dim",
 							),
 						]),
 					]),
 					describeThemePreview(),
 					this.#loadingAllThemes
-						? node("spinner", { label: [span("Loading themes…", "dim")] }, undefined, "loading")
+						? node("spinner", { label: [span(t("tui.setup.theme.loading"), "dim")] }, undefined, "loading")
 						: this.#selectList,
 				];
 				if (this.#message)
@@ -291,7 +320,7 @@ class ThemeSceneController implements SetupSceneController {
 		list.onCancel = () => {
 			if (this.#mode === "all") {
 				this.#mode = "curated";
-				this.#selectList = this.#createSelectList(CURATED_ITEMS, this.#currentCuratedIndex());
+				this.#selectList = this.#createSelectList(curatedItems(), this.#currentCuratedIndex());
 				this.#host.requestRender();
 				return;
 			}
@@ -309,7 +338,7 @@ class ThemeSceneController implements SetupSceneController {
 	}
 
 	#previewByIndex(index: number): void {
-		const items = this.#mode === "curated" ? CURATED_ITEMS : undefined;
+		const items = this.#mode === "curated" ? curatedItems() : undefined;
 		const value = items?.[index]?.value;
 		if (value) void this.#preview(value);
 	}
@@ -334,14 +363,14 @@ class ThemeSceneController implements SetupSceneController {
 			const items = themes.map(name => ({
 				value: `theme:${name}`,
 				label: name,
-				description: name === this.#originalTheme ? "current" : undefined,
+				description: name === this.#originalTheme ? t("tui.setup.theme.current") : undefined,
 			}));
 			const selectedIndex = Math.max(0, themes.indexOf(this.#originalTheme ?? ""));
 			this.#mode = "all";
 			this.#selectList = this.#createSelectList(items, selectedIndex);
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error);
-			this.#message = `Failed to load themes: ${message}`;
+			this.#message = t("tui.setup.theme.loadFailed", { message });
 		} finally {
 			this.#loadingAllThemes = false;
 			this.#host.requestRender();
@@ -405,7 +434,7 @@ class ThemeSceneController implements SetupSceneController {
 		}
 		if (request !== this.#previewRequest || this.#disposed) return;
 		if (!result.success) {
-			this.#message = result.error ?? "Theme preview failed";
+			this.#message = result.error ?? t("tui.setup.theme.previewFailed");
 		}
 		this.#host.ctx.ui.invalidate();
 		this.#host.requestRender();
@@ -435,7 +464,10 @@ class ThemeSceneController implements SetupSceneController {
 /** Preview and persist the terminal color theme. */
 export const themeSetupScene: SetupScene = {
 	id: "theme",
-	title: "Pick a theme",
+	// Lazy so the wizard renders the title in the language active at mount time.
+	get title(): string {
+		return t("tui.setup.theme.title");
+	},
 	minVersion: 1,
 	mount: host => new ThemeSceneController(host),
 };

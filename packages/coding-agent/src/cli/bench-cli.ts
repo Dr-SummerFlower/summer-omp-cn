@@ -43,6 +43,7 @@ import { createLiveBoard, type LiveBoardOutput } from "@oh-my-pi/pi-tui/chrome/l
 import { formatCost } from "@oh-my-pi/pi-tui/overlays/agent-hub-renderer";
 
 import { cfgTierAnthropic, cfgTierGoogle, cfgTierOpenai } from "../session/settings";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const DEFAULT_PAR = 4;
 const DEFAULT_CACHE_MAX_TOKENS = 64;
@@ -919,7 +920,7 @@ function profileTableSpec(kinds: readonly BenchChallengeKind[]): BenchTableSpec 
 	const columns: BenchTableColumn[] = [
 		MODEL_COLUMN,
 		{
-			header: "TTFT p50",
+			header: t("cli.bench.ttftP50"),
 			value: r => {
 				const ttft = r.byChallenge[lead]?.ttftMs;
 				return ttft ? formatMs(ttft.p50) : undefined;

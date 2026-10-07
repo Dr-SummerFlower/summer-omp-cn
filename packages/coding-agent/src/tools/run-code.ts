@@ -1,6 +1,7 @@
 import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";
+import { t } from "@oh-my-pi/pi-i18n";
 
-const NON_SERIALIZABLE_RUN_ARGUMENT = "Run argument is not JSON-serializable; pass plain data";
+const NON_SERIALIZABLE_RUN_ARGUMENT = t("tui.ca.tools.runCode.runArgumentIsNotJsonSerializable");
 
 /** Marker that renders a serialized function as an executable run argument. */
 export interface FnArgMarker {

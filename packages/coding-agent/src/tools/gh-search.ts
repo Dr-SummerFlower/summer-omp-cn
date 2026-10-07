@@ -31,6 +31,7 @@ import type {
 	GithubInput,
 } from "./gh-types";
 import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export const SEARCH_LIMIT_DEFAULT = 10;
 export const SEARCH_LIMIT_MAX = 50;
@@ -328,7 +329,7 @@ export function formatSearchCodeResults(query: string, repo: string | undefined,
 
 	if (items.length === 0) {
 		lines.push("");
-		lines.push("No code matches found.");
+		lines.push(t("tui.ca.tools.ghSearch.noCodeMatchesFound"));
 		return lines.join("\n").trim();
 	}
 
@@ -364,7 +365,7 @@ export function formatSearchCommitsResults(
 
 	if (items.length === 0) {
 		lines.push("");
-		lines.push("No commits found.");
+		lines.push(t("tui.ca.tools.ghSearch.noCommitsFound"));
 		return lines.join("\n").trim();
 	}
 
@@ -388,7 +389,7 @@ export function formatSearchReposResults(query: string, items: GhSearchRepoResul
 
 	if (items.length === 0) {
 		lines.push("");
-		lines.push("No repositories found.");
+		lines.push(t("tui.ca.tools.ghSearch.noRepositoriesFound"));
 		return lines.join("\n").trim();
 	}
 

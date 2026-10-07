@@ -33,6 +33,7 @@ import {
 import { plainText } from "../native/spans";
 import { Memo } from "../native/memo";
 import { fileHref, fileRow, inlineErrorView } from "../tools/native-view";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /**
  * Extract the read call's target path. `path` is the canonical arg; `file_path`
@@ -711,7 +712,7 @@ export class ReadToolGroupComponent extends Container implements ToolExecutionHa
 		return (
 			plainText(failed?.contentText ?? "")
 				.replace(/^Error:\s*/, "")
-				.trim() || "Read failed"
+				.trim() || t("tui.chat.readToolGroup.readFailed")
 		);
 	}
 

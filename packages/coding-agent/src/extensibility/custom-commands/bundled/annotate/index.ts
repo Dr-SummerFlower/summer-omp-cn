@@ -31,6 +31,7 @@ import {
 	shouldSummarizeTextReviewSource,
 } from "./text-review";
 import { generateTextReviewContextSummary } from "./text-summary";
+import { t } from "@oh-my-pi/pi-i18n";
 
 interface CodeReviewDependencies {
 	resolveLocalReviewTarget(
@@ -111,13 +112,13 @@ const ANNOTATE_GUIDANCE_COMPLETIONS: readonly AutocompleteItem[] = [
 		value: "./",
 		label: "<file path>",
 		description: "Annotate a file by path",
-		hint: "Annotate a file; paths with spaces stay unquoted",
+		hint: t("tui.ca.extensibility.customCommands.bundled.annotate.index.annotateAFilePathsWithSpaces"),
 	},
 	{
 		value: '"',
 		label: '"prompt text"',
 		description: "Annotate literal prompt text",
-		hint: "Wrap literal prompt text in matching quotes",
+		hint: t("tui.ca.extensibility.customCommands.bundled.annotate.index.wrapLiteralPromptTextInMatching"),
 	},
 ];
 
@@ -126,7 +127,7 @@ function buildUnclosedLiteralCompletion(argumentPrefix: string, quote: '"' | "'"
 	return {
 		value,
 		label: value,
-		hint: "Finish with the matching quote to annotate literal prompt text",
+		hint: t("tui.ca.extensibility.customCommands.bundled.annotate.index.finishWithTheMatchingQuoteTo"),
 	};
 }
 
@@ -272,7 +273,9 @@ export async function runAnnotateCommand(
 				break;
 			}
 			case "prompt": {
-				const text = await ctx.ui.editor("Text prompt to annotate");
+				const text = await ctx.ui.editor(
+					t("tui.ca.extensibility.customCommands.bundled.annotate.index.textPromptToAnnotate"),
+				);
 				if (text !== undefined) source = textDependencies.createPromptTextReviewSource(ctx, text);
 				break;
 			}
@@ -283,20 +286,23 @@ export async function runAnnotateCommand(
 	if (!result || result.annotations.length === 0) return undefined;
 	let contextSummary: string | undefined;
 	if (shouldSummarizeTextReviewSource(source)) {
-		ctx.ui.setStatus("annotate-summary", "Rephrasing annotation source with the session model…");
+		ctx.ui.setStatus(
+			"annotate-summary",
+			t("tui.ca.extensibility.customCommands.bundled.annotate.index.rephrasingAnnotationSourceWithTheSession"),
+		);
 		try {
 			const generated = await textDependencies.generateTextReviewContextSummary(ctx, source.text);
 			contextSummary =
 				typeof generated === "string" ? normalizeTextReviewContextSummary(generated) || undefined : undefined;
 			if (!contextSummary) {
 				ctx.ui.notify(
-					"Source summary unavailable; including the full source verbatim beyond the normal 999-character context limit.",
+					t("tui.ca.extensibility.customCommands.bundled.annotate.index.sourceSummaryUnavailableIncludingTheFull"),
 					"warning",
 				);
 			}
 		} catch {
 			ctx.ui.notify(
-				"Source summary failed; including the full source verbatim beyond the normal 999-character context limit.",
+				t("tui.ca.extensibility.customCommands.bundled.annotate.index.sourceSummaryFailedIncludingTheFull"),
 				"warning",
 			);
 		} finally {

@@ -61,6 +61,7 @@ import {
 	sanitizeDisplayLineField,
 	sanitizeDisplayText,
 } from "./display-text";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export type MCPConnectionHealth = "connected" | "connecting" | "disconnected" | "inactive";
 
@@ -274,7 +275,7 @@ export function formatMcpHealthLabel(health: MCPConnectionHealth): string {
 		case "connecting":
 			return "Connecting";
 		case "disconnected":
-			return "Not connected";
+			return t("tui.overlays.extensions.mcpRuntime.notConnected");
 		case "inactive":
 			return "Inactive";
 	}

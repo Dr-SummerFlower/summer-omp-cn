@@ -11,6 +11,7 @@ import { type GeneratedGitCommit, generateGitCommit } from "./conventional/servi
 import { abortOnGitFailure, pushOrAbort } from "./execute";
 import { resolvePrimaryModel } from "./model-selection";
 import type { CommitCommandArgs } from "./types";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Execute the agentic commit flow or the exact deterministic legacy flow. */
 export async function runCommitCommand(args: CommitCommandArgs): Promise<{ usedFallback: boolean }> {
@@ -30,7 +31,7 @@ async function runLegacyCommitCommand(args: CommitCommandArgs): Promise<void> {
 			onProgress: message => process.stdout.write(`${message}\n`),
 		});
 	} catch (error) {
-		if (vcs.isVcsError(error)) abortOnGitFailure("Commit generation failed", error);
+		if (vcs.isVcsError(error)) abortOnGitFailure(t("tui.ca.commit.pipeline.commitGenerationFailed"), error);
 		if (error instanceof Error && error.message === "No staged changes to analyze") {
 			if (args.push) {
 				process.stdout.write("No changes to commit; pushing existing commits...\n");
@@ -60,7 +61,7 @@ async function runLegacyCommitCommand(args: CommitCommandArgs): Promise<void> {
 	try {
 		await vcs.requireGit(cwd).commitCreate(commitMessage, {});
 	} catch (error) {
-		if (vcs.isVcsError(error)) abortOnGitFailure("Commit failed", error);
+		if (vcs.isVcsError(error)) abortOnGitFailure(t("tui.ca.commit.pipeline.commitFailed"), error);
 		throw error;
 	}
 	process.stdout.write("Commit created.\n");

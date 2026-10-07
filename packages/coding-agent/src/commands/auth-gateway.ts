@@ -11,6 +11,7 @@ import {
 } from "../cli/auth-gateway-cli";
 import { authGatewayHelp as commandHelp } from "../cli/command-help";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export default class AuthGateway extends Command {
 	static description = commandHelp.description;
@@ -23,16 +24,14 @@ export default class AuthGateway extends Command {
 	};
 
 	static flags = {
-		json: Flags.boolean({ description: "Output JSON (token/status/check)" }),
-		bind: Flags.string({ description: "Bind address for `serve` (host:port)", char: "b" }),
-		regenerate: Flags.boolean({ description: "Regenerate the gateway bearer token (token)" }),
+		json: Flags.boolean({ description: t("cli.authGateway.outputJsonTokenStatusCheck") }),
+		bind: Flags.string({ description: t("cli.authBroker.bindAddressForServeHostPort"), char: "b" }),
+		regenerate: Flags.boolean({ description: t("cli.authGateway.regenerateTheGatewayBearerTokenToken") }),
 		"no-auth": Flags.boolean({
-			description:
-				"Disable inbound bearer-token auth (serve). Useful when bound to loopback — any caller is allowed.",
+			description: t("cli.authGateway.disableInboundBearerTokenAuthServe"),
 		}),
 		strict: Flags.boolean({
-			description:
-				"For `check`: additionally probe each credential against its provider's chat-completion endpoint. Slower; consumes a tiny amount of quota per credential.",
+			description: t("cli.authGateway.forCheckAdditionallyProbeEachCredential"),
 		}),
 	};
 

@@ -7,6 +7,7 @@ import {
 	startMemoryStartupTask,
 } from "../memories";
 import type { MemoryBackend } from "./types";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /**
  * Wraps the existing `memories/` module as a `MemoryBackend`.
@@ -40,8 +41,7 @@ export const localBackend: MemoryBackend = {
 			active: true,
 			writable: true,
 			searchable: false,
-			message:
-				"Local rollout-summary memory is active; lessons from the `learn` tool are saved to learned.md. Structured search is not available.",
+			message: t("tui.ca.memoryBackend.localBackend.localRolloutSummaryMemoryIsActive"),
 		};
 	},
 };

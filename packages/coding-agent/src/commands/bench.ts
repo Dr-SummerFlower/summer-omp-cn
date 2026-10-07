@@ -2,12 +2,13 @@ import { Args, Command, Flags } from "@oh-my-pi/pi-utils/cli";
 import { runBenchCommand } from "../cli/bench-cli";
 import { benchHelp as commandHelp } from "../cli/command-help";
 import { SERVICE_TIER_OPENAI_VALUES } from "../config/service-tier";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export default class Bench extends Command {
 	static description = commandHelp.description;
 	static args = {
 		models: Args.string({
-			description: "Model selectors (provider/model or fuzzy id, e.g. opus)",
+			description: t("cli.bench.modelSelectorsProviderModelOrFuzzy"),
 			required: true,
 			multiple: true,
 		}),
@@ -15,41 +16,38 @@ export default class Bench extends Command {
 
 	static flags = {
 		runs: Flags.integer({
-			description:
-				"Requests per model (default: 10 chat, 5 prefill/generation, 9 mix); with --detailed, per phase (default: 4)",
+			description: t("cli.bench.requestsPerModelDefault10Chat"),
 		}),
 		"max-tokens": Flags.integer({
-			description: "Max output tokens per request (default: chat 512, prefill 64, generation 2048, cache 64)",
+			description: t("cli.bench.maxOutputTokensPerRequestDefault"),
 		}),
-		prompt: Flags.string({ description: "Custom prompt text (chat and generation profiles only)" }),
+		prompt: Flags.string({ description: t("cli.bench.customPromptTextChatAndGeneration") }),
 		profile: Flags.string({
-			description:
-				"Benchmark workload (default chat): chat (balanced, measures TTFT and tok/s), prefill (large cache-busted input, measures input processing), generation (long forced output, measures sustained decode), mix (rotates all three)",
+			description: t("cli.bench.benchmarkWorkloadDefaultChatChatBalanced"),
 			options: ["chat", "prefill", "generation", "mix"],
 		}),
 		"prefill-bytes": Flags.integer({
-			description: "Synthetic input size for prefill challenges (default: 32768, capped by the context window)",
+			description: t("cli.bench.syntheticInputSizeForPrefillChallenges"),
 		}),
 		detailed: Flags.boolean({
-			description:
-				"Run single-user (1 concurrent), parallel (--par concurrent, with aggregate tok/s and scaling), and prefill phases per model",
+			description: t("cli.bench.runSingleUser1ConcurrentParallel"),
 		}),
 		"service-tier": Flags.string({
-			description: "Service tier applied per model family (default: configured `tier.*` settings; `none` omits it)",
+			description: t("cli.bench.serviceTierAppliedPerModelFamily"),
 			options: SERVICE_TIER_OPENAI_VALUES,
 		}),
-		json: Flags.boolean({ description: "Output JSON" }),
+		json: Flags.boolean({ description: t("cli.agents.outputJson") }),
 		par: Flags.integer({
-			description: "Execute runs with N parallel queries/requests (default: 4); --detailed's parallel phase width",
+			description: t("cli.bench.executeRunsWithNParallelQueries"),
 		}),
 		cache: Flags.boolean({
-			description: "Run independent cold/warm prompt-cache pairs (not supported for openai-codex-responses)",
+			description: t("cli.bench.runIndependentColdWarmPromptCache"),
 		}),
-		"cache-prefix-file": Flags.string({ description: "Stable prompt prefix file for --cache" }),
-		"cache-prefix-bytes": Flags.integer({ description: "Stable prefix byte budget for --cache (default: 8192)" }),
-		"cache-pairs": Flags.integer({ description: "Cold/warm pairs per model for --cache (default: 1)" }),
+		"cache-prefix-file": Flags.string({ description: t("cli.bench.stablePromptPrefixFileForCache") }),
+		"cache-prefix-bytes": Flags.integer({ description: t("cli.bench.stablePrefixByteBudgetForCache") }),
+		"cache-pairs": Flags.integer({ description: t("cli.bench.coldWarmPairsPerModelFor") }),
 		"cache-concurrency": Flags.integer({
-			description: "Concurrent cache pairs for --cache; each pair remains sequential (default: 1)",
+			description: t("cli.bench.concurrentCachePairsForCacheEach"),
 		}),
 	};
 

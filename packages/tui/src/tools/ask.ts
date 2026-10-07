@@ -25,6 +25,7 @@ import { outputBlockContentWidth, renderStatusLine } from "../render";
 import { framedToolCard } from "../render/tool-card";
 
 import { formatErrorMessage, formatMeta, formatTitle, sanitizeCarriageReturns } from "../render/render-utils";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Result for a single question */
 export interface QuestionResult {
@@ -344,7 +345,7 @@ function describeAskCall(args: AskRenderArgs): NativeToolView {
 	return {
 		tool: askHead(first, more),
 		inline: true,
-		body: [text([span("Waiting for your answer…", "muted")])],
+		body: [text([span(t("tui.tools.ask.waitingForYourAnswer"), "muted")])],
 	};
 }
 
@@ -415,7 +416,7 @@ function describeAskResult(result: ToolRenderResult<AskToolDetails>, args: AskRe
 				selectedIndicesFor(rawDetails.options, rawDetails.selectedOptions),
 			),
 			details.timedOut
-				? text([span("auto-selected after timeout — not a user choice", "muted")], {
+				? text([span(t("tui.tools.ask.autoSelectedAfterTimeoutNotA"), "muted")], {
 						wrap: "word",
 						role: "omp.tool.notice",
 					})
@@ -472,7 +473,7 @@ export const askToolRenderer = {
 
 		// Single question
 		if (typeof args.question !== "string" || !args.question) {
-			const errorLine = formatErrorMessage("No question provided", uiTheme);
+			const errorLine = formatErrorMessage(t("tui.tools.ask.noQuestionProvided"), uiTheme);
 			return framedToolCard(uiTheme, () => ({
 				header: errorLine,
 				sections: [],

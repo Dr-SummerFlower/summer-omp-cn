@@ -8,6 +8,7 @@ import { setupHelp as commandHelp } from "../cli/command-help";
 import { runSetupCommand, type SetupCommandArgs, type SetupComponent } from "../cli/setup-cli";
 import { runRootCommand } from "../main";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const COMPONENTS: SetupComponent[] = ["python", "speech"];
 
@@ -34,15 +35,15 @@ export default class Setup extends Command {
 	static description = commandHelp.description;
 	static args = {
 		component: Args.string({
-			description: "Optional component to install",
+			description: t("cli.setup.optionalComponentToInstall"),
 			required: false,
 			options: COMPONENTS,
 		}),
 	};
 
 	static flags = {
-		check: Flags.boolean({ char: "c", description: "Check if dependencies are installed" }),
-		json: Flags.boolean({ description: "Output status as JSON" }),
+		check: Flags.boolean({ char: "c", description: t("cli.setup.checkIfDependenciesAreInstalled") }),
+		json: Flags.boolean({ description: t("cli.setup.outputStatusAsJson") }),
 	};
 
 	async run(): Promise<void> {

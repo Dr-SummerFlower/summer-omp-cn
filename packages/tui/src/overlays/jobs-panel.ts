@@ -4,6 +4,7 @@
  * nodes for task jobs and a status dot, the label and a live `elapsed` for
  * the others (running first, recent below a hairline).
  */
+import { t } from "@oh-my-pi/pi-i18n";
 import type { TspAgentProps, TspSpan } from "@oh-my-pi/pi-wire";
 import { type Component, Container } from "../tui";
 import { card, elapsed, node, span, text } from "../native/describe";
@@ -60,21 +61,21 @@ export class JobsPanel extends Container {
 		const { running, recent } = this.#snapshot;
 		const children: NativeChild[] = [];
 		if (running.length === 0 && recent.length === 0) {
-			children.push(node("text", { text: "No background jobs", role: "omp.jobs.empty" }, undefined, "empty"));
+			children.push(node("text", { text: t("tui.jobs.empty"), role: "omp.jobs.empty" }, undefined, "empty"));
 		}
 		for (const job of running) children.push(this.#describeJob(job, agent));
 		if (recent.length > 0) {
 			children.push(
 				node(
 					"section",
-					{ head: [span("Recent", "muted")] },
+					{ head: [span(t("tui.modelBrowser.group.recent"), "muted")] },
 					recent.map(job => this.#describeJob(job, agent)),
 					"recent",
 				),
 			);
 		}
-		const head: TspSpan[] = [span("Background jobs", "strong")];
-		if (running.length > 0) head.push(span(` · ${running.length} running`, "muted"));
+		const head: TspSpan[] = [span(t("tui.jobs.head"), "strong")];
+		if (running.length > 0) head.push(span(t("tui.jobs.runningSuffix", { count: running.length }), "muted"));
 		const described = card({ role: "omp.jobs", head }, children);
 		this.#native = { agent, node: described };
 		return described;

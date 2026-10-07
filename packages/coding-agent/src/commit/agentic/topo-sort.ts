@@ -1,4 +1,5 @@
 import type { SplitCommitGroup } from "./state";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export function computeDependencyOrder(groups: SplitCommitGroup[]): number[] | { error: string } {
 	const total = groups.length;
@@ -38,7 +39,7 @@ export function computeDependencyOrder(groups: SplitCommitGroup[]): number[] | {
 	}
 
 	if (order.length !== total) {
-		return { error: "Circular dependency detected in split commit plan." };
+		return { error: t("tui.ca.commit.agentic.topoSort.circularDependencyDetectedInSplitCommit") };
 	}
 
 	return order;

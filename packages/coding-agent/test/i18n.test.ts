@@ -1,14 +1,7 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import {
-	getLanguage,
-	initializeLanguage,
-	localizeUiText,
-	normalizeLanguage,
-	onLanguageChanged,
-	setLanguage,
-	t,
-} from "../src/i18n";
-import { getSettingsForTab } from "../src/modes/components/settings-defs";
+import { createSettingsHost } from "@oh-my-pi/pi-coding-agent/config/settings-ui";
+import { getLanguage, normalizeLanguage, setLanguage, t } from "@oh-my-pi/pi-i18n";
+import { getSettingsForTab } from "@oh-my-pi/pi-tui/overlays/settings-defs";
 
 describe("i18n", () => {
 	afterEach(() => {
@@ -26,8 +19,8 @@ describe("i18n", () => {
 		expect(normalizeLanguage(undefined)).toBeUndefined();
 	});
 
-	it("initializes, changes, and reports the active language", () => {
-		initializeLanguage("chinese");
+	it("changes and reports the active language", () => {
+		expect(setLanguage("chinese")).toBe("zh-CN");
 		expect(getLanguage()).toBe("zh-CN");
 		expect(setLanguage("english")).toBe("en");
 		expect(getLanguage()).toBe("en");
@@ -35,61 +28,32 @@ describe("i18n", () => {
 
 	it("falls back to English and preserves unknown keys", () => {
 		setLanguage("zh-CN");
-		expect(t("common.error")).toBe("错误");
-		expect(t("common.englishFallback")).toBe("English-only fallback");
+		expect(t("common.feedback.error")).toBe("错误");
 		expect(t("i18n.unknown.key")).toBe("i18n.unknown.key");
 	});
 
 	it("interpolates values without changing missing placeholders", () => {
 		setLanguage("zh-CN");
-		expect(t("status.running", { count: 3 })).toBe("运行中：3");
-		expect(t("common.failedWithReason", { reason: "timeout" })).toBe("失败：timeout");
-		expect(t("common.usageLine", { other: "value" })).toBe("用法：{{usage}}");
-	});
-
-	it("notifies listeners on actual language changes and supports unsubscribe", () => {
-		const changes: string[] = [];
-		const unsubscribe = onLanguageChanged(language => changes.push(language));
-		setLanguage("zh-CN");
-		setLanguage("zh-CN");
-		unsubscribe();
-		setLanguage("en");
-		expect(changes).toEqual(["zh-CN"]);
-	});
-
-	it("localizes only exact known UI text in Chinese", () => {
-		setLanguage("zh-CN");
-		expect(localizeUiText("Error:")).toBe("错误：");
-		expect(localizeUiText("Open settings menu")).toBe("打开设置菜单");
-		expect(localizeUiText("Error: user supplied text")).toBe("Error: user supplied text");
-		expect(localizeUiText("user supplied text")).toBe("user supplied text");
-	});
-
-	it("keeps UI text unchanged in English", () => {
-		setLanguage("en");
-		expect(localizeUiText("Error:")).toBe("Error:");
-		expect(localizeUiText("Open settings menu")).toBe("Open settings menu");
+		expect(t("tui.status.running", { count: 3 })).toBe("运行中：3");
+		expect(t("common.feedback.failedWithReason", { reason: "timeout" })).toBe("失败：timeout");
+		expect(t("common.format.usageLine", { other: "value" })).toBe("用法：{{usage}}");
 	});
 
 	it("localizes process monitoring, maintenance, selectors, and launch completion for Chinese users", () => {
 		setLanguage("zh-CN");
-		expect(t("ps.noScopes")).toBe("未找到守护进程代理作用域。");
-		expect(t("ps.tui.summary", { processes: "2 个进程", scopes: "1 个作用域", scopeMode: "（当前）" })).toBe(
+		expect(t("cli.ps.noScopes")).toBe("未找到守护进程代理作用域。");
+		expect(t("tui.ps.summary", { processes: "2 个进程", scopes: "1 个作用域", scopeMode: "（当前）" })).toBe(
 			"2 个进程，分布于1 个作用域 （当前）",
 		);
-		expect(t("compaction.remoteFailed")).toBe("服务器自动压缩失败；将跳过维护并继续");
-		expect(t("selector.messagePosition", { position: 2, total: 5 })).toBe("第 2 条，共 5 条");
-		expect(t("transcript.supervisedCompleted")).toBe("受监管进程已完成");
-		expect(
-			localizeUiText(
-				"Lint/type errors piling up? `omp cleanse` (or /cleanse right here) hunts project diagnostics and fixes them with parallel subagents — esc cancels",
-			),
-		).toContain("并行子代理修复");
+		expect(t("tui.compaction.remoteFailed")).toBe("服务器自动压缩失败；将跳过维护并继续");
+		expect(t("tui.selector.messagePosition", { position: 2, total: 5 })).toBe("第 2 条，共 5 条");
+		expect(t("tui.transcript.supervisedCompleted")).toBe("受监管进程已完成");
 	});
 
 	it("localizes settings metadata for the model tab", () => {
 		setLanguage("zh-CN");
-		const modelSettings = getSettingsForTab("model");
+		const entries = createSettingsHost().entries;
+		const modelSettings = getSettingsForTab(entries, "model");
 		const thinking = modelSettings.find(setting => setting.path === "defaultThinkingLevel");
 		const sampling = modelSettings.find(setting => setting.path === "temperature");
 
@@ -104,6 +68,7 @@ describe("i18n", () => {
 
 	it("localizes representative metadata across every settings tab", () => {
 		setLanguage("zh-CN");
+		const entries = createSettingsHost().entries;
 		const expected = [
 			["appearance", "language", "语言"],
 			["model", "model.toolCallLoopGuard.enabled", "工具调用循环保护"],
@@ -114,13 +79,11 @@ describe("i18n", () => {
 			["shell", "shellMinimizer.enabled", "Shell 输出精简"],
 			["tools", "todo.enabled", "待办事项"],
 			["tasks", "goal.enabled", "目标模式"],
-			["providers", "providers.webSearchOrder", "网页搜索提供商顺序"],
+			["providers", "providers.webSearchTimeoutSeconds", "网页搜索超时"],
 		] as const;
 
 		for (const [tab, path, label] of expected) {
-			const setting = getSettingsForTab(tab as Parameters<typeof getSettingsForTab>[0]).find(
-				candidate => candidate.path === path,
-			);
+			const setting = getSettingsForTab(entries, tab).find(candidate => candidate.path === path);
 			expect(setting?.label, `${tab}:${path}`).toBe(label);
 			expect(setting?.description, `${tab}:${path}`).not.toMatch(/^[A-Za-z][A-Za-z\s-]*$/);
 		}
@@ -128,6 +91,7 @@ describe("i18n", () => {
 
 	it("localizes the 17.4 settings metadata and ordered compaction choices", () => {
 		setLanguage("zh-CN");
+		const entries = createSettingsHost().entries;
 		const expected = [
 			["providers", "providers.openai-codex.codeMode", "Codex 代码模式"],
 			["appearance", "composer.shape", "输入框样式"],
@@ -141,28 +105,27 @@ describe("i18n", () => {
 		] as const;
 
 		for (const [tab, path, label] of expected) {
-			const setting = getSettingsForTab(tab).find(candidate => candidate.path === path);
+			const setting = getSettingsForTab(entries, tab).find(candidate => candidate.path === path);
 			expect(setting?.label, `${tab}:${path}`).toBe(label);
 			expect(setting?.description, `${tab}:${path}`).not.toMatch(/^[A-Za-z]/);
 		}
-		expect(localizeUiText("Codex Code Mode Direct Tools")).toBe("Codex 代码模式直接工具");
 
-		const modelSettings = getSettingsForTab("model");
+		const modelSettings = getSettingsForTab(entries, "model");
 		const externalThinking = modelSettings.find(setting => setting.path === "externalThinking");
 		expect(externalThinking?.warning).toBe("风险自负：提供商已将此类请求判定为滥用，最严重可能触发账号级处置");
 
-		const contextSettings = getSettingsForTab("context");
+		const contextSettings = getSettingsForTab(entries, "context");
 		const methodOrder = contextSettings.find(setting => setting.path === "compaction.methodOrder");
 		const methodOptions = methodOrder?.type === "multiselect" ? methodOrder.options : undefined;
 		expect(methodOptions?.map(option => option.label)).toEqual([
-			"OpenAI 服务器压缩",
+			"服务端压缩",
 			"Snapcompact",
 			"交接",
 			"软压缩",
 			"抖动压缩",
 		]);
 
-		const appearanceSettings = getSettingsForTab("appearance");
+		const appearanceSettings = getSettingsForTab(entries, "appearance");
 		const contextLine = appearanceSettings.find(setting => setting.path === "statusLine.contextLine");
 		const contextLineOptions = contextLine?.type === "submenu" ? contextLine.options : undefined;
 		expect(contextLineOptions?.map(option => option.label)).toEqual(["关", "百分比", "带标记", "嵌入式"]);

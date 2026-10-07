@@ -24,6 +24,7 @@ import { renderConventionalPrompt } from "./prompts";
 import { extractScopeCandidates, ScopeAnalyzer } from "./scope";
 import { codePointLength, sliceCodePoints } from "./text";
 import { isPastTenseFirstWord, repairSummaryTense, validateCommitMessage, validateSummaryQuality } from "./validation";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Repository context supplied to analysis and final project-scope validation. */
 export interface ConventionalGenerationContext {
@@ -174,7 +175,7 @@ async function generateDirectAnalysis(
 			systemPrompt: prompts.system,
 			userPrompt,
 			toolName: "create_conventional_analysis",
-			progressLabel: "Analyzing staged changes…",
+			progressLabel: t("tui.ca.commit.conventional.generate.analyzingStagedChanges"),
 		},
 		response => parseConventionalAnalysisMarkdown(response.text),
 	);
@@ -203,7 +204,7 @@ async function generateFastCommit(
 			systemPrompt: prompts.system,
 			userPrompt: prompts.user,
 			toolName: "create_fast_commit",
-			progressLabel: "Generating commit message…",
+			progressLabel: t("tui.ca.commit.conventional.generate.generatingCommitMessage"),
 		},
 		response => parseFastCommitMarkdown(response.text),
 	);
@@ -278,7 +279,7 @@ export async function generateSummaryFromAnalysis(
 				systemPrompt: prompts.system,
 				userPrompt: prompts.user,
 				toolName: "create_commit_summary",
-				progressLabel: "Generating commit summary…",
+				progressLabel: t("tui.ca.commit.conventional.generate.generatingCommitSummary"),
 			},
 			response => parseSummaryMarkdown(response.text),
 		);
@@ -351,7 +352,7 @@ async function rewriteSummaryForCompliance(
 				systemPrompt: prompts.system,
 				userPrompt: prompts.user,
 				toolName: "create_commit_summary",
-				progressLabel: "Rewriting commit summary…",
+				progressLabel: t("tui.ca.commit.conventional.generate.rewritingCommitSummary"),
 			},
 			response => stripTypePrefix(parseSummaryMarkdown(response.text)).trim(),
 		);

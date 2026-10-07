@@ -10,6 +10,7 @@ import { Settings } from "../config/settings";
 import { initTheme, theme } from "@oh-my-pi/pi-tui/theme";
 import { renderSearchResult } from "@oh-my-pi/pi-tui/tools/web-search";
 import { runSearchQuery, type SearchQueryParams } from "../web/search/index";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export interface SearchCommandArgs {
 	query: string;
@@ -104,31 +105,16 @@ export async function runSearchCommand(cmd: SearchCommandArgs): Promise<void> {
 }
 
 export function printSearchHelp(): void {
-	process.stdout.write(`${chalk.bold(`${APP_NAME} q`)} - Test web search models
-
-${chalk.bold("Usage:")}
-  ${APP_NAME} q [options] <query>
-  ${APP_NAME} web-search [options] <query>
-
-${chalk.bold("Arguments:")}
-  query      Search query text
-
-${chalk.bold("Options:")}
-  --model <selector>  Catalog model selector (for example, web/duckduckgo)
-  --recency <value>   Recency filter (when supported): ${RECENCY_OPTIONS.join(", ")}
-  -l, --limit <n>     Max results to return
-  --compact           Render condensed output
-  -h, --help          Show this help
-
-${chalk.bold("Query directives:")}
-  site:/-site:  after:/before: (YYYY-MM-DD)  inurl:  intitle:  filetype:
-  "exact phrase"  -term  OR
-  Mapped to native provider filters where available, otherwise applied as a
-  lenient post-filter (a constraint matching nothing is relaxed, not fatal).
-
-${chalk.bold("Examples:")}
-  ${APP_NAME} q --model=web/duckduckgo "what's the color of the sky"
-  ${APP_NAME} q --model=openrouter/google/gemini-2.5-flash --recency=week "latest TypeScript changes"
-  ${APP_NAME} q 'transformer scaling site:arxiv.org after:2024 -site:reddit.com'
-`);
+	process.stdout.write(
+		t("cli.webSearch.help", {
+			title: chalk.bold(`${APP_NAME} q`),
+			headingUsage: chalk.bold(t("cli.help.heading.usage")),
+			app: APP_NAME,
+			headingArguments: chalk.bold(t("cli.help.heading.arguments")),
+			headingOptions: chalk.bold(t("cli.help.heading.options")),
+			recency: RECENCY_OPTIONS.join(", "),
+			headingQueryDirectives: chalk.bold(t("cli.help.heading.queryDirectives")),
+			headingExamples: chalk.bold(t("cli.help.heading.examples")),
+		}),
+	);
 }

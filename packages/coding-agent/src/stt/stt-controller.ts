@@ -14,6 +14,7 @@ import { evaluateSubmitTrigger } from "./submit-trigger";
 import { encodePcm16Wav } from "./wav";
 
 import { cfgSttLanguage, cfgSttSubmitTrigger } from "./settings";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export type SttState = "idle" | "recording" | "transcribing";
 
@@ -177,7 +178,7 @@ export class STTController {
 			this.#resolvedModelKey = modelKey;
 			return modelKey;
 		} catch (err) {
-			const msg = err instanceof Error ? err.message : "Failed to setup STT dependencies";
+			const msg = err instanceof Error ? err.message : t("tui.ca.stt.sttController.failedToSetupSttDependencies");
 			options.showWarning(msg);
 			logger.error("STT dependency setup failed", { error: msg });
 			return null;
@@ -272,7 +273,7 @@ export class STTController {
 		} catch (err) {
 			this.#streamAbort?.abort();
 			this.#cleanupCloud();
-			const msg = err instanceof Error ? err.message : "Failed to start microphone capture";
+			const msg = err instanceof Error ? err.message : t("tui.ca.stt.sttController.failedToStartMicrophoneCapture");
 			options.showWarning(msg);
 			logger.error("STT recording failed to start", { error: msg });
 			return;
@@ -325,7 +326,7 @@ export class STTController {
 		} catch (err) {
 			failed = true;
 			if (!this.#disposed) {
-				const msg = err instanceof Error ? err.message : "Transcription failed";
+				const msg = err instanceof Error ? err.message : t("tui.ca.stt.sttController.transcriptionFailed");
 				options.showWarning(msg);
 				logger.error("STT cloud transcription failed", { error: msg });
 			}

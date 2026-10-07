@@ -5,6 +5,7 @@
 import * as path from "node:path";
 import { logger } from "@oh-my-pi/pi-utils";
 import type { Diagnostic, DiagnosticSeverity, LinterClient, ServerConfig } from "../../lsp/types";
+import { t } from "@oh-my-pi/pi-i18n";
 
 // =============================================================================
 // Biome JSON Output Types
@@ -141,7 +142,7 @@ export class BiomeClient implements LinterClient {
 		// Biome exits non-zero when diagnostics are found, so only an empty
 		// stdout signals an actual run failure (missing binary, CLI error).
 		if (!result.success && result.stdout.trim().length === 0) {
-			warnBiomeOnce(`run:${this.cwd}`, "Biome lint failed; reporting no diagnostics", {
+			warnBiomeOnce(`run:${this.cwd}`, t("tui.ca.lsp.clients.biomeClient.biomeLintFailedReportingNoDiagnostics"), {
 				cwd: this.cwd,
 				stderr: result.stderr.slice(0, 500),
 			});
@@ -159,7 +160,7 @@ export class BiomeClient implements LinterClient {
 		try {
 			parsed = JSON.parse(jsonOutput);
 		} catch {
-			warnBiomeOnce(`parse:${this.cwd}`, "Failed to parse Biome JSON output; reporting no diagnostics", {
+			warnBiomeOnce(`parse:${this.cwd}`, t("tui.ca.lsp.clients.biomeClient.failedToParseBiomeJsonOutput"), {
 				cwd: this.cwd,
 				file: targetFile,
 			});
@@ -212,7 +213,7 @@ export class BiomeClient implements LinterClient {
 		if (emitted.length > 0 && !sawUsableLocation) {
 			warnBiomeOnce(
 				`schema:${this.cwd}`,
-				"Biome diagnostics had no recognizable location; reporter schema may have changed",
+				t("tui.ca.lsp.clients.biomeClient.biomeDiagnosticsHadNoRecognizableLocation"),
 				{ cwd: this.cwd, file: targetFile, count: emitted.length },
 			);
 		}

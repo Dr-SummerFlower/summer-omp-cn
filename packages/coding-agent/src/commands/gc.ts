@@ -5,19 +5,20 @@
 import { Command, Flags } from "@oh-my-pi/pi-utils/cli";
 import { gcHelp as commandHelp } from "../cli/command-help";
 import { collectGcErrors, type GcCommandArgs, runGcCommand } from "../cli/gc-cli";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export default class Gc extends Command {
 	static description = commandHelp.description;
 	static flags = {
-		apply: Flags.boolean({ description: "Apply changes (default is dry-run)" }),
-		json: Flags.boolean({ description: "Output JSON" }),
-		"agent-dir": Flags.string({ description: "Agent directory to maintain" }),
-		blobs: Flags.boolean({ description: "Sweep unreferenced blobs" }),
-		archive: Flags.boolean({ description: "Archive cold sessions" }),
-		wal: Flags.boolean({ description: "Checkpoint history/model database WAL files" }),
-		"cold-archive-after-days": Flags.integer({ description: "Minimum session age before archiving" }),
-		"retain-newest-global": Flags.integer({ description: "Always keep this many newest sessions active" }),
-		"retain-newest-per-cwd": Flags.integer({ description: "Always keep this many newest sessions per cwd active" }),
+		apply: Flags.boolean({ description: t("cli.gc.applyChangesDefaultIsDryRun") }),
+		json: Flags.boolean({ description: t("cli.agents.outputJson") }),
+		"agent-dir": Flags.string({ description: t("cli.gc.agentDirectoryToMaintain") }),
+		blobs: Flags.boolean({ description: t("cli.gc.sweepUnreferencedBlobs") }),
+		archive: Flags.boolean({ description: t("cli.gc.archiveColdSessions") }),
+		wal: Flags.boolean({ description: t("cli.gc.checkpointHistoryModelDatabaseWalFiles") }),
+		"cold-archive-after-days": Flags.integer({ description: t("cli.gc.minimumSessionAgeBeforeArchiving") }),
+		"retain-newest-global": Flags.integer({ description: t("cli.gc.alwaysKeepThisManyNewestSessions") }),
+		"retain-newest-per-cwd": Flags.integer({ description: t("cli.gc.alwaysKeepThisManyNewestSessions2") }),
 	};
 
 	async run(): Promise<void> {
@@ -39,7 +40,11 @@ export default class Gc extends Command {
 		const errors = collectGcErrors(result);
 		if (errors.length > 0) {
 			process.stderr.write(
-				`GC completed with ${errors.length} error${errors.length === 1 ? "" : "s"}:\n${errors.map(error => `- ${error}`).join("\n")}\n`,
+				t("cli.gc.gcCompletedWithErrorsLengthError", {
+					"errors.length": errors.length,
+					arg: errors.length === 1 ? "" : "s",
+					arg2: errors.map(error => `- ${error}`).join("\n"),
+				}),
 			);
 			process.exitCode = 1;
 		}

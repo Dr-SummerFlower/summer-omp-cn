@@ -88,6 +88,7 @@ import { supportsOutputTokenLimit } from "@oh-my-pi/pi-catalog/compat/output-lim
 import { requiresNativeTools, requiresToolFreeHistoryForToolOptOut } from "@oh-my-pi/pi-catalog/compat/tools";
 import { preferredDialect } from "@oh-my-pi/pi-catalog/identity";
 import { modelsAreEqual } from "@oh-my-pi/pi-catalog/models";
+import { t } from "@oh-my-pi/pi-i18n";
 import { type EditStore, PowerAssertion, type PowerAssertionOptions } from "@oh-my-pi/pi-natives";
 import {
 	$env,
@@ -1401,7 +1402,7 @@ export class AgentSession implements SettingsScope {
 	async preparePlanForReview(title: string): Promise<AgentToolResult<PlanApprovalDetails>> {
 		const state = this.getPlanModeState();
 		if (!state?.enabled) {
-			throw new ToolError("Plan mode is not active.");
+			throw new ToolError(t("tui.session.planModeNotActive"));
 		}
 		const { planFilePath, title: resolvedTitle } = await resolveApprovedPlan({
 			suppliedTitle: title,
@@ -2296,7 +2297,7 @@ export class AgentSession implements SettingsScope {
 						? `no API key for ${target.provider}/${target.id}`
 						: undefined;
 			if (!target || problem) {
-				this.emitNotice("warning", `Prewalk not armed: ${problem}.`, "prewalk");
+				this.emitNotice("warning", t("tui.session.prewalkNotArmed", { problem: String(problem) }), "prewalk");
 				return;
 			}
 			this.#prewalk.arm(target, resolved.thinkingLevel);
@@ -2337,7 +2338,7 @@ export class AgentSession implements SettingsScope {
 			try {
 				await this.#tools.reconcileThinkTool();
 			} catch (error) {
-				this.emitNotice("error", `Failed to apply external thinking: ${error}`);
+				this.emitNotice("error", t("tui.session.externalThinkingFailed", { error: String(error) }));
 			}
 		});
 		this.#skillfulApplied = cfgSkillful.get(this.settings);
@@ -2461,12 +2462,12 @@ export class AgentSession implements SettingsScope {
 	 */
 	setForcedToolChoice(toolName: string): void {
 		if (!this.getActiveToolNames().includes(toolName)) {
-			throw new Error(`Tool "${toolName}" is not currently active.`);
+			throw new Error(t("tui.session.toolNotActive", { tool: toolName }));
 		}
 
 		const forced = buildNamedToolChoice(toolName, this.model);
 		if (!forced || typeof forced === "string") {
-			throw new Error("Current model does not support forcing a specific tool.");
+			throw new Error(t("tui.session.forceToolUnsupported"));
 		}
 
 		this.#toolChoiceQueue.pushSequence([forced, "none"], {
@@ -3682,11 +3683,7 @@ export class AgentSession implements SettingsScope {
 					this.serviceTierByFamily.anthropic === "priority"
 				) {
 					this.setServiceTierFamily("anthropic", undefined);
-					this.emitNotice(
-						"warning",
-						"Priority/fast mode rejected for this model; retried without it. Fast mode is now off.",
-						"priority",
-					);
+					this.emitNotice("warning", t("tui.session.priorityRejected"), "priority");
 				}
 				this.#ttsr.onAssistantMessageEnd(assistantMsg);
 				if (this.#handoff.isGeneratingHandoff) {
@@ -6384,7 +6381,7 @@ export class AgentSession implements SettingsScope {
 
 	#assertVibeSessionTransitionAllowed(action: string): void {
 		if (this.#vibeModeState?.enabled) {
-			throw new Error(`Cannot ${action} while vibe mode is active. Exit vibe mode first.`);
+			throw new Error(t("tui.session.vibeModeActive", { action }));
 		}
 	}
 
@@ -7375,19 +7372,14 @@ export class AgentSession implements SettingsScope {
 
 			// Validate model
 			if (!this.model) {
-				throw new Error(
-					"No model selected.\n\n" +
-						`Use /login, set an API key environment variable, or create ${getAgentDbPath()}\n\n` +
-						"Then use /model to select a model.",
-				);
+				throw new Error(t("tui.session.noModelSelected", { dbPath: getAgentDbPath() }));
 			}
 
 			// Validate API key
 			const apiKey = await this.#modelRegistry.getApiKey(this.model, this.sessionId);
 			if (!apiKey) {
 				throw new Error(
-					`No API key found for ${this.model.provider}.\n\n` +
-						`Use /login, set an API key environment variable, or create ${getAgentDbPath()}`,
+					t("tui.session.noApiKeyFound", { provider: this.model.provider, dbPath: getAgentDbPath() }),
 				);
 			}
 
@@ -8096,9 +8088,7 @@ export class AgentSession implements SettingsScope {
 		const command = this.#extensionRunner.getCommand(commandName);
 
 		if (command) {
-			throw new Error(
-				`Extension command "/${commandName}" cannot be queued. Use prompt() or execute the command when not streaming.`,
-			);
+			throw new Error(t("tui.session.extensionCommandUnqueueable", { command: commandName }));
 		}
 	}
 
@@ -9047,7 +9037,7 @@ export class AgentSession implements SettingsScope {
 	 */
 	async newSession(options?: NewSessionOptions): Promise<boolean> {
 		using _transition = this.#beginSessionTransition();
-		this.#assertVibeSessionTransitionAllowed("start a new session");
+		this.#assertVibeSessionTransitionAllowed(t("tui.session.vibeActionStartNew"));
 		const previousSessionFile = this.sessionFile;
 
 		// Emit session_before_switch event with reason "new" (can be cancelled)
@@ -9183,7 +9173,7 @@ export class AgentSession implements SettingsScope {
 	 */
 	async fork(): Promise<boolean> {
 		using _transition = this.#beginSessionTransition();
-		this.#assertVibeSessionTransitionAllowed("fork the session");
+		this.#assertVibeSessionTransitionAllowed(t("tui.session.vibeActionFork"));
 		const previousSessionFile = this.sessionFile;
 		const previousSessionId = this.sessionManager.getSessionId();
 
@@ -9259,7 +9249,7 @@ export class AgentSession implements SettingsScope {
 
 	/** Move the active session and artifacts after enforcing mode transition invariants. */
 	async moveSession(newCwd: string, targetSessionDir?: string): Promise<void> {
-		this.#assertVibeSessionTransitionAllowed("move the session");
+		this.#assertVibeSessionTransitionAllowed(t("tui.session.vibeActionMove"));
 		await this.sessionManager.moveTo(newCwd, targetSessionDir);
 	}
 
@@ -10428,7 +10418,7 @@ export class AgentSession implements SettingsScope {
 		const sessionFile = this.sessionFile;
 		if (!sessionFile) return;
 		const switched = await this.switchSession(sessionFile);
-		if (!switched) throw new Error("Session reload cancelled");
+		if (!switched) throw new Error(t("tui.session.reloadCancelled"));
 	}
 	/**
 	 * Switch to a different session file.
@@ -10818,7 +10808,7 @@ export class AgentSession implements SettingsScope {
 		const selectedEntry = this.sessionManager.getEntry(entryId);
 
 		if (selectedEntry?.type !== "message" || selectedEntry.message.role !== "user") {
-			throw new Error("Invalid entry ID for branching");
+			throw new Error(t("tui.session.invalidBranchEntryId"));
 		}
 
 		const selectedText = this.#extractUserMessageText(selectedEntry.message.content);
@@ -10924,11 +10914,11 @@ export class AgentSession implements SettingsScope {
 		using _transition = this.#beginSessionTransition();
 		const previousSessionFile = this.sessionFile;
 		if (!this.sessionManager.getSessionFile()) {
-			throw new Error("Cannot branch /btw: session is not persisted");
+			throw new Error(t("tui.session.btwNotPersisted"));
 		}
 
 		if (!leafId || this.sessionManager.getSessionId() !== sessionId || this.sessionManager.getLeafId() !== leafId) {
-			throw new Error("Cannot branch /btw: session changed since /btw started");
+			throw new Error(t("tui.session.btwSessionChanged"));
 		}
 
 		if (
@@ -10939,7 +10929,7 @@ export class AgentSession implements SettingsScope {
 			this.isGeneratingHandoff ||
 			this.isRetrying
 		) {
-			throw new Error("Cannot branch /btw while session maintenance or user work is still running");
+			throw new Error(t("tui.session.btwBusy"));
 		}
 
 		if (this.#extensionRunner?.hasHandlers("session_before_branch")) {
@@ -10954,7 +10944,7 @@ export class AgentSession implements SettingsScope {
 		}
 
 		if (this.sessionManager.getSessionId() !== sessionId || this.sessionManager.getLeafId() !== leafId) {
-			throw new Error("Cannot branch /btw: session changed since /btw started");
+			throw new Error(t("tui.session.btwSessionChanged"));
 		}
 
 		await withTimeout(
@@ -10970,7 +10960,7 @@ export class AgentSession implements SettingsScope {
 			this.isGeneratingHandoff ||
 			this.isRetrying
 		) {
-			throw new Error("Cannot branch /btw while session maintenance or user work is still running");
+			throw new Error(t("tui.session.btwBusy"));
 		}
 
 		this.#pendingNextTurnMessages = [];
@@ -10993,7 +10983,7 @@ export class AgentSession implements SettingsScope {
 			await this.#advisors.drainAndDetachRecorders();
 			try {
 				if (this.sessionManager.getSessionId() !== sessionId || this.sessionManager.getLeafId() !== leafId) {
-					throw new Error("Cannot branch /btw: session changed since /btw started");
+					throw new Error(t("tui.session.btwSessionChanged"));
 				}
 				// A prompt may have been admitted during the flush/drain awaits
 				// after the idle check. It still belongs to the pre-branch context.
@@ -11119,7 +11109,7 @@ export class AgentSession implements SettingsScope {
 
 		const targetEntry = this.sessionManager.getEntry(targetId);
 		if (!targetEntry) {
-			throw new Error(`Entry ${targetId} not found`);
+			throw new Error(t("tui.session.entryNotFound", { id: targetId }));
 		}
 		const targetIsAskResult =
 			targetEntry.type === "message" &&
@@ -11143,7 +11133,7 @@ export class AgentSession implements SettingsScope {
 
 		// Model required for summarization
 		if (options.summarize && !this.model) {
-			throw new Error("No model available for summarization");
+			throw new Error(t("tui.session.noModelForSummary"));
 		}
 
 		// `ask` toolResult, first pass: hand control back to the caller to
@@ -11228,7 +11218,7 @@ export class AgentSession implements SettingsScope {
 			const model = this.model!;
 			const apiKey = await this.#modelRegistry.getApiKey(model, this.sessionId);
 			if (!apiKey) {
-				throw new Error(`No API key for ${model.provider}`);
+				throw new Error(t("tui.session.noApiKeyFor", { provider: model.provider }));
 			}
 			const result = await generateBranchSummary(entriesToSummarize, {
 				model,
@@ -11672,7 +11662,7 @@ export class AgentSession implements SettingsScope {
 				coordinator.notifiedKeys.add(first.attemptKey);
 				this.emitNotice(
 					"warning",
-					`Saved ${providerLabel} resets are eligible to spend, but auto-redeem is unset and no prompt UI is available. Run \`/usage reset\` or set ${settingsKey}.`,
+					t("tui.session.autoRedeemUnset", { provider: providerLabel, setting: settingsKey }),
 					source,
 				);
 			}
@@ -11683,31 +11673,58 @@ export class AgentSession implements SettingsScope {
 			if (!("program" in action)) {
 				const codex = action;
 				return codex.reason === "blocked-account"
-					? `${codex.label} is blocked by the Codex ${(codex.blockedWindows ?? []).join(" + ") || "usage"} limit for about ${formatDuration(codex.remainingMs ?? 0)}.`
-					: `${codex.label}: a saved reset expires in ${formatDuration(codex.expiresInMs ?? 0)} (${codex.salvageWindow ?? "weekly"} window ${Math.round((codex.salvageUsedFraction ?? codex.weeklyUsedFraction ?? 0) * 100)}% used).`;
+					? t("tui.session.resetCodexBlocked", {
+							label: codex.label,
+							windows: (codex.blockedWindows ?? []).join(" + ") || "usage",
+							duration: formatDuration(codex.remainingMs ?? 0),
+						})
+					: t("tui.session.resetCodexExpires", {
+							label: codex.label,
+							duration: formatDuration(codex.expiresInMs ?? 0),
+							window: codex.salvageWindow ?? "weekly",
+							percent: Math.round((codex.salvageUsedFraction ?? codex.weeklyUsedFraction ?? 0) * 100),
+						});
 			}
 			const claude = action;
-			const grant = claude.program === "juniper_tide" ? "5h session-only reset" : (claude.title ?? "saved reset");
-			const early = claude.requiresLimit
-				? ""
-				: " This grant permits early use before the covered window is fully blocked.";
+			const grant =
+				claude.program === "juniper_tide"
+					? t("tui.session.resetGrantSessionOnly")
+					: (claude.title ?? t("tui.session.resetGrantSaved"));
+			const early = claude.requiresLimit ? "" : t("tui.session.resetEarlyUse");
 			return claude.reason === "blocked-account"
-				? `${claude.label}: ${grant} covers ${(claude.blockedWindows ?? []).map(formatUsageResetWindow).join(" + ")} with about ${formatDuration(claude.remainingMs ?? 0)} left.${early}`
-				: `${claude.label}: ${grant} expires in ${formatDuration(claude.expiresInMs ?? 0)}; ${formatUsageResetWindow(claude.salvageWindow ?? "")} is ${Math.round((claude.salvageUsedFraction ?? 0) * 100)}% used.${early}`;
+				? t("tui.session.resetClaudeCovers", {
+						label: claude.label,
+						grant,
+						windows: (claude.blockedWindows ?? []).map(formatUsageResetWindow).join(" + "),
+						duration: formatDuration(claude.remainingMs ?? 0),
+						early,
+					})
+				: t("tui.session.resetClaudeExpires", {
+						label: claude.label,
+						grant,
+						duration: formatDuration(claude.expiresInMs ?? 0),
+						window: formatUsageResetWindow(claude.salvageWindow ?? ""),
+						percent: Math.round((claude.salvageUsedFraction ?? 0) * 100),
+						early,
+					});
 		});
 		const question =
 			actions.length === 1
-				? `Spend a saved ${providerLabel} rate-limit reset?\n${lines[0]}`
-				: `Spend ${actions.length} saved ${providerLabel} rate-limit resets?\n${lines.join("\n")}`;
+				? t("tui.session.resetSpendOne", { provider: providerLabel, line: lines[0] })
+				: t("tui.session.resetSpendMany", {
+						count: actions.length,
+						provider: providerLabel,
+						lines: lines.join("\n"),
+					});
 		try {
 			const choice = await runner.getUIContext().select(question, [
 				{
-					label: "Yes",
-					description: `Redeem now and remember yes for future eligible ${providerLabel} resets.`,
+					label: t("common.yes"),
+					description: t("tui.session.resetConfirmYes", { provider: providerLabel }),
 				},
 				{
-					label: "No",
-					description: `Do not auto-redeem saved ${providerLabel} resets.`,
+					label: t("common.no"),
+					description: t("tui.session.resetConfirmNo", { provider: providerLabel }),
 				},
 			]);
 			if (choice === "Yes") {
@@ -11944,16 +11961,25 @@ export class AgentSession implements SettingsScope {
 				case "reset": {
 					redeemed++;
 					const left =
-						action.availableCount === undefined ? undefined : ` (${Math.max(0, action.availableCount - 1)} left)`;
+						action.availableCount === undefined
+							? undefined
+							: t("tui.session.resetLeft", { count: Math.max(0, action.availableCount - 1) });
 					const detail =
 						action.reason === "expiring-credit"
-							? `it was set to expire in ${formatDuration(action.expiresInMs ?? 0)}`
+							? t("tui.session.resetDetailExpiring", { duration: formatDuration(action.expiresInMs ?? 0) })
 							: outcome.cleared?.length
-								? `cleared ${outcome.cleared.map(formatUsageResetWindow).join(" + ")}; retrying now`
-								: "retrying now";
+								? t("tui.session.resetDetailCleared", {
+										windows: outcome.cleared.map(formatUsageResetWindow).join(" + "),
+									})
+								: t("tui.session.resetDetailRetrying");
 					this.emitNotice(
 						"info",
-						`Auto-redeemed a saved ${providerLabel} rate-limit reset for ${action.label}${left ?? ""}; ${detail}.`,
+						t("tui.session.resetAutoRedeemed", {
+							provider: providerLabel,
+							label: action.label,
+							left: left ?? "",
+							detail,
+						}),
 						source,
 					);
 					break;
@@ -11961,7 +11987,7 @@ export class AgentSession implements SettingsScope {
 				case "already_redeemed":
 					this.emitNotice(
 						"warning",
-						`A saved ${providerLabel} reset for ${action.label} was already redeemed elsewhere.`,
+						t("tui.session.resetAlreadyRedeemed", { provider: providerLabel, label: action.label }),
 						source,
 					);
 					break;
@@ -11972,7 +11998,7 @@ export class AgentSession implements SettingsScope {
 					if (action.reason === "blocked-account") {
 						this.emitNotice(
 							"warning",
-							`${providerLabel} reset for ${action.label} reported nothing to reset; will retry later.`,
+							t("tui.session.resetNothingToReset", { provider: providerLabel, label: action.label }),
 							source,
 						);
 					} else {
@@ -11983,7 +12009,11 @@ export class AgentSession implements SettingsScope {
 					if (action.reason === "blocked-account") {
 						this.emitNotice(
 							"warning",
-							`${providerLabel} auto-redeem for ${action.label} failed (${outcome.code}); will retry later.`,
+							t("tui.session.resetAutoRedeemFailed", {
+								provider: providerLabel,
+								label: action.label,
+								code: outcome.code,
+							}),
 							source,
 						);
 					} else {

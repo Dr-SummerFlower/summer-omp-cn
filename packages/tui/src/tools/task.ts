@@ -53,6 +53,7 @@ import { errorText, noteText, resultText } from "./native-view";
 import { describeJsonTree } from "./json-tree";
 import { taskSummary } from "../overlays/agent-hub-renderer";
 import type { NativeToolView, ToolRenderResult } from "./renderer";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Render context threaded in from `ToolExecutionComponent.#buildRenderContext`. */
 interface TaskRenderContext {
@@ -1463,7 +1464,7 @@ export function renderResult(
 		const borderColor = isError ? "error" : "borderMuted";
 
 		if (lines.length === 0) {
-			const text = fallbackText.trim() ? fallbackText : "No results";
+			const text = fallbackText.trim() ? fallbackText : t("tui.tools.task.noResults");
 			return {
 				header,
 				sections: [
@@ -1993,7 +1994,7 @@ function describeTaskResult(
 			return {
 				tool: { title: "Task", target: agentLabel, targetKind: "text" },
 				tone: "error",
-				body: compact([context, errorText(fallback || "Task failed")]),
+				body: compact([context, errorText(fallback || t("tui.tools.task.taskFailed"))]),
 			};
 		}
 		return {

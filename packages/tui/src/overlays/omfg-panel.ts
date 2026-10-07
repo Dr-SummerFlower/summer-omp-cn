@@ -1,3 +1,4 @@
+import { t } from "@oh-my-pi/pi-i18n";
 import { type Component, Markdown, Text, type TUI } from "../index";
 import { replaceTabs } from "../render/render-utils";
 import { getMarkdownTheme, theme } from "../theme/theme";
@@ -38,7 +39,7 @@ interface OmfgPanelComponentOptions {
 export class OmfgPanelComponent extends OverlayPanel {
 	#tui: TUI;
 	#state: OmfgPanelState = "generating";
-	#status = "Generating TTSR rule…";
+	#status = t("tui.omfg.status.generating");
 	#preview = "";
 	#savedPath: string | undefined;
 	#errorMessage: string | undefined;
@@ -83,7 +84,7 @@ export class OmfgPanelComponent extends OverlayPanel {
 		if (this.#closed) return;
 		this.#state = "saved";
 		this.#savedPath = path;
-		this.#status = `Saved ${path}`;
+		this.#status = t("tui.omfg.status.saved", { path });
 		this.#errorMessage = undefined;
 		this.#rebuild();
 	}
@@ -91,7 +92,7 @@ export class OmfgPanelComponent extends OverlayPanel {
 	markRejected(): void {
 		if (this.#closed) return;
 		this.#state = "rejected";
-		this.#status = "Rule was not saved.";
+		this.#status = t("tui.omfg.status.rejected");
 		this.#errorMessage = undefined;
 		this.#rebuild();
 	}
@@ -99,7 +100,7 @@ export class OmfgPanelComponent extends OverlayPanel {
 	markAborted(): void {
 		if (this.#closed) return;
 		this.#state = "aborted";
-		this.#status = "Cancelled.";
+		this.#status = t("tui.omfg.status.cancelled");
 		this.#errorMessage = undefined;
 		this.#rebuild();
 	}
@@ -107,7 +108,7 @@ export class OmfgPanelComponent extends OverlayPanel {
 	markError(message: string): void {
 		if (this.#closed) return;
 		this.#state = "error";
-		this.#status = "Could not create rule.";
+		this.#status = t("tui.omfg.status.error");
 		this.#errorMessage = message;
 		this.#rebuild();
 	}
@@ -148,36 +149,39 @@ export class OmfgPanelComponent extends OverlayPanel {
 
 	#describeBody(): NativeNode {
 		if (this.#state === "error") {
-			return text([span(replaceTabs(this.#errorMessage ?? "Unknown error"), "error")], { wrap: "word" });
+			return text([span(replaceTabs(this.#errorMessage ?? t("tui.omfg.error.unknown")), "error")], { wrap: "word" });
 		}
 		const preview = replaceTabs(this.#preview).trim();
 		if (preview) return md(preview, { stream: this.#state === "generating" });
-		return text([span(`${theme.status.pending} Waiting for candidate rule…`, "dim")]);
+		return text([span(`${theme.status.pending} ${t("tui.omfg.waitingForRule")}`, "dim")]);
 	}
 
 	#describeFooter(): NativeNode {
-		const esc: NativeHint = { keys: boundKeys("app.interrupt", ["escape"]).slice(0, 1), label: "dismiss" };
+		const esc: NativeHint = {
+			keys: boundKeys("app.interrupt", ["escape"]).slice(0, 1),
+			label: t("tui.omfg.hint.dismiss"),
+		};
 		switch (this.#state) {
 			case "generating":
 			case "validating":
 			case "confirming":
 			case "saving":
-				return hintsRow([{ ...esc, label: "cancel /omfg" }]);
+				return hintsRow([{ ...esc, label: t("tui.omfg.hint.cancel") }]);
 			case "saved":
 				return statusHintsRow(
 					[
-						span(`${theme.status.success} Registered live`, "success"),
+						span(`${theme.status.success} ${t("tui.omfg.footer.registered")}`, "success"),
 						span(" · ", "muted"),
-						span(replaceTabs(this.#savedPath ?? "saved"), "path"),
+						span(replaceTabs(this.#savedPath ?? t("tui.omfg.saved")), "path"),
 					],
 					[esc],
 				);
 			case "rejected":
-				return statusHintsRow([span(`${theme.status.warning} Not saved`, "warning")], [esc]);
+				return statusHintsRow([span(`${theme.status.warning} ${t("tui.omfg.footer.notSaved")}`, "warning")], [esc]);
 			case "aborted":
-				return statusHintsRow([span(`${theme.status.warning} Cancelled`, "warning")], [esc]);
+				return statusHintsRow([span(`${theme.status.warning} ${t("common.status.cancelled")}`, "warning")], [esc]);
 			case "error":
-				return statusHintsRow([span(`${theme.status.error} Error`, "error")], [esc]);
+				return statusHintsRow([span(`${theme.status.error} ${t("common.feedback.error")}`, "error")], [esc]);
 		}
 	}
 
@@ -195,28 +199,37 @@ export class OmfgPanelComponent extends OverlayPanel {
 			case "validating":
 			case "confirming":
 			case "saving":
-				return theme.fg("muted", `${esc} cancel /omfg`);
+				return theme.fg("muted", `${esc} ${t("tui.omfg.hint.cancel")}`);
 			case "saved":
 				return theme.fg(
 					"success",
-					`${theme.status.success} Registered live · ${replaceTabs(this.#savedPath ?? "saved")} · ${esc} dismiss`,
+					`${theme.status.success} ${t("tui.omfg.footer.registered")} · ${replaceTabs(this.#savedPath ?? t("tui.omfg.saved"))} · ${esc} ${t("tui.omfg.hint.dismiss")}`,
 				);
 			case "rejected":
-				return theme.fg("warning", `${theme.status.warning} Not saved · ${esc} dismiss`);
+				return theme.fg(
+					"warning",
+					`${theme.status.warning} ${t("tui.omfg.footer.notSaved")} · ${esc} ${t("tui.omfg.hint.dismiss")}`,
+				);
 			case "aborted":
-				return theme.fg("warning", `${theme.status.warning} Cancelled · ${esc} dismiss`);
+				return theme.fg(
+					"warning",
+					`${theme.status.warning} ${t("common.status.cancelled")} · ${esc} ${t("tui.omfg.hint.dismiss")}`,
+				);
 			case "error":
-				return theme.fg("error", `${theme.status.error} Error · ${esc} dismiss`);
+				return theme.fg(
+					"error",
+					`${theme.status.error} ${t("common.feedback.error")} · ${esc} ${t("tui.omfg.hint.dismiss")}`,
+				);
 		}
 	}
 
 	#contentComponent(): Component {
 		if (this.#state === "error") {
-			return new Text(theme.fg("error", replaceTabs(this.#errorMessage ?? "Unknown error")), 0, 0);
+			return new Text(theme.fg("error", replaceTabs(this.#errorMessage ?? t("tui.omfg.error.unknown"))), 0, 0);
 		}
 		const text = replaceTabs(this.#preview).trim();
 		if (!text) {
-			return new Text(theme.fg("dim", `${theme.status.pending} Waiting for candidate rule…`), 0, 0);
+			return new Text(theme.fg("dim", `${theme.status.pending} ${t("tui.omfg.waitingForRule")}`), 0, 0);
 		}
 		return new Markdown(text, 0, 0, getMarkdownTheme());
 	}

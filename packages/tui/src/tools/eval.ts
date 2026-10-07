@@ -43,6 +43,7 @@ import {
 import type { ImageContent } from "@oh-my-pi/pi-ai";
 import type { OutputMeta } from "./output-meta";
 import { type ConfiguredThinkingLevel, expandKeyHint } from "../render/render-utils";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Runtime backend that an eval cell dispatches to. */
 export type EvalLanguage = "python" | "js";
@@ -699,7 +700,7 @@ function evalCellSection(cell: EvalCellSection, index: number, total: number): N
 		head = [span(`${index + 1}/${total}`, "muted")];
 		const title = plainText(cell.title ?? "").trim();
 		if (title) head.push(span(` ${title}`, "toolTitle"));
-		if (cell.status === "error") head.push(span(" · failed", "error"));
+		if (cell.status === "error") head.push(span(t("tui.tools.eval.failed"), "error"));
 		if (cell.durationMs !== undefined) head.push(span(` · ${(cell.durationMs / 1000).toFixed(2)}s`, "muted"));
 	}
 	return node(

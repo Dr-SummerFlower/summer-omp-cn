@@ -85,14 +85,15 @@ import {
 } from "./acp-event-mapper";
 import { ACP_TERMINAL_AUTH_FLAG } from "./terminal-auth";
 
+import { t } from "@oh-my-pi/pi-i18n";
 import { cfgDisabledExtensions } from "../../extensibility/settings";
 import { cfgPlanEnabled } from "../../plan-mode/settings";
 
 const ACP_DEFAULT_MODE_ID = "default";
 const ACP_PLAN_MODE_ID = "plan";
 const DEFAULT_PLAN_FILE_URL = "local://PLAN.md";
-const APPROVE_OPTION = "Approve and execute";
-const REFINE_OPTION = "Refine plan";
+const APPROVE_OPTION = t("tui.plan.optionApproveExecute");
+const REFINE_OPTION = t("tui.plan.optionRefine");
 const MODE_CONFIG_ID = "mode";
 const MODEL_CONFIG_ID = "model";
 const THINKING_CONFIG_ID = "thinking";
@@ -508,7 +509,9 @@ export function createAcpExtensionUiContext(
 				connection,
 				getSessionId(),
 				"askDialog",
-				questions.length === 1 ? questions[0].question : `Answer ${questions.length} questions`,
+				questions.length === 1
+					? questions[0].question
+					: t("tui.acp.ask.answerQuestions", { count: questions.length }),
 				properties,
 				undefined,
 				{
@@ -604,7 +607,7 @@ export function createAcpExtensionUiContext(
 		},
 		getAllThemes: async () => [],
 		getTheme: async () => undefined,
-		setTheme: async () => ({ success: false, error: "Theme changes are unavailable in ACP mode" }),
+		setTheme: async () => ({ success: false, error: t("tui.acp.themeUnavailable") }),
 		getToolsExpanded: () => false,
 		setToolsExpanded: () => {},
 	};
@@ -637,16 +640,16 @@ export class AcpAgent implements Agent {
 		const authMethods: AuthMethod[] = [
 			{
 				id: "agent",
-				name: "Use existing local credentials",
-				description: "Authenticate via the provider keys/OAuth state already configured under ~/.omp.",
+				name: t("tui.acp.auth.local.name"),
+				description: t("tui.acp.auth.local.description"),
 			},
 		];
 		if (params.clientCapabilities?.auth?.terminal === true) {
 			authMethods.push({
 				type: "terminal",
 				id: "terminal",
-				name: "Set up omp in terminal",
-				description: "Launch the omp TUI to add provider keys and select models.",
+				name: t("tui.acp.auth.terminal.name"),
+				description: t("tui.acp.auth.terminal.description"),
 				args: [ACP_TERMINAL_AUTH_FLAG],
 			});
 		}
@@ -1751,7 +1754,7 @@ export class AcpAgent implements Agent {
 		const configOptions: SessionConfigOption[] = [
 			{
 				id: MODE_CONFIG_ID,
-				name: "Mode",
+				name: t("tui.acp.config.mode"),
 				category: "mode",
 				type: "select",
 				currentValue: currentModeId,
@@ -1764,7 +1767,7 @@ export class AcpAgent implements Agent {
 		if (models.length > 0) {
 			configOptions.push({
 				id: MODEL_CONFIG_ID,
-				name: "Model",
+				name: t("tui.acp.config.model"),
 				category: "model",
 				type: "select",
 				currentValue: currentModel ? this.#toModelId(currentModel) : this.#toModelId(models[0]),
@@ -1778,7 +1781,7 @@ export class AcpAgent implements Agent {
 
 		configOptions.push({
 			id: THINKING_CONFIG_ID,
-			name: "Thinking",
+			name: t("tui.acp.config.thinking"),
 			category: "thought_level",
 			type: "select",
 			currentValue: this.#toThinkingConfigValue(
@@ -1791,8 +1794,12 @@ export class AcpAgent implements Agent {
 
 	#buildThinkingOptions(session: AgentSession): Array<{ value: string; name: string; description?: string }> {
 		return [
-			{ value: THINKING_OFF, name: "Off" },
-			{ value: AUTO_THINKING, name: "Auto", description: "Auto-detect per prompt" },
+			{ value: THINKING_OFF, name: t("tui.acp.thinking.off") },
+			{
+				value: AUTO_THINKING,
+				name: t("tui.acp.thinking.auto"),
+				description: t("tui.acp.thinking.autoDescription"),
+			},
 			...session.getAvailableThinkingLevels().map(level => ({
 				value: level,
 				name: level,
@@ -1832,12 +1839,18 @@ export class AcpAgent implements Agent {
 	}
 
 	#getAvailableModes(session: AgentSession): Array<{ id: string; name: string; description: string }> {
-		const modes = [{ id: ACP_DEFAULT_MODE_ID, name: "Default", description: "Standard ACP headless mode" }];
+		const modes = [
+			{
+				id: ACP_DEFAULT_MODE_ID,
+				name: t("tui.acp.mode.default"),
+				description: t("tui.acp.mode.defaultDescription"),
+			},
+		];
 		if (cfgPlanEnabled.get(session.settings)) {
 			modes.push({
 				id: ACP_PLAN_MODE_ID,
-				name: "Plan",
-				description: "Read-only planning mode that drafts a plan to a markdown file before any code changes",
+				name: t("tui.acp.mode.plan"),
+				description: t("tui.acp.mode.planDescription"),
 			});
 		}
 		void session;
@@ -1888,7 +1901,7 @@ export class AcpAgent implements Agent {
 	async #handleAcpPlanProposal(session: AgentSession, title: string): Promise<AgentToolResult<unknown>> {
 		const state = session.getPlanModeState();
 		if (!state?.enabled) {
-			throw new ToolError("Plan mode is not active.");
+			throw new ToolError(t("tui.session.planModeNotActive"));
 		}
 		const {
 			planFilePath,
@@ -1918,7 +1931,7 @@ export class AcpAgent implements Agent {
 				content: [
 					{
 						type: "text" as const,
-						text: `Plan refinement requested. Update the plan file, then write ${normalizedTitle} to xd://propose again when ready.`,
+						text: t("tui.acp.plan.refinementRequested", { title: normalizedTitle }),
 					},
 				],
 				details,
@@ -1961,8 +1974,8 @@ export class AcpAgent implements Agent {
 				{
 					type: "text" as const,
 					text: autosaveFailed
-						? `Plan approved at ${planFilePath}. Plan mode exited; proceed with the implementation. (Plan autosave failed; continuing.)`
-						: `Plan approved at ${planFilePath}. Plan mode exited; proceed with the implementation.`,
+						? t("tui.acp.plan.approvedAutosaveFailed", { path: planFilePath })
+						: t("tui.acp.plan.approved", { path: planFilePath }),
 				},
 			],
 			details,
@@ -2028,7 +2041,7 @@ export class AcpAgent implements Agent {
 		// inline and a multi-thousand-line plan blows out the dialog.
 		const previewLines = planContent.split("\n").slice(0, 12).join("\n");
 		const ellipsis = planContent.split("\n").length > 12 ? "\n…" : "";
-		const message = `Approve plan "${title}" and start implementation?\n\n${previewLines}${ellipsis}`;
+		const message = `${t("tui.acp.plan.approvePrompt", { title })}\n\n${previewLines}${ellipsis}`;
 		const value = await elicitFromAcpClient(
 			this.#connection,
 			sessionId,

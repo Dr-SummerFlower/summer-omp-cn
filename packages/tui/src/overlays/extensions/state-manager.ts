@@ -12,6 +12,7 @@ import {
 	type ExtensionProvider,
 	type TreeNode,
 } from "./types";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export function resolveExtensionState(
 	source: { provider: string; level: string },
@@ -151,7 +152,7 @@ export function applyFilter(extensions: Extension[], query: string): Extension[]
 function getKindDisplayName(kind: ExtensionKind): string {
 	switch (kind) {
 		case "extension-module":
-			return "Extension Modules";
+			return t("tui.overlays.extensions.stateManager.extensionModules");
 		case "skill":
 			return "Skills";
 		case "rule":
@@ -159,17 +160,17 @@ function getKindDisplayName(kind: ExtensionKind): string {
 		case "tool":
 			return "Tools";
 		case "mcp":
-			return "MCP Servers";
+			return t("tui.overlays.extensions.stateManager.mcpServers");
 		case "prompt":
 			return "Prompts";
 		case "instruction":
 			return "Instructions";
 		case "context-file":
-			return "Context Files";
+			return t("tui.overlays.extensions.stateManager.contextFiles");
 		case "hook":
 			return "Hooks";
 		case "slash-command":
-			return "Slash Commands";
+			return t("tui.overlays.extensions.stateManager.slashCommands");
 		default:
 			return kind;
 	}

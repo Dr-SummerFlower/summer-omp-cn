@@ -1,4 +1,5 @@
 import * as path from "node:path";
+import { t } from "@oh-my-pi/pi-i18n";
 import type { AgentMessage } from "@oh-my-pi/pi-agent-core";
 import { isInsideTmux, wrapTmuxPassthrough } from "@oh-my-pi/pi-tui/terminal-capabilities";
 import { VERSION } from "@oh-my-pi/pi-utils/dirs";
@@ -198,7 +199,7 @@ export function createWarpEventBridgeExtension(): ExtensionFactory {
 			emitter?.emit({
 				event: "permission_request",
 				tool_name: event.toolName,
-				summary: `omp wants to run ${event.toolName}`,
+				summary: t("tui.warp.wantsToRun", { tool: event.toolName }),
 			});
 		});
 
@@ -208,7 +209,7 @@ export function createWarpEventBridgeExtension(): ExtensionFactory {
 
 		api.on("tool_execution_start", event => {
 			if (event.toolName === "ask") {
-				emitter?.emit({ event: "question_asked", summary: "Waiting for your answer" });
+				emitter?.emit({ event: "question_asked", summary: t("tui.warp.waitingForAnswer") });
 			}
 		});
 

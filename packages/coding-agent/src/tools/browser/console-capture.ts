@@ -1,5 +1,6 @@
 import type { Protocol } from "devtools-protocol";
 import type { CDPSession, ConsoleMessage, HTTPRequest, Page } from "puppeteer-core";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Console levels accepted by the browser console query. */
 export type BrowserConsoleLevel = "log" | "info" | "warn" | "error" | "debug";
@@ -272,7 +273,7 @@ export class PageConsoleCapture {
 		};
 		this.#requestFailedHandler = request => {
 			if (this.#cdp) return;
-			const failure = request.failure()?.errorText ?? "Request failed";
+			const failure = request.failure()?.errorText ?? t("tui.ca.tools.browser.consoleCapture.requestFailed");
 			const url = request.url();
 			this.#push({
 				seq: this.#allocateSequence(),

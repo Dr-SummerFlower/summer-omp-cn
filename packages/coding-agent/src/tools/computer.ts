@@ -24,6 +24,7 @@ import {
 	cfgComputerMaxWidth,
 	cfgToolsMaxTimeout,
 } from "./settings";
+import { t } from "@oh-my-pi/pi-i18n";
 
 // Image transports that cannot preserve native screenshot detail resize frames
 // without returning transformed dimensions. Keep their native coordinate frames
@@ -65,9 +66,7 @@ type ComputerParamsSchema = Type<ComputerParams>;
 const getComputerParamsSchema: () => ComputerParamsSchema = once(() =>
 	type({
 		action: "'run'",
-		"code?": type("string").describe(
-			"JavaScript executed in the persistent computer session; top-level await allowed; `desktop`, `wait`, `assert` in scope",
-		),
+		"code?": type("string").describe(t("tui.ca.tools.computer.javascriptExecutedInThePersistentComputer")),
 		"fn?": type("string").describe("serialized function receiving the computer run scope and positional args"),
 		"args?": type("unknown[]").describe("positional function arguments"),
 		"read_only?": type("boolean").describe(
@@ -203,7 +202,9 @@ async function invokeComputer(
 				content: [
 					{
 						type: "text",
-						text: capabilities ? stringifyReturnValue(capabilities) : "Computer capabilities unavailable",
+						text: capabilities
+							? stringifyReturnValue(capabilities)
+							: t("tui.ca.tools.computer.computerCapabilitiesUnavailable"),
 					},
 				],
 				details: capabilities,

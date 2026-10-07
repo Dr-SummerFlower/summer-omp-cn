@@ -12,6 +12,7 @@ import { type AnySetting, lookup } from "../config/registry";
 import { Settings, settings } from "../config/settings";
 import { theme } from "@oh-my-pi/pi-tui/theme";
 import { initXdg } from "./commands/init-xdg";
+import { t } from "@oh-my-pi/pi-i18n";
 
 // =============================================================================
 // Types
@@ -334,27 +335,27 @@ function shadowingSource(setting: AnySetting): { json: Record<string, string>; m
 			return setting.envFallback
 				? {
 						json: { fallbackEnv: name },
-						message: `$${name} is used as a fallback while the saved value is blank.`,
+						message: t("cli.config.nameIsUsedAsAFallback", { name: name }),
 					}
 				: {
 						json: { overriddenBy: name },
-						message: `$${name} overrides this value; unset it for the saved value to apply.`,
+						message: t("cli.config.nameOverridesThisValueUnsetIt", { name: name }),
 					};
 		}
 		case "project":
 			return {
 				json: { overriddenBy: provenance },
-				message: "Project settings override this value here; edit or remove it there for the saved value to apply.",
+				message: t("cli.config.projectSettingsOverrideThisValueHere"),
 			};
 		case "overlay":
 			return {
 				json: { overriddenBy: provenance },
-				message: "A --config / PI_CONFIG_FILES overlay overrides this value for this process.",
+				message: t("cli.config.aConfigPiConfigFilesOverlay"),
 			};
 		case "runtime":
 			return {
 				json: { overriddenBy: provenance },
-				message: "A runtime override supplies the effective value for this process.",
+				message: t("cli.config.aRuntimeOverrideSuppliesTheEffective"),
 			};
 	}
 }
@@ -403,30 +404,14 @@ function handlePath(): void {
 // =============================================================================
 
 export function printConfigHelp(): void {
-	console.log(`${chalk.bold(`${APP_NAME} config`)} - Manage settings
-
-${chalk.bold("Commands:")}
-  list               List all settings with current values
-  get <key>          Get a specific setting value
-  set <key> <value>  Set a setting value
-  reset <key>        Remove a setting from config.yml so its default applies
-  path               Print the config directory path
-  init-xdg           Initialize XDG Base Directory structure
-
-${chalk.bold("Options:")}
-  --json             Output as JSON
-
-${chalk.bold("Examples:")}
-  ${APP_NAME} config list
-  ${APP_NAME} config get theme
-  ${APP_NAME} config set theme catppuccin-mocha
-  ${APP_NAME} config set compaction.enabled false
-  ${APP_NAME} config set defaultThinkingLevel medium
-  ${APP_NAME} config reset steeringMode
-  ${APP_NAME} config list --json
-  ${APP_NAME} config init-xdg
-
-${chalk.bold("Boolean Values:")}
-  true, false, yes, no, on, off, 1, 0
-`);
+	console.log(
+		t("cli.config.help", {
+			title: chalk.bold(`${APP_NAME} config`),
+			headingCommands: chalk.bold(t("cli.help.heading.commands")),
+			headingOptions: chalk.bold(t("cli.help.heading.options")),
+			headingExamples: chalk.bold(t("cli.help.heading.examples")),
+			app: APP_NAME,
+			headingBooleanValues: chalk.bold(t("cli.help.heading.booleanValues")),
+		}),
+	);
 }

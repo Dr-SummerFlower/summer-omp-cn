@@ -46,6 +46,7 @@ import { code, compact, md, node, row, span, text } from "../native/describe";
 import type { DescribeContext, NativeChild, NativeNode, NativeUiEvent } from "../native/node";
 import { actionHint, hintsRow, type NativeHint, overlayCard } from "../native/overlay";
 import { CLOSE_ACTION, type PickerEvent, picker, pickerAction, pickerEvent } from "../native/picker";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Key of the leading list item that replays the history older than the startup tail. */
 export const EARLIER_TURNS_KEY = "earlier";
@@ -53,7 +54,7 @@ export const EARLIER_TURNS_KEY = "earlier";
 /** Leading item of a truncated transcript list; selecting it loads the older turns. */
 export const earlierTurnsItem: NativeNode = node(
 	"item",
-	{ label: [span("Earlier turns…", "muted")], hint: ["a"] },
+	{ label: [span(t("tui.overlays.copySelector.earlierTurns"), "muted")], hint: ["a"] },
 	undefined,
 	EARLIER_TURNS_KEY,
 );
@@ -87,9 +88,9 @@ function turnSummary(entry: TranscriptEntry): { label: string; role: string } {
 		case "pythonExecution":
 			return { label: firstLine(message.code), role: "omp.tool.eval" };
 		case "compactionSummary":
-			return { label: "Compaction summary", role: "omp.summary" };
+			return { label: t("tui.overlays.copySelector.compactionSummary"), role: "omp.summary" };
 		case "branchSummary":
-			return { label: "Branch summary", role: "omp.summary" };
+			return { label: t("tui.overlays.copySelector.branchSummary"), role: "omp.summary" };
 		case "custom":
 		case "hookMessage": {
 			const draft = userTurnDraft(entry);
@@ -696,7 +697,7 @@ export class CopySelectorComponent implements Component {
 		const action = this.deps.actionLabel ?? "copy";
 		const props: TspPickerProps = {
 			title: this.deps.title ?? "Copy",
-			...(this.deps.title ? {} : { subtitle: "Pick what to put on the clipboard" }),
+			...(this.deps.title ? {} : { subtitle: t("tui.overlays.copySelector.pickWhatToPutOnThe") }),
 			icon: "clipboard",
 			noun: "turns",
 			size: "lg",
@@ -707,13 +708,17 @@ export class CopySelectorComponent implements Component {
 			items: this.#pickerItems.of(this.#targets),
 			selected: target?.turnId ?? null,
 			total: this.#targets.length,
-			empty: "Nothing to copy",
+			empty: t("tui.overlays.copySelector.nothingToCopy"),
 			focus: descended ? "preview" : "list",
 			actions: compact([
 				pickerAction("pick", `${action[0]!.toUpperCase()}${action.slice(1)}`, "enter", { primary: true }),
 				!descended && blocks.length > 0 ? pickerAction("blocks", "Blocks", "right") : undefined,
-				focused?.href && this.deps.onOpen ? pickerAction("open-link", "Open link", "o") : undefined,
-				!descended && this.#truncated ? pickerAction("earlier", "Earlier turns", "a") : undefined,
+				focused?.href && this.deps.onOpen
+					? pickerAction("open-link", t("tui.overlays.copySelector.openLink"), "o")
+					: undefined,
+				!descended && this.#truncated
+					? pickerAction("earlier", t("tui.overlays.copySelector.earlierTurns2"), "a")
+					: undefined,
 				descended ? { ...CLOSE_ACTION, label: "Back" } : CLOSE_ACTION,
 			]),
 		};
@@ -722,7 +727,13 @@ export class CopySelectorComponent implements Component {
 			const whole = targetCopy(target, blocks);
 			if (whole.content.trim()) {
 				preview.push(
-					previewSection("whole", "Whole message", turnPreview(target, whole.content), whole.content, false),
+					previewSection(
+						"whole",
+						t("tui.overlays.copySelector.wholeMessage"),
+						turnPreview(target, whole.content),
+						whole.content,
+						false,
+					),
 				);
 			}
 			blocks.forEach((block, index) => {
@@ -758,10 +769,12 @@ export class CopySelectorComponent implements Component {
 		if (this.#blocks && target) {
 			const block = this.#blocks[this.#blockSelected];
 			children.push(
-				row([text([span("‹ back", "accent")], { actions: { click: "back" } })], { gap: "md" }),
+				row([text([span(t("tui.overlays.copySelector.back"), "accent")], { actions: { click: "back" } })], {
+					gap: "md",
+				}),
 				node(
 					"list",
-					{ selected: String(this.#blockSelected), empty: "No blocks" },
+					{ selected: String(this.#blockSelected), empty: t("tui.overlays.copySelector.noBlocks") },
 					this.#blocks.map((item, index) => {
 						const lines = item.content.split("\n").length;
 						return node(
@@ -786,7 +799,12 @@ export class CopySelectorComponent implements Component {
 			children.push(
 				node(
 					"list",
-					{ selected: target?.turnId ?? null, virtual: true, max: 0.5, empty: "Nothing to copy" },
+					{
+						selected: target?.turnId ?? null,
+						virtual: true,
+						max: 0.5,
+						empty: t("tui.overlays.copySelector.nothingToCopy2"),
+					},
 					this.#transcriptItems(),
 					"list",
 				),
@@ -807,7 +825,7 @@ export class CopySelectorComponent implements Component {
 				upDown,
 				blocks.length > 0 ? { keys: ["right"], label: "blocks" } : undefined,
 				{ keys: ["enter"], label: action },
-				this.#truncated ? { keys: ["a"], label: "earlier turns" } : undefined,
+				this.#truncated ? { keys: ["a"], label: t("tui.overlays.copySelector.earlierTurns3") } : undefined,
 				cancel,
 			];
 		}
@@ -1088,7 +1106,12 @@ export function collectBlocks(entries: readonly TranscriptEntry[]): CopyBlock[] 
 				if (message.output.trim()) blocks.push({ label: "output", content: message.output, entry });
 				break;
 			case "pythonExecution":
-				blocks.push({ label: "eval code", content: message.code, entry, language: "python" });
+				blocks.push({
+					label: t("tui.overlays.copySelector.evalCode"),
+					content: message.code,
+					entry,
+					language: "python",
+				});
 				if (message.output.trim()) blocks.push({ label: "output", content: message.output, entry });
 				break;
 			default:
@@ -1104,10 +1127,10 @@ export function targetCopy(target: OutlineTarget, blocks: readonly CopyBlock[]):
 	const message = transcriptEntryMessage(entry);
 	switch (message?.role) {
 		case "user":
-			return { content: rawUserText(message), label: "user message" };
+			return { content: rawUserText(message), label: t("tui.overlays.copySelector.userMessage") };
 		case "assistant": {
 			const text = assistantVisibleText(message);
-			if (text) return { content: text, label: "assistant message" };
+			if (text) return { content: text, label: t("tui.overlays.copySelector.assistantMessage") };
 			break;
 		}
 		case "toolResult": {
@@ -1118,12 +1141,12 @@ export function targetCopy(target: OutlineTarget, blocks: readonly CopyBlock[]):
 		case "bashExecution":
 			return {
 				content: [message.command, message.output].filter(part => part.trim()).join("\n"),
-				label: "bash execution",
+				label: t("tui.overlays.copySelector.bashExecution"),
 			};
 		case "pythonExecution":
 			return {
 				content: [message.code, message.output].filter(part => part.trim()).join("\n"),
-				label: "eval execution",
+				label: t("tui.overlays.copySelector.evalExecution"),
 			};
 		case "compactionSummary":
 		case "branchSummary":
@@ -1147,5 +1170,8 @@ export function targetCopy(target: OutlineTarget, blocks: readonly CopyBlock[]):
 			break;
 	}
 	// No direct prose (e.g. a pure tool turn): fall back to its blocks joined.
-	return { content: blocks.map(block => block.content).join("\n\n"), label: "turn content" };
+	return {
+		content: blocks.map(block => block.content).join("\n\n"),
+		label: t("tui.overlays.copySelector.turnContent"),
+	};
 }

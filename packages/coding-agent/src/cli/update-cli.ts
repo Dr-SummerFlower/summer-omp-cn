@@ -30,6 +30,7 @@ import {
 } from "./npm-registry";
 
 import { cfgUpdateChannel } from "../modes/settings";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const REPO = "can1357/oh-my-pi";
 const PACKAGE = "@oh-my-pi/pi-coding-agent";
@@ -2231,23 +2232,13 @@ export async function runUpdateCommand(opts: {
  * Print update command help.
  */
 export function printUpdateHelp(): void {
-	console.log(`${chalk.bold(`${APP_NAME} update`)} - Check for and install updates
-
-${chalk.bold("Usage:")}
-  ${APP_NAME} update [options]
-
-${chalk.bold("Options:")}
-  -c, --check     Check for updates without installing
-  -f, --force     Force reinstall even if up to date
-  -l, --plugins   Update installed plugins
-  --canary        Switch to the canary channel and update
-  --stable        Switch back to the stable channel
-
-${chalk.bold("Examples:")}
-  ${APP_NAME} update              Update to latest version
-  ${APP_NAME} update --check      Check if updates are available
-  ${APP_NAME} update --force      Force reinstall
-  ${APP_NAME} update -l           Update installed plugins
-  ${APP_NAME} update --canary    Switch to the canary channel and update
-`);
+	console.log(
+		t("cli.update.help", {
+			title: chalk.bold(`${APP_NAME} update`),
+			headingUsage: chalk.bold(t("cli.help.heading.usage")),
+			app: APP_NAME,
+			headingOptions: chalk.bold(t("cli.help.heading.options")),
+			headingExamples: chalk.bold(t("cli.help.heading.examples")),
+		}),
+	);
 }

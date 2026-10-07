@@ -1,4 +1,5 @@
 import type { ImageContent } from "@oh-my-pi/pi-ai";
+import { t } from "@oh-my-pi/pi-i18n";
 import {
 	type Component,
 	Ellipsis,
@@ -98,16 +99,23 @@ import { getKeybindings } from "../keybindings";
 import { plainText } from "../native/spans";
 
 const OTHER_OPTION = "Other (type your own)";
-const SUBMIT_OPTION = "Submit";
 const RECOMMENDED_SUFFIX = " (Recommended)";
-/** Native labels: the free-text row and the answers-review tab. */
-const OTHER_LABEL = "Other…";
-const REVIEW_TAB = "Review";
+/** Native review-tab label. Lazy so the active language is read at render
+ *  time, not at module load. */
+const reviewTabLabel = (): string => t("tui.ask.tab.review");
 
 // Action rows appended by the guest race participant. An option sanitizing
 // to one of these must disambiguate identically on both sides, or the same
 // question renders different rows depending on who answers.
-const GUEST_ACTION_LABELS = ["Chat about this", "Next →"];
+const GUEST_ACTION_LABELS = [t("tui.overlays.askDialog.chatAboutThis"), "Next →"];
+
+/** "N unanswered question(s); ⏎ still submits." — shared by the native and ANSI render paths. */
+function unansweredWarning(count: number, enterKey: string): string {
+	return t(count === 1 ? "tui.ask.review.unansweredOne" : "tui.ask.review.unansweredMany", {
+		count,
+		enter: enterKey,
+	});
+}
 
 /** Fraction of the terminal the dialog may occupy. The box height is fixed
  *  at spawn from the tallest tab's content (re-measured only on viewport
@@ -763,7 +771,7 @@ export class AskDialogComponent implements Component {
 				id: String(index),
 				label: questionTabName(question, index),
 			}));
-			items.push({ id: "submit", label: REVIEW_TAB });
+			items.push({ id: "submit", label: reviewTabLabel() });
 			const active = this.#isSubmitTab() ? "submit" : String(this.#activeTabIndex);
 			children.push(
 				node("tabs", { items, active, role: "omp.ask.questions", actions: { click: "select" } }, undefined, "tabs"),
@@ -782,7 +790,7 @@ export class AskDialogComponent implements Component {
 							style: "ring",
 							size: "sm",
 							label: `${Math.ceil(left / 1000)}s`,
-							title: "Answers the recommended option when the time runs out",
+							title: t("tui.ask.timer.tooltip"),
 						},
 						undefined,
 						"timer",
@@ -820,15 +828,18 @@ export class AskDialogComponent implements Component {
 					: option !== undefined && state.selectedOptions.has(option.label);
 			const recommended = rowItem.kind === "option" && question.recommended === rowItem.optionIndex;
 			// The badge replaces the ANSI `(Recommended)` suffix.
+			// The free-text row keeps the reserved English label: every ask
+			// race participant (local dialog, guest selector) must render it
+			// identically, so it is not translated.
 			const label =
 				rowItem.kind === "other"
-					? OTHER_LABEL
+					? OTHER_OPTION
 					: recommended && rowItem.label.endsWith(RECOMMENDED_SUFFIX)
 						? rowItem.label.slice(0, -RECOMMENDED_SUFFIX.length)
 						: rowItem.label;
 			const detail =
 				describeRowDetail(rowItem, question, state) ??
-				(rowItem.kind === "other" ? [span("Type your own answer", "dim")] : undefined);
+				(rowItem.kind === "other" ? [span(t("tui.ask.row.otherHint"), "dim")] : undefined);
 			return node(
 				"item",
 				{
@@ -844,7 +855,7 @@ export class AskDialogComponent implements Component {
 						),
 					role: rowItem.kind === "other" ? "omp.ask.other" : optionRole,
 					...(detail ? { detail } : {}),
-					...(recommended ? { value: [span("Recommended", "accent")] } : {}),
+					...(recommended ? { value: [span(t("tui.ask.badge.recommended"), "accent")] } : {}),
 					...(checked ? { icon: "check", tone: "success" as const } : {}),
 				},
 				undefined,
@@ -871,10 +882,7 @@ export class AskDialogComponent implements Component {
 	#describeSubmitBody(children: NativeChild[]): void {
 		const unanswered = this.#unansweredCount();
 		if (unanswered > 0) {
-			const noun = `question${unanswered === 1 ? "" : "s"}`;
-			children.push(
-				text([span(`${unanswered} unanswered ${noun}; ${formatKeyHint("enter")} still submits.`, "warning")]),
-			);
+			children.push(text([span(unansweredWarning(unanswered, formatKeyHint("enter")), "warning")]));
 		}
 		const answers: { k: string; v: readonly TspSpan[] }[] = [];
 		for (let index = 0; index < this.#questions.length; index++) {
@@ -893,31 +901,34 @@ export class AskDialogComponent implements Component {
 	 */
 	#describeActions(blocked: boolean): NativeNode {
 		const cancelKey = getKeybindings().getKeys("tui.select.cancel")[0];
-		const skip = actionButton("Skip", "cancel", cancelKey ? { keys: cancelKey } : {});
+		const skip = actionButton(t("tui.ask.button.skip"), "cancel", cancelKey ? { keys: cancelKey } : {});
 		const inputGuard = this.options.inputGuard;
 		if (blocked && inputGuard) {
 			return actionBar([text([span(plainText(inputGuard.hint), "muted")], { truncate: "end" }), null, skip]);
 		}
-		const moves = ["up/down move"];
-		if (this.#hasSubmitTab()) moves.push("tab switches question");
+		const moves = [t("tui.ask.tip.move")];
+		if (this.#hasSubmitTab()) moves.push(t("tui.ask.tip.tab"));
 		if (this.#isSubmitTab()) {
-			const submit = actionButton("Submit", "submit", {
+			const submit = actionButton(t("tui.ask.button.submit"), "submit", {
 				keys: "enter",
 				tone: "accent",
-				title: "Submit answers  enter",
+				title: `${t("tui.ask.tooltip.submitAnswers")}  enter`,
 			});
 			return actionBar([null, skip, submit]);
 		}
 		const question = this.#questions[this.#currentQuestionIndex()];
 		const last = this.#questions.length === 1;
-		const enterLabel = last ? "Submit" : "Next";
-		const tips = question?.multi ? ["space toggles", ...moves] : moves;
+		const enterLabel = last ? t("tui.ask.button.submit") : t("tui.ask.button.next");
+		const tips = question?.multi ? [t("tui.ask.tip.space"), ...moves] : moves;
 		const submit = actionButton(enterLabel, "submit", {
 			keys: "enter",
 			tone: "accent",
 			title: `${enterLabel}  enter · ${tips.join(" · ")}`,
 		});
-		const note = actionButton("Note", "note", { keys: "n", title: `Add a note to the highlighted answer  n` });
+		const note = actionButton(t("tui.ask.button.note"), "note", {
+			keys: "n",
+			title: `${t("tui.ask.tooltip.note")}  n`,
+		});
 		return actionBar([null, note, skip, submit]);
 	}
 
@@ -1100,7 +1111,7 @@ export class AskDialogComponent implements Component {
 					id: String(index),
 					label: questionTabLabel(question, index),
 				})),
-				{ id: "submit", label: "Submit" },
+				{ id: "submit", label: t("tui.ask.button.submit") },
 			];
 			this.#tabBar = new TabBar("", tabs, getTabBarTheme(), this.#activeTabIndex);
 			this.#tabBar.showHint = false;
@@ -1109,7 +1120,7 @@ export class AskDialogComponent implements Component {
 		if (this.#isSubmitTab()) {
 			this.#headerExpandable = false;
 			this.#descExpandable = false;
-			lines.push(theme.bold(theme.fg("accent", "Review answers")));
+			lines.push(theme.bold(theme.fg("accent", t("tui.ask.review.heading"))));
 			return lines;
 		}
 		const questionIndex = this.#currentQuestionIndex();
@@ -1144,10 +1155,10 @@ export class AskDialogComponent implements Component {
 		}
 		const question = this.#questions[this.#currentQuestionIndex()];
 		// Enter advances in multi-question dialogs and submits single-question ones.
-		const enterAction = this.#questions.length > 1 ? "next" : "submit";
+		const enterAction = t(this.#questions.length > 1 ? "tui.ask.action.next" : "tui.ask.action.submit");
 		const action = question?.multi
-			? `${formatKeyHint("space")} toggle · ${enter} ${enterAction}`
-			: `${enter} select · ${formatKeyHint("n")} note`;
+			? t("tui.ask.hint.multiToggle", { space: formatKeyHint("space"), enter, action: enterAction })
+			: t("tui.ask.hint.singleSelect", { enter, note: formatKeyHint("n") });
 		const tabs = this.#hasSubmitTab() ? ` · ${formatKeyHints(["tab", "left", "right"])}` : "";
 		const expand = this.#expandHint();
 		if (this.#questionCanPage && indicator) {
@@ -1311,7 +1322,7 @@ export class AskDialogComponent implements Component {
 	): Promise<void> {
 		this.#promptActive = true;
 		try {
-			const title = boundPromptTitle("Custom answer: ", question.question);
+			const title = boundPromptTitle(t("tui.ask.prompt.customAnswer"), question.question);
 			const prefill =
 				state.customInput === undefined ? undefined : { text: state.customInput, images: state.customInputImages };
 			const result = await this.#openPrompt(title, prefill);
@@ -1449,12 +1460,7 @@ export class AskDialogComponent implements Component {
 		const allLines: string[] = [];
 		const unanswered = this.#unansweredCount();
 		if (unanswered > 0) {
-			allLines.push(
-				theme.fg(
-					"warning",
-					`${unanswered} unanswered question${unanswered === 1 ? "" : "s"}; ${formatKeyHint("enter")} still submits.`,
-				),
-			);
+			allLines.push(theme.fg("warning", unansweredWarning(unanswered, formatKeyHint("enter"))));
 			allLines.push("");
 		}
 		for (let index = 0; index < this.#questions.length; index++) {
@@ -1473,7 +1479,7 @@ export class AskDialogComponent implements Component {
 			}
 		}
 		allLines.push("");
-		allLines.push(theme.fg("accent", `${theme.nav.cursor} ${SUBMIT_OPTION}`));
+		allLines.push(theme.fg("accent", `${theme.nav.cursor} ${t("tui.ask.button.submit")}`));
 		this.#submitScrollOffset = clamp(this.#submitScrollOffset, 0, Math.max(0, allLines.length - rows));
 		const scrollView = new ScrollView(allLines, {
 			height: rows,

@@ -21,6 +21,7 @@ import { parseSkillSpec, type SkillSpec, SkillshareClient, SkillshareError } fro
 import { installSkills, searchSkills, showSkillInfo, uninstallSkills, updateSkills } from "../skillshare/installer";
 import { bumpVersion, type PackResult, packSkill, SEMVER_RE } from "../skillshare/pack";
 import { handleSkillList } from "./skill-list";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export type SkillAction =
 	| "publish"
@@ -252,9 +253,7 @@ async function handlePublish(cmd: SkillCommandArgs): Promise<number> {
 				process.stderr.write(`  ${finding.path}:${finding.line}  ${finding.kind}\n`);
 			}
 			if (!cmd.flags.allowSecrets) {
-				process.stderr.write(
-					"refusing to publish: remove them, list the files in .skillignore, or pass --allow-secrets\n",
-				);
+				process.stderr.write(t("cli.skill.refusingToPublishRemoveThemList"));
 				return 1;
 			}
 		}
@@ -354,7 +353,13 @@ async function handleDeprecate(cmd: SkillCommandArgs): Promise<number> {
 				version => range === undefined || Bun.semver.satisfies(version, range),
 			);
 			if (versions.length === 0) {
-				process.stderr.write(`skill deprecate: no versions of @${spec.scope}/${spec.name} match ${range}\n`);
+				process.stderr.write(
+					t("cli.skill.skillDeprecateNoVersionsOfSpec", {
+						"spec.scope": spec.scope,
+						"spec.name": spec.name,
+						range: range,
+					}),
+				);
 				return 1;
 			}
 		}
@@ -411,7 +416,9 @@ async function handleToken(cmd: SkillCommandArgs): Promise<number> {
 			process.stdout.write(`${JSON.stringify(created, null, 2)}\n`);
 			return 0;
 		}
-		process.stderr.write(`created token ${created.name} (${created.id})\n`);
+		process.stderr.write(
+			t("cli.skill.createdTokenCreatedNameCreatedId", { "created.name": created.name, "created.id": created.id }),
+		);
 		process.stdout.write(`${created.token}\n`);
 		process.stderr.write(
 			chalk.yellow(`store it now (e.g. as the ${SKILLS_TOKEN_ENV} CI secret); it cannot be shown again\n`),

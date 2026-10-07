@@ -14,6 +14,7 @@ import {
 import { isFireworksFastModelId } from "@oh-my-pi/pi-catalog/fireworks-model-id";
 import { getSupportedEfforts } from "@oh-my-pi/pi-catalog/model-thinking";
 import { modelsAreEqual } from "@oh-my-pi/pi-catalog/models";
+import { t } from "@oh-my-pi/pi-i18n";
 import { logger } from "@oh-my-pi/pi-utils";
 import { classifyDifficulty } from "../auto-thinking/classifier";
 import type { ModelRegistry } from "../config/model-registry";
@@ -232,7 +233,7 @@ export class ModelControls {
 	): Promise<{ switched: boolean }> {
 		const previousEditMode = this.#host.resolveActiveEditMode();
 		if (!this.#host.modelRegistry.hasConfiguredAuth(model)) {
-			throw new Error(`No API key for ${model.provider}/${model.id}`);
+			throw new Error(t("tui.session.noApiKeyForProviderModel", { provider: model.provider, id: model.id }));
 		}
 
 		const targetModel = await this.#host.modelRegistry.refreshSelectedModelMetadata(model);
@@ -277,7 +278,7 @@ export class ModelControls {
 	): Promise<void> {
 		const previousEditMode = this.#host.resolveActiveEditMode();
 		if (!this.#host.modelRegistry.hasConfiguredAuth(model)) {
-			throw new Error(`No API key for ${model.provider}/${model.id}`);
+			throw new Error(t("tui.session.noApiKeyForProviderModel", { provider: model.provider, id: model.id }));
 		}
 
 		const targetModel = await this.#host.modelRegistry.refreshSelectedModelMetadata(model);
@@ -470,7 +471,7 @@ export class ModelControls {
 
 		const apiKey = await this.#host.modelRegistry.getApiKey(nextModel, this.#host.sessionId());
 		if (!apiKey) {
-			throw new Error(`No API key for ${nextModel.provider}/${nextModel.id}`);
+			throw new Error(t("tui.session.noApiKeyForProviderModel", { provider: nextModel.provider, id: nextModel.id }));
 		}
 
 		this.#host.modelRegistry.clearSuppressedSelector(formatModelStringWithRouting(nextModel));
@@ -776,11 +777,7 @@ export class ModelControls {
 		const model = this.#model;
 		const family = model ? serviceTierFamily(model) : undefined;
 		if (!model || !family) {
-			this.#host.emitNotice(
-				"info",
-				"The current model has no service-tier control for /fast to toggle.",
-				"priority",
-			);
+			this.#host.emitNotice("info", t("tui.session.fastNoServiceTierControl"), "priority");
 			return false;
 		}
 		if (!enabled) {
@@ -789,11 +786,7 @@ export class ModelControls {
 			return true;
 		}
 		if (family === "openai" && !shouldSendServiceTier("priority", model)) {
-			this.#host.emitNotice(
-				"info",
-				"The current model does not offer the priority (Fast) service tier.",
-				"priority",
-			);
+			this.#host.emitNotice("info", t("tui.session.fastPriorityUnavailable"), "priority");
 			return false;
 		}
 		if (family === "anthropic" && this.#serviceTierByFamily.anthropic === "priority") {
@@ -816,7 +809,7 @@ export class ModelControls {
 			return true;
 		}
 		if (!model || serviceTierFamily(model) !== "openai" || !shouldSendServiceTier("ultrafast", model)) {
-			this.#host.emitNotice("info", "The current model does not offer the Ultrafast service tier.", "priority");
+			this.#host.emitNotice("info", t("tui.session.fastUltrafastUnavailable"), "priority");
 			return false;
 		}
 		this.setServiceTierFamily("openai", "ultrafast");

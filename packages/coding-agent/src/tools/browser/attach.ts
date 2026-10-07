@@ -7,6 +7,7 @@ import type { Socket } from "bun";
 import type { Browser, Page } from "puppeteer-core";
 import { throwIfAborted } from "../tool-errors";
 import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const ATTACH_TARGET_SKIP_PATTERN =
 	/request[\s_-]?handler|devtools|background[\s_-]?(?:page|host)|service[\s_-]?worker/i;
@@ -28,7 +29,7 @@ export async function findFreeCdpPort(): Promise<number> {
 			server.close(closeErr => (closeErr ? reject(closeErr) : resolve(port)));
 		} else {
 			server.close();
-			reject(new Error("Failed to allocate ephemeral CDP port"));
+			reject(new Error(t("tui.ca.tools.browser.attach.failedToAllocateEphemeralCdpPort")));
 		}
 	});
 	return promise;

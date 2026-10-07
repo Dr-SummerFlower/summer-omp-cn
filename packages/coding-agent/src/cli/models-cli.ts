@@ -26,6 +26,7 @@ import { SessionManager } from "../session/session-manager";
 import { EventBus } from "../utils/event-bus";
 
 import { cfgDisabledExtensions, cfgExtensions } from "../extensibility/settings";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export type ModelsAction = "ls" | "find" | "refresh";
 
@@ -224,7 +225,7 @@ export function renderProviderModels(
 	if (json) {
 		if (configError) {
 			process.stderr.write(
-				`Warning: models.yml validation failed — custom providers disabled\n${configError.message}\n`,
+				t("cli.models.warningModelsYmlValidationFailedCustom", { "configError.message": configError.message }),
 			);
 		}
 		const output: ModelsJson = { models: filtered.slice().sort(byProviderThenId).map(toModelJson) };
@@ -347,7 +348,7 @@ export async function runModelsListing(options: RunModelsListingOptions): Promis
 
 	try {
 		for (const { path: extPath, error } of extensionsResult.errors) {
-			process.stderr.write(`Failed to load extension: ${extPath}: ${error}\n`);
+			process.stderr.write(t("cli.models.failedToLoadExtensionExtpathError", { extPath: extPath, error: error }));
 		}
 
 		// Mirror sdk.ts: drain pending provider registrations into the registry.
@@ -392,7 +393,7 @@ export async function runModelsCommand(command: ModelsCommandArgs): Promise<void
 		const modelRegistry = new ModelRegistry(authStorage);
 
 		if (action === "refresh" && !json && process.stderr.isTTY) {
-			process.stderr.write("Refreshing models from all providers…\n");
+			process.stderr.write(t("cli.models.refreshingModelsFromAllProviders"));
 		}
 		await modelRegistry.refresh(
 			action === "refresh" ? "online" : "online-if-uncached",

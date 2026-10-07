@@ -7,6 +7,7 @@ import { extractTextContent } from "../utils";
 import { type CommitInferenceCache, computeCommitCacheKey } from "./cache";
 import type { ConventionalGenerationConfig } from "./config";
 import type { ConventionalPromptFamily } from "./prompts";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Model roles preserved from llm-git's analysis/summary/map/fast pipeline. */
 export type CommitInferenceRole = "analysis" | "summary" | "map" | "fast";
@@ -133,7 +134,7 @@ export class OmpCommitInference implements CommitInference {
 				);
 				responseText = extractTextContent(message);
 				if (message.stopReason === "error") throw new Error(message.errorMessage ?? "Provider error");
-				if (!responseText.trim()) throw new Error("Empty model response");
+				if (!responseText.trim()) throw new Error(t("tui.ca.commit.conventional.inference.emptyModelResponse"));
 				const raw = { text: responseText, stopReason: message.stopReason };
 				const parsed = parse(raw);
 				if (request.cacheable !== false) {

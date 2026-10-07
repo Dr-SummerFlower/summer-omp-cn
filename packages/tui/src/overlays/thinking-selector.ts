@@ -1,3 +1,4 @@
+import { t } from "@oh-my-pi/pi-i18n";
 import type { Effort } from "@oh-my-pi/pi-ai";
 import { type SelectItem, SelectList, type SgrMouseEvent } from "../index";
 import { getSelectListTheme } from "../theme/theme";
@@ -20,7 +21,7 @@ export class ThinkingSelectorComponent extends OverlayPanel {
 		onSelect: (level: Effort) => void,
 		onCancel: () => void,
 	) {
-		super("Thinking Level", "omp.overlay.thinking");
+		super(t("tui.thinkingSelector.title"), "omp.overlay.thinking");
 
 		const thinkingLevels: SelectItem[] = availableLevels.map(getThinkingLevelMetadata);
 
@@ -43,9 +44,9 @@ export class ThinkingSelectorComponent extends OverlayPanel {
 
 		this.addChild(this.#selectList);
 		this.#sheet = new SelectListSheet(this.#selectList, {
-			title: "Thinking level",
+			title: t("tui.thinkingSelector.sheetTitle"),
 			icon: "brain",
-			noun: "levels",
+			noun: t("tui.thinkingSelector.noun"),
 			current: [currentLevel],
 			decorate: item => ({
 				chips: [{ text: "", dot: `thinking${item.value.charAt(0).toUpperCase()}${item.value.slice(1)}` }],

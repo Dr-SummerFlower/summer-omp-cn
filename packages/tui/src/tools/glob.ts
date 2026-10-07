@@ -1,3 +1,4 @@
+import { t } from "@oh-my-pi/pi-i18n";
 import type { Component } from "../tui";
 import { Text } from "../components/text";
 import type { NativeToolHead, NativeToolView, RenderResultOptions, ToolRenderer } from "./renderer";
@@ -100,8 +101,13 @@ function describeGlobFiles(files: readonly string[], cwd: string | undefined): N
 /** Native glob head: the pattern, then `meta` (the result counts, or the call's `limit`). */
 function globNativeHead(args: GlobRenderArgs | undefined, meta: readonly string[] = []): NativeToolHead {
 	const parts = [...meta];
-	if (meta.length === 0 && args?.limit !== undefined) parts.push(`limit:${args.limit}`);
-	return { title: "Glob", target: formatGlobRenderPaths(args) || "*", targetKind: "pattern", meta: parts };
+	if (meta.length === 0 && args?.limit !== undefined) parts.push(t("tui.glob.meta.limit", { count: args.limit }));
+	return {
+		title: t("tui.glob.title"),
+		target: formatGlobRenderPaths(args) || "*",
+		targetKind: "pattern",
+		meta: parts,
+	};
 }
 
 /** Render glob calls and results in the transcript. */
@@ -109,12 +115,12 @@ export const globToolRenderer = {
 	inline: true,
 	renderCall(args: GlobRenderArgs, _options: RenderResultOptions, uiTheme: Theme): Component {
 		const meta: string[] = [];
-		if (args.limit !== undefined) meta.push(`limit:${args.limit}`);
+		if (args.limit !== undefined) meta.push(t("tui.glob.meta.limit", { count: args.limit }));
 
 		const text = renderStatusLine(
 			{
 				icon: "pending",
-				title: "Glob",
+				title: t("tui.glob.title"),
 				titleColor: "toolTitle",
 				description: formatGlobRenderPaths(args) || "*",
 				meta,
@@ -133,7 +139,8 @@ export const globToolRenderer = {
 		const details = result.details;
 
 		if (result.isError || details?.error) {
-			const errorText = details?.error || result.content?.find(c => c.type === "text")?.text || "Unknown error";
+			const errorText =
+				details?.error || result.content?.find(c => c.type === "text")?.text || t("tui.toolCard.error.unknown");
 			return new Text(formatErrorMessage(errorText, uiTheme), 1, 0);
 		}
 
@@ -147,14 +154,14 @@ export const globToolRenderer = {
 				textContent.includes("No files found") ||
 				textContent.trim() === ""
 			) {
-				return new Text(formatEmptyMessage("No files found", uiTheme), 1, 0);
+				return new Text(formatEmptyMessage(t("tui.glob.empty.noFiles"), uiTheme), 1, 0);
 			}
 
 			const lines = textContent.split("\n").filter(l => l.trim());
 			const header = renderStatusLine(
 				{
 					iconOverride: globStatusIcon(uiTheme),
-					title: "Glob",
+					title: t("tui.glob.title"),
 					titleColor: "toolTitle",
 					description: formatGlobRenderPaths(args),
 					meta: [formatCount("file", lines.length)],
@@ -188,19 +195,23 @@ export const globToolRenderer = {
 
 		const missingPaths = details?.missingPaths ?? [];
 		const missingNote =
-			missingPaths.length > 0 ? uiTheme.fg("warning", `skipped missing: ${missingPaths.join(", ")}`) : undefined;
+			missingPaths.length > 0
+				? uiTheme.fg("warning", t("tui.glob.note.skippedMissing", { paths: missingPaths.join(", ") }))
+				: undefined;
 
 		if (fileCount === 0) {
 			// `truncated` on an empty result means the scan timed out mid-walk —
 			// render "incomplete", not a definitive "No files found".
-			const emptyLabel = truncated ? "No matches before timeout (scan incomplete)" : "No files found";
+			const emptyLabel = truncated ? t("tui.glob.empty.timeout") : t("tui.glob.empty.noFiles");
 			const header = renderStatusLine(
 				{
 					icon: "warning",
-					title: "Glob",
+					title: t("tui.glob.title"),
 					titleColor: "toolTitle",
 					description: formatGlobRenderPaths(args),
-					meta: truncated ? ["0 files", uiTheme.fg("warning", "timed out")] : ["0 files"],
+					meta: truncated
+						? [t("tui.glob.count.filesZero"), uiTheme.fg("warning", t("tui.glob.badge.timedOut"))]
+						: [t("tui.glob.count.filesZero")],
 				},
 				uiTheme,
 			);
@@ -209,12 +220,12 @@ export const globToolRenderer = {
 			return new Text(lines.join("\n"), 1, 0);
 		}
 		const meta: string[] = [formatCount("file", fileCount)];
-		if (details?.scopePath) meta.push(`in ${details.scopePath}`);
-		if (truncated) meta.push(uiTheme.fg("warning", "truncated"));
+		if (details?.scopePath) meta.push(t("tui.toolCard.meta.inScope", { path: details.scopePath }));
+		if (truncated) meta.push(uiTheme.fg("warning", t("tui.glob.badge.truncated")));
 		const header = renderStatusLine(
 			{
 				...(truncated ? { icon: "warning" as const } : { iconOverride: globStatusIcon(uiTheme) }),
-				title: "Glob",
+				title: t("tui.glob.title"),
 				titleColor: "toolTitle",
 				description: formatGlobRenderPaths(args),
 				meta,
@@ -223,15 +234,22 @@ export const globToolRenderer = {
 		);
 
 		const truncationReasons: string[] = [];
-		if (details?.resultLimitReached) truncationReasons.push(`limit ${details.resultLimitReached} results`);
-		if (limits?.resultLimit) truncationReasons.push(`limit ${limits.resultLimit.reached} results`);
-		if (truncation) truncationReasons.push(truncation.truncatedBy === "lines" ? "line limit" : "size limit");
+		if (details?.resultLimitReached)
+			truncationReasons.push(t("tui.glob.reason.limitResults", { count: details.resultLimitReached }));
+		if (limits?.resultLimit)
+			truncationReasons.push(t("tui.glob.reason.limitResults", { count: limits.resultLimit.reached }));
+		if (truncation)
+			truncationReasons.push(
+				truncation.truncatedBy === "lines" ? t("tui.glob.reason.lineLimit") : t("tui.glob.reason.sizeLimit"),
+			);
 		const artifactId = truncation && "artifactId" in truncation ? truncation.artifactId : undefined;
 		if (artifactId) truncationReasons.push(formatFullOutputReference(artifactId));
 
 		const extraLines: string[] = [];
 		if (truncationReasons.length > 0) {
-			extraLines.push(uiTheme.fg("warning", `truncated: ${truncationReasons.join(", ")}`));
+			extraLines.push(
+				uiTheme.fg("warning", t("tui.glob.note.truncated", { reasons: truncationReasons.join(", ") })),
+			);
 		}
 		if (missingNote) extraLines.push(missingNote);
 
@@ -272,7 +290,10 @@ export const globToolRenderer = {
 	): NativeToolView {
 		const details = result.details;
 		if (result.isError || details?.error) {
-			return inlineErrorView(globNativeHead(args), details?.error || resultText(result) || "Unknown error");
+			return inlineErrorView(
+				globNativeHead(args),
+				details?.error || resultText(result) || t("tui.tools.glob.unknownError"),
+			);
 		}
 		if (details?.fileCount === undefined) {
 			const textContent = resultText(result);

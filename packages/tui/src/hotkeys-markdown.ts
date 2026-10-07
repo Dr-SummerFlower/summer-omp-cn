@@ -9,6 +9,7 @@ import type { NativeNode, NativeUiEvent } from "./native/node";
 import { actionBar, actionButton } from "./native/overlay";
 import { getMarkdownTheme } from "./theme/theme";
 import type { Component } from "./tui";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Effective keybinding operations used to render the hotkey reference. */
 export interface HotkeysMarkdownBindings {
@@ -219,7 +220,11 @@ function actionSpans(action: string): TspSpan[] {
  * without the native surface get the transcript markdown panel instead.
  */
 export class HotkeysSheetComponent implements Component {
-	readonly nativeOverlay = { role: "omp.overlay.hotkeys", size: "lg", head: "Keyboard shortcuts" } as const;
+	readonly nativeOverlay = {
+		role: "omp.overlay.hotkeys",
+		size: "lg",
+		head: t("tui.hotkeysMarkdown.keyboardShortcuts"),
+	} as const;
 	readonly #bindings: HotkeysMarkdownBindings;
 	readonly #onClose: () => void;
 	#native: NativeNode | undefined;

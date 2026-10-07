@@ -12,6 +12,7 @@ import {
 	type RawSseDebugRecord,
 	rawSseRecordLines,
 } from "./raw-sse-buffer";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const MIN_VIEWER_WIDTH = 40;
 // `data:` lines below this width render fine on a single row; anything wider gets pretty-printed
@@ -96,7 +97,7 @@ export class RawSseViewerComponent implements Component {
 			this.#onUpdate?.();
 		});
 		this.#frame = new DebugViewerFrame({
-			title: "Raw Provider Stream",
+			title: t("tui.apps.debug.rawSse.rawProviderStream"),
 			getHeight: () => process.stdout.rows || this.#terminalRows || 24,
 			headerRows: 1,
 			footerRows: 1,
@@ -197,8 +198,8 @@ export class RawSseViewerComponent implements Component {
 		const snapshot = this.#buffer.snapshot();
 		if (snapshot.records.length === 0) {
 			return [
-				theme.fg("muted", "No raw SSE frames captured yet."),
-				theme.fg("muted", "HTTP SSE providers populate this view while a model response is streaming."),
+				theme.fg("muted", t("tui.apps.debug.rawSse.noRawSseFramesCapturedYet")),
+				theme.fg("muted", t("tui.apps.debug.rawSse.httpSseProvidersPopulateThisView")),
 			];
 		}
 
@@ -262,7 +263,7 @@ export class RawSseViewerComponent implements Component {
 	#copyAll(): void {
 		const payload = this.#buffer.toRawText();
 		if (payload.trim().length === 0) {
-			const message = "No raw SSE frames to copy";
+			const message = t("tui.apps.debug.rawSse.noRawSseFramesToCopy");
 			this.#statusMessage = message;
 			this.#onStatus?.(message);
 			this.#onUpdate?.();
@@ -271,7 +272,7 @@ export class RawSseViewerComponent implements Component {
 
 		try {
 			this.#deps.copyToClipboard(payload);
-			const message = "Copied raw SSE stream";
+			const message = t("tui.apps.debug.rawSse.copiedRawSseStream");
 			this.#statusMessage = message;
 			this.#onStatus?.(message);
 		} catch (error) {

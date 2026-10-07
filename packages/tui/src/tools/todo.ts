@@ -16,6 +16,7 @@ import { node } from "../native/describe";
 import { OwnerMemo } from "../native/memo";
 import { errorText, noteText, resultText } from "./native-view";
 import type { NativeToolView, ToolRenderResult } from "./renderer";
+import { t } from "@oh-my-pi/pi-i18n";
 
 // =============================================================================
 // Types
@@ -482,7 +483,7 @@ function describeTodoResult(
 		return {
 			tool: { title: "Todo" },
 			tone: "error",
-			body: [errorText(resultText(result) || "Todo operation failed")],
+			body: [errorText(resultText(result) || t("tui.tools.todo.todoOperationFailed"))],
 		};
 	}
 	const phases = (result.details?.phases ?? []).filter(phase => phase.tasks.length > 0);

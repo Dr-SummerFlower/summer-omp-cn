@@ -5,37 +5,38 @@
 import { Args, Command, Flags } from "@oh-my-pi/pi-utils/cli";
 import { usageHelp as commandHelp } from "../cli/command-help";
 import { runUsageCommand } from "../cli/usage-cli";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export default class Usage extends Command {
 	static description = commandHelp.description;
 	static args = {
 		action: Args.string({
-			description: "Optional subcommand to execute",
+			description: t("cli.usage.optionalSubcommandToExecute"),
 			required: false,
 			options: ["invalidate", "clients"],
 		}),
 	};
 
 	static flags = {
-		json: Flags.boolean({ char: "j", description: "Output usage reports as JSON", default: false }),
-		provider: Flags.string({ char: "p", description: "Only show usage for this provider id (e.g. anthropic)" }),
+		json: Flags.boolean({ char: "j", description: t("cli.usage.outputUsageReportsAsJson"), default: false }),
+		provider: Flags.string({ char: "p", description: t("cli.usage.onlyShowUsageForThisProvider") }),
 		redact: Flags.boolean({
 			char: "r",
-			description: "Redact account emails/ids (shortest unique prefix) for sharing screenshots",
+			description: t("cli.usage.redactAccountEmailsIdsShortestUnique"),
 			default: false,
 		}),
 		history: Flags.boolean({
-			description: "Show recorded usage-limit history (hourly snapshots) instead of a live snapshot",
+			description: t("cli.usage.showRecordedUsageLimitHistoryHourly"),
 			default: false,
 		}),
-		days: Flags.integer({ char: "d", description: "History window in days (with --history or clients)", default: 7 }),
+		days: Flags.integer({ char: "d", description: t("cli.usage.historyWindowInDaysWithHistory"), default: 7 }),
 		extension: Flags.string({
 			char: "e",
-			description: "Load an extension file before fetching usage (repeatable)",
+			description: t("cli.usage.loadAnExtensionFileBeforeFetching"),
 			multiple: true,
 		}),
 		"no-extensions": Flags.boolean({
-			description: "Disable extension discovery (explicit -e paths still work)",
+			description: t("cli.launch.disableExtensionDiscoveryExplicitEPaths"),
 		}),
 	};
 

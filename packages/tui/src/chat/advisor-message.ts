@@ -10,6 +10,7 @@ import { card, span, text } from "../native/describe";
 import { type NativeNode, type NativeUiEvent, rootToggleExpanded } from "../native/node";
 import { plainText } from "../native/spans";
 import { Memo } from "../native/memo";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const COLLAPSED_NOTES = 3;
 const NOTE_LINE_WIDTH = 110;
@@ -60,7 +61,10 @@ class AdvisorHeader implements Component {
 		width = Math.max(1, width);
 		if (this.#cache?.width === width) return this.#cache.lines;
 		const uiTheme = this.#uiTheme;
-		const tag = uiTheme.fg("customMessageLabel", uiTheme.bold(`${uiTheme.status.info} Advisor`));
+		const tag = uiTheme.fg(
+			"customMessageLabel",
+			uiTheme.bold(`${uiTheme.status.info} ${t("tui.settings.group.advisor")}`),
+		);
 		const lines = [
 			truncateToWidth(`${tag} ${uiTheme.fg("dim", this.#meta.join(uiTheme.sep.dot))}`, width, Ellipsis.Unicode),
 		];
@@ -95,7 +99,9 @@ class AdvisorNotes implements Component {
 			const uiTheme = this.#uiTheme;
 			const rail = uiTheme.fg("dim", uiTheme.symbol("advisor.rail"));
 			const hidden = this.#hidden;
-			lines.push(`  ${rail} ${uiTheme.fg("dim", `… +${hidden} more ${hidden === 1 ? "note" : "notes"}`)}`);
+			lines.push(
+				`  ${rail} ${uiTheme.fg("dim", t("tui.advisorMessage.hint.moreNotes", { count: hidden, plural: hidden === 1 ? "" : "s" }))}`,
+			);
 		}
 		const rendered = lines.map(line => truncateToWidth(line, width, Ellipsis.Unicode));
 		this.#cache = { width, lines: rendered };
@@ -169,8 +175,12 @@ export function createAdvisorMessageCard(
 ): AdvisorMessageCard {
 	const notes = details?.notes ?? [];
 	const blockers = notes.filter(note => note.severity === "blocker").length;
-	const meta: string[] = [`${notes.length} ${notes.length === 1 ? "note" : "notes"}`];
-	if (blockers > 0) meta.push(uiTheme.fg("error", `${blockers} blocker${blockers === 1 ? "" : "s"}`));
+	const plural = (count: number): string => (count === 1 ? "" : "s");
+	const meta: string[] = [t("tui.advisorMessage.count.notes", { count: notes.length, plural: plural(notes.length) })];
+	if (blockers > 0)
+		meta.push(
+			uiTheme.fg("error", t("tui.advisorMessage.count.blockers", { count: blockers, plural: plural(blockers) })),
+		);
 	let override: boolean | undefined;
 	let lastGlobal = getExpanded();
 	const expanded = (): boolean => {
@@ -184,10 +194,16 @@ export function createAdvisorMessageCard(
 	const nativeMemo = new Memo();
 	const describeCard = (isExpanded: boolean): NativeNode => {
 		const head: TspSpan[] = [
-			span(`${uiTheme.status.info} Advisor`, "customMessageLabel strong"),
-			span(` ${notes.length} ${notes.length === 1 ? "note" : "notes"}`, "dim"),
+			span(`${uiTheme.status.info} ${t("tui.settings.group.advisor")}`, "customMessageLabel strong"),
+			span(` ${t("tui.advisorMessage.count.notes", { count: notes.length, plural: plural(notes.length) })}`, "dim"),
 		];
-		if (blockers > 0) head.push(span(`${uiTheme.sep.dot}${blockers} blocker${blockers === 1 ? "" : "s"}`, "error"));
+		if (blockers > 0)
+			head.push(
+				span(
+					`${uiTheme.sep.dot}${t("tui.advisorMessage.count.blockers", { count: blockers, plural: plural(blockers) })}`,
+					"error",
+				),
+			);
 		const body = notes.map((entry, index) =>
 			text(advisorNoteSpans(entry), { wrap: "word", role: "omp.advisor.note", key: `n${index}` }),
 		);

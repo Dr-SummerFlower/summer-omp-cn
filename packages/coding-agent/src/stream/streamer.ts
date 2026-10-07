@@ -23,6 +23,7 @@ import {
 import { streamSocketEndpoint } from "./paths";
 import { runStreamTui, type StreamTuiInfo } from "./console-tui";
 import { StreamServerClient, type StreamServerFatalError } from "./server-client";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const MAX_LOCAL_LINE_BYTES = 4 * 1024 * 1024;
 
@@ -160,7 +161,7 @@ export class StreamMuxHost {
 			throw error;
 		}
 		process.once("exit", this.#removeSocketSync);
-		this.#onEvent({ t: "notice", message: "connecting your stencil.so channel" });
+		this.#onEvent({ t: "notice", message: t("tui.ca.stream.streamer.connectingYourStencilSoChannel") });
 		this.#onEvent({ t: "title", title: this.#title });
 		this.#onEvent({ t: "link", state: "connecting" });
 		this.#client.start();

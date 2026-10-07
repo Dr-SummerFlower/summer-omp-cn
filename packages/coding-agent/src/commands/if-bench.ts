@@ -1,24 +1,25 @@
 import { Args, Command, Flags } from "@oh-my-pi/pi-utils/cli";
 import { ifBenchHelp as commandHelp } from "../cli/command-help";
 import { runIfBenchCommand } from "../if-bench";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export default class IfBench extends Command {
 	static description = commandHelp.description;
 	static args = {
 		models: Args.string({
-			description: "Model selectors (provider/model or fuzzy id, e.g. opus)",
+			description: t("cli.bench.modelSelectorsProviderModelOrFuzzy"),
 			required: true,
 			multiple: true,
 		}),
 	};
 
 	static flags = {
-		turns: Flags.integer({ description: "Maximum turns per model; turn N issues N actions (default: 24)" }),
-		length: Flags.integer({ description: "Character-array length, even, 8-26 (default: 24)" }),
-		"max-tokens": Flags.integer({ description: "Max output tokens per turn (default: 32768)" }),
-		"nya-max": Flags.integer({ description: "Longest accepted cat sound in nya{1,N} (default: 8)" }),
-		par: Flags.integer({ description: "Models benchmarked concurrently (default: 4)" }),
-		json: Flags.boolean({ description: "Output JSON" }),
+		turns: Flags.integer({ description: t("cli.ifBench.maximumTurnsPerModelTurnN") }),
+		length: Flags.integer({ description: t("cli.ifBench.characterArrayLengthEven826") }),
+		"max-tokens": Flags.integer({ description: t("cli.ifBench.maxOutputTokensPerTurnDefault") }),
+		"nya-max": Flags.integer({ description: t("cli.ifBench.longestAcceptedCatSoundInNya") }),
+		par: Flags.integer({ description: t("cli.ifBench.modelsBenchmarkedConcurrentlyDefault4") }),
+		json: Flags.boolean({ description: t("cli.agents.outputJson") }),
 	};
 
 	static examples = [

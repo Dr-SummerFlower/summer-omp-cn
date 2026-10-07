@@ -8,6 +8,7 @@ import { renderStat } from "../utils";
 import { detectChangelogBoundaries } from "./detect";
 import { generateChangelogEntries } from "./generate";
 import { parseUnreleasedSection } from "./parse";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const CHANGELOG_SECTIONS = CHANGELOG_CATEGORIES;
 
@@ -50,7 +51,7 @@ export async function runChangelogFlow({
 }: ChangelogFlowInput): Promise<string[]> {
 	if (stagedFiles.length === 0) return [];
 	const repo = vcs.requireGit(cwd);
-	onProgress?.("Detecting changelog boundaries...");
+	onProgress?.(t("tui.ca.commit.changelog.index.detectingChangelogBoundaries"));
 	const boundaries = await detectChangelogBoundaries(cwd, stagedFiles);
 	if (boundaries.length === 0) return [];
 

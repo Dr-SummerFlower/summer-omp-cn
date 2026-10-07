@@ -16,6 +16,7 @@ import {
 import * as path from "node:path";
 import { formatBytes, getProjectDir } from "@oh-my-pi/pi-utils";
 import type { TspPickerGroup, TspPickerItem, TspSpan, TspText, TspTone } from "@oh-my-pi/pi-wire";
+import { t } from "@oh-my-pi/pi-i18n";
 import { compact, kv, md, node, span } from "../native/describe";
 import {
 	picker,
@@ -66,15 +67,15 @@ import { boundKeys, interruptKey } from "../chrome/keybinding-hints";
 function formatSessionStatus(status: SessionSelectorStatus | undefined): string | undefined {
 	switch (status) {
 		case "complete":
-			return theme.fg("success", `${theme.status.success} done`);
+			return theme.fg("success", `${theme.status.success} ${t("tui.sessionSelector.status.done")}`);
 		case "interrupted":
-			return theme.fg("warning", `${theme.status.warning} interrupted`);
+			return theme.fg("warning", `${theme.status.warning} ${t("tui.sessionSelector.status.interrupted")}`);
 		case "aborted":
-			return theme.fg("muted", `${theme.status.aborted} aborted`);
+			return theme.fg("muted", `${theme.status.aborted} ${t("tui.sessionSelector.status.aborted")}`);
 		case "error":
-			return theme.fg("error", `${theme.status.error} error`);
+			return theme.fg("error", `${theme.status.error} ${t("tui.sessionSelector.status.error")}`);
 		case "pending":
-			return theme.fg("accent", `${theme.status.pending} pending`);
+			return theme.fg("accent", `${theme.status.pending} ${t("tui.sessionSelector.status.pending")}`);
 		default:
 			return undefined;
 	}
@@ -84,15 +85,15 @@ function formatSessionStatus(status: SessionSelectorStatus | undefined): string 
 function sessionStatusSpan(status: SessionSelectorStatus | undefined): TspSpan | undefined {
 	switch (status) {
 		case "complete":
-			return span("done", "success");
+			return span(t("tui.sessionSelector.status.done"), "success");
 		case "interrupted":
-			return span("interrupted", "warning");
+			return span(t("tui.sessionSelector.status.interrupted"), "warning");
 		case "aborted":
-			return span("aborted", "muted");
+			return span(t("tui.sessionSelector.status.aborted"), "muted");
 		case "error":
-			return span("error", "error");
+			return span(t("tui.sessionSelector.status.error"), "error");
 		case "pending":
-			return span("pending", "accent");
+			return span(t("tui.sessionSelector.status.pending"), "accent");
 		default:
 			return undefined;
 	}
@@ -126,15 +127,19 @@ const PREVIEW_EXCERPT_CHARS = 1200;
 /** The preview follows the selection once it rests this long (holding ↓ doesn't flood the wire). */
 const PREVIEW_SETTLE_MS = 60;
 const DAY_MS = 86_400_000;
-const PINNED_GROUP = { id: "pinned", label: "Pinned" };
+
+/** Pinned-session group header; the label resolves lazily so the language is not frozen at import time. */
+function pinnedGroup(): { id: string; label: string } {
+	return { id: "pinned", label: t("tui.sessionSelector.group.pinned") };
+}
 
 /** Day group of a session's last modification, relative to local midnight today. */
 function sessionDayGroup(modified: Date, startOfToday: number): { id: string; label: string } {
 	const at = modified.getTime();
-	if (at >= startOfToday) return { id: "today", label: "Today" };
-	if (at >= startOfToday - DAY_MS) return { id: "yesterday", label: "Yesterday" };
-	if (at >= startOfToday - 6 * DAY_MS) return { id: "week", label: "This week" };
-	return { id: "earlier", label: "Earlier" };
+	if (at >= startOfToday) return { id: "today", label: t("tui.sessionSelector.group.today") };
+	if (at >= startOfToday - DAY_MS) return { id: "yesterday", label: t("tui.sessionSelector.group.yesterday") };
+	if (at >= startOfToday - 6 * DAY_MS) return { id: "week", label: t("tui.sessionSelector.group.week") };
+	return { id: "earlier", label: t("tui.sessionSelector.group.earlier") };
 }
 
 /** A cwd as dim-prefix / strong-tail path spans. */
@@ -168,14 +173,14 @@ function sessionPreview(session: SessionSelectorEntry, forkedFrom: string | unde
 	return compact([
 		node("text", { text: sessionLabel(session), role: "omp.picker.title" }),
 		kv([
-			["Folder", session.cwd ? cwdSpans(session.cwd) : undefined],
-			["Created", created && pickerDate(created)],
-			["Modified", pickerDate(session.modified)],
-			["Size", formatBytes(session.size)],
-			["Status", status && [status]],
-			["Forked from", forkedFrom],
+			[t("tui.sessionSelector.preview.folder"), session.cwd ? cwdSpans(session.cwd) : undefined],
+			[t("tui.sessionSelector.preview.created"), created && pickerDate(created)],
+			[t("tui.sessionSelector.preview.modified"), pickerDate(session.modified)],
+			[t("tui.sessionSelector.preview.size"), formatBytes(session.size)],
+			[t("tui.sessionSelector.preview.status"), status && [status]],
+			[t("tui.sessionSelector.preview.forkedFrom"), forkedFrom],
 		]),
-		conversation.length > 0 && node("section", { head: "Conversation" }, conversation),
+		conversation.length > 0 && node("section", { head: t("tui.sessionSelector.preview.conversation") }, conversation),
 	]);
 }
 
@@ -186,11 +191,19 @@ function formatSessionDate(date: Date): string {
 	const diffHours = Math.floor(diffMs / 3600000);
 	const diffDays = Math.floor(diffMs / 86400000);
 
-	if (diffMins < 1) return "just now";
-	if (diffMins < 60) return `${diffMins} minute${diffMins !== 1 ? "s" : ""} ago`;
-	if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? "s" : ""} ago`;
-	if (diffDays === 1) return "1 day ago";
-	if (diffDays < 7) return `${diffDays} days ago`;
+	if (diffMins < 1) return t("tui.sessionSelector.age.justNow");
+	if (diffMins < 60) {
+		return t(diffMins === 1 ? "tui.sessionSelector.age.minutesOne" : "tui.sessionSelector.age.minutesMany", {
+			n: diffMins,
+		});
+	}
+	if (diffHours < 24) {
+		return t(diffHours === 1 ? "tui.sessionSelector.age.hoursOne" : "tui.sessionSelector.age.hoursMany", {
+			n: diffHours,
+		});
+	}
+	if (diffDays === 1) return t("tui.sessionSelector.age.dayOne");
+	if (diffDays < 7) return t("tui.sessionSelector.age.daysMany", { n: diffDays });
 
 	return date.toLocaleDateString();
 }
@@ -250,10 +263,13 @@ interface SessionPickerMessage {
 	text: string;
 }
 
-const SCOPE_TABS: readonly { id: "folder" | "all"; label: string }[] = [
-	{ id: "folder", label: "Current folder" },
-	{ id: "all", label: "All projects" },
-];
+/** Scope tabs for the native picker; labels resolve lazily so the language is not frozen at import time. */
+function scopeTabs(): readonly { id: "folder" | "all"; label: string }[] {
+	return [
+		{ id: "folder", label: t("tui.sessionSelector.scope.currentFolder") },
+		{ id: "all", label: t("tui.sessionSelector.scope.allProjects") },
+	];
+}
 
 /** Returns the IDs of sessions whose recorded prompts match a query, best first. */
 export type SessionHistoryMatcher = (query: string) => string[];
@@ -884,7 +900,7 @@ class SessionList<T extends SessionSelectorEntry> implements Component {
 			const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
 			// Pins lead the listing (`sortPinnedFirst`), so they get their own group ahead of the days.
 			const groups = visible.map(session =>
-				this.#pinnedIds.has(session.id) ? PINNED_GROUP : sessionDayGroup(session.modified, startOfToday),
+				this.#pinnedIds.has(session.id) ? pinnedGroup() : sessionDayGroup(session.modified, startOfToday),
 			);
 			for (let i = 0; i < visible.length; i++) {
 				const group = groups[i]!;
@@ -959,9 +975,12 @@ class SessionList<T extends SessionSelectorEntry> implements Component {
 		const title = session.title ? plainText(session.title).trim() : "";
 		const badges: { text: string; tone?: TspTone; title?: string }[] = [];
 		if (session.parentSessionPath) {
-			badges.push({ text: "fork", title: `Forked from “${this.parentLabel(session.parentSessionPath)}”` });
+			badges.push({
+				text: t("tui.sessionSelector.badge.fork"),
+				title: t("tui.sessionSelector.badge.forkTitle", { name: this.parentLabel(session.parentSessionPath) }),
+			});
 		}
-		if (session.path === currentPath) badges.push({ text: "current", tone: "accent" });
+		if (session.path === currentPath) badges.push({ text: t("tui.sessionSelector.badge.current"), tone: "accent" });
 		const when = pickerDate(session.modified);
 		const detail = this.#showCwd ? (session.cwd ? cwdSpans(session.cwd) : undefined) : title ? message : undefined;
 		const dot = sessionStatusTone(session.status);
@@ -1006,7 +1025,16 @@ class SessionList<T extends SessionSelectorEntry> implements Component {
 			if (!base) continue;
 			add.push(
 				now.has(key)
-					? { ...base, badges: [...(base.badges ?? []), { text: "history", title: "Matched in prompt history" }] }
+					? {
+							...base,
+							badges: [
+								...(base.badges ?? []),
+								{
+									text: t("tui.sessionSelector.badge.history"),
+									title: t("tui.sessionSelector.badge.historyTitle"),
+								},
+							],
+						}
 					: base,
 			);
 		}
@@ -1044,8 +1072,12 @@ class SessionList<T extends SessionSelectorEntry> implements Component {
 		const memo = this.#listNative;
 		if (memo?.items === items.items && memo.selected === selected && memo.query === query) return memo.node;
 		const empty: TspText = this.#showCwd
-			? [span("No sessions found", "muted")]
-			: [span("No sessions in current folder. Press ", "muted"), span("tab", "key"), span(" to view all.", "muted")];
+			? [span(t("tui.sessionSelector.empty.none"), "muted")]
+			: [
+					span(t("tui.sessionSelector.empty.folderPrefix"), "muted"),
+					span("tab", "key"),
+					span(t("tui.sessionSelector.empty.folderSuffix"), "muted"),
+				];
 		const list = node(
 			"list",
 			{ selected: selected ?? null, filter: query.trim() || undefined, empty, virtual: true },
@@ -1077,10 +1109,10 @@ class SessionList<T extends SessionSelectorEntry> implements Component {
 			detail.push(part);
 		};
 		if (session.title && message) push(span(message, "dim"));
-		if (current) push(span("current", "accent"));
+		if (current) push(span(t("tui.sessionSelector.badge.current"), "accent"));
 		const status = sessionStatusSpan(session.status);
 		if (status) push(status);
-		if (session.parentSessionPath) push(span("fork", "dim"));
+		if (session.parentSessionPath) push(span(t("tui.sessionSelector.badge.fork"), "dim"));
 		if (this.#showCwd && session.cwd) push(span(shortenPath(session.cwd), "path"));
 		const item = node(
 			"item",
@@ -1111,12 +1143,12 @@ class SessionList<T extends SessionSelectorEntry> implements Component {
 
 		if (this.#menu.visibleItems.length === 0) {
 			if (this.#showCwd) {
-				lines.push(truncateToWidth(theme.fg("muted", "No sessions found"), width));
+				lines.push(truncateToWidth(theme.fg("muted", t("tui.sessionSelector.empty.none")), width));
 			} else {
 				// "Current folder" scope - hint to try "all"
 				lines.push(
 					truncateToWidth(
-						theme.fg("muted", `No sessions in current folder. Press ${formatKeyHint("tab")} to view all.`),
+						theme.fg("muted", t("tui.sessionSelector.empty.folderInline", { key: formatKeyHint("tab") })),
 						width,
 					),
 				);
@@ -1190,14 +1222,14 @@ class SessionList<T extends SessionSelectorEntry> implements Component {
 			const modified = formatSessionDate(session.modified);
 			let metadata = `  ${dim(modified)} ${dot} ${dim(formatBytes(session.size))}`;
 			if (currentPath !== undefined && session.path === currentPath) {
-				metadata += ` ${dot} ${theme.fg("accent", "current")}`;
+				metadata += ` ${dot} ${theme.fg("accent", t("tui.sessionSelector.badge.current"))}`;
 			}
 			const status = formatSessionStatus(session.status);
 			if (status) {
 				metadata += ` ${dot} ${status}`;
 			}
 			if (session.parentSessionPath) {
-				metadata += ` ${dot} ${dim(`${theme.icon.branch} fork`)}`;
+				metadata += ` ${dot} ${dim(`${theme.icon.branch} ${t("tui.sessionSelector.badge.fork")}`)}`;
 			}
 			if (this.#showCwd && session.cwd) {
 				metadata += ` ${dot} ${dim(shortenPath(session.cwd))}`;
@@ -1221,7 +1253,7 @@ class SessionList<T extends SessionSelectorEntry> implements Component {
 			height: sessionLines.length,
 			scrollbar: "auto",
 			totalRows,
-			theme: { track: t => theme.fg("muted", t), thumb: t => theme.fg("accent", t) },
+			theme: { track: text => theme.fg("muted", text), thumb: text => theme.fg("accent", text) },
 		});
 		sv.setScrollOffset(offsetRows);
 		const sessionRegionStart = lines.length;
@@ -1413,7 +1445,7 @@ export class SessionSelectorComponent<T extends SessionSelectorEntry = SessionSe
 		onExit: () => void,
 		options: SessionSelectorOptions<T> = {},
 	) {
-		super(options.title ?? "Resume Session");
+		super(options.title ?? t("tui.sessionSelector.title.resume"));
 
 		this.#messageContainer = new Container();
 		this.#onDelete = options.onDelete;
@@ -1422,8 +1454,8 @@ export class SessionSelectorComponent<T extends SessionSelectorEntry = SessionSe
 		this.#globalSessions = options.allSessions ?? null;
 		this.#getTerminalRows = options.getTerminalRows ?? (() => 24);
 		this.#fillHeight = options.fillHeight ?? false;
-		this.#title = options.title ?? "Resume Session";
-		this.#pickerTitle = options.title ?? "Resume session";
+		this.#title = options.title ?? t("tui.sessionSelector.title.resume");
+		this.#pickerTitle = options.title ?? t("tui.sessionSelector.title.resumeLower");
 		this.#standalone = options.standalone ?? false;
 		this.#scopeLabel = options.scopeLabel;
 		this.title = this.#headerLabel();
@@ -1472,7 +1504,11 @@ export class SessionSelectorComponent<T extends SessionSelectorEntry = SessionSe
 
 	#headerLabel(): string {
 		if (this.#scopeLabel === false) return this.#title;
-		const scopeLabel = this.#scopeLabel ?? (this.#scope === "all" ? "all projects" : "current folder");
+		const scopeLabel =
+			this.#scopeLabel ??
+			(this.#scope === "all"
+				? t("tui.sessionSelector.scope.allProjectsInline")
+				: t("tui.sessionSelector.scope.currentFolderInline"));
 		return `${this.#title} (${scopeLabel})`;
 	}
 
@@ -1488,9 +1524,10 @@ export class SessionSelectorComponent<T extends SessionSelectorEntry = SessionSe
 			if (!global) {
 				if (!this.#loadAllSessions) return;
 				this.#toggling = true;
+				const loading = t("tui.sessionSelector.loading.allProjects");
 				this.#messageContainer.clear();
-				this.#messageContainer.addChild(new Text(theme.fg("muted", "Loading all projects…"), 0, 0));
-				this.#message = { kind: "loading", text: "Loading all projects…" };
+				this.#messageContainer.addChild(new Text(theme.fg("muted", loading), 0, 0));
+				this.#message = { kind: "loading", text: loading };
 				this.#onRequestRender?.();
 				try {
 					global = await this.#loadAllSessions();
@@ -1545,14 +1582,21 @@ export class SessionSelectorComponent<T extends SessionSelectorEntry = SessionSe
 
 	#showError(message: string): void {
 		this.#messageContainer.clear();
-		this.#message = { kind: "error", text: `Error: ${plainText(message)}` };
+		this.#message = {
+			kind: "error",
+			text: t("tui.sessionSelector.error.prefix", { message: plainText(message) }),
+		};
 		this.#pickerErrorOpen = true;
-		this.#messageContainer.addChild(new Text(theme.fg("error", `Error: ${replaceTabs(message)}`), 0, 0));
+		this.#messageContainer.addChild(
+			new Text(theme.fg("error", t("tui.sessionSelector.error.prefix", { message: replaceTabs(message) })), 0, 0),
+		);
 		this.#messageContainer.addChild(new Spacer(1));
 	}
 
 	#showDeleteConfirmation(session: T): void {
 		const displayName = session.title || session.firstMessage.slice(0, 40) || session.id;
+		const yes = t("tui.sessionSelector.delete.yes");
+		const no = t("tui.sessionSelector.delete.no");
 		const closeDialog = () => {
 			this.#confirmationDialog = null;
 			this.#deleteChoice = null;
@@ -1564,7 +1608,7 @@ export class SessionSelectorComponent<T extends SessionSelectorEntry = SessionSe
 			this.#onRequestRender?.();
 		};
 		const answer = async (option: string) => {
-			if (option === "Yes" && this.#onDelete) {
+			if (option === yes && this.#onDelete) {
 				this.#clearError();
 				try {
 					const deleted = await this.#onDelete(session);
@@ -1582,8 +1626,8 @@ export class SessionSelectorComponent<T extends SessionSelectorEntry = SessionSe
 			closeDialog();
 		};
 		this.#confirmationDialog = new HookSelectorComponent(
-			`Delete session?\n${displayName}`,
-			["Yes", "No"],
+			`${t("tui.sessionSelector.delete.question")}\n${displayName}`,
+			[yes, no],
 			answer,
 			closeDialog,
 		);
@@ -1592,7 +1636,7 @@ export class SessionSelectorComponent<T extends SessionSelectorEntry = SessionSe
 			confirm: () => {
 				// The strip goes at once; the dialog stays until the delete settles, as after Enter on "Yes".
 				this.#deleteChoice = null;
-				void answer("Yes");
+				void answer(yes);
 			},
 			cancel: closeDialog,
 		};
@@ -1632,12 +1676,15 @@ export class SessionSelectorComponent<T extends SessionSelectorEntry = SessionSe
 
 	/** Blank · keybinding hint · bottom border. Rendered by {@link render}. */
 	#footerLines(width: number): string[] {
-		const scopeHint = this.#scope === "all" ? "current folder" : "all projects";
+		const scopeHint =
+			this.#scope === "all"
+				? t("tui.sessionSelector.scope.currentFolderInline")
+				: t("tui.sessionSelector.scope.allProjectsInline");
 		// Keys mirror SessionList#handleInput; cancel is `app.interrupt` (raw Escape when unbound).
 		const cancel = interruptKey();
 		const hint = theme.fg(
 			"muted",
-			`[${formatKeyHints(["delete", "backspace"])} delete · ${formatKeyHint("enter")} select · ${formatKeyHint("tab")} ${scopeHint} · ${cancel} cancel]`,
+			`[${formatKeyHints(["delete", "backspace"])} ${t("tui.sessionSelector.hint.delete")} · ${formatKeyHint("enter")} ${t("tui.sessionSelector.hint.select")} · ${formatKeyHint("tab")} ${scopeHint} · ${cancel} ${t("tui.sessionSelector.hint.cancel")}]`,
 		);
 		return [row("", width), row(hint, width), row("", width), bottomBorder(width)];
 	}
@@ -1673,7 +1720,7 @@ export class SessionSelectorComponent<T extends SessionSelectorEntry = SessionSe
 		}
 		const tabs = this.#hasScopeTabs();
 		const children: NativeChild[] = [];
-		if (tabs) children.push(node("tabs", { items: SCOPE_TABS, active: this.#scope }, undefined, "scope"));
+		if (tabs) children.push(node("tabs", { items: scopeTabs(), active: this.#scope }, undefined, "scope"));
 		const message = this.#message;
 		if (message?.kind === "loading") {
 			children.push(node("spinner", { label: [span(message.text, "muted")] }, undefined, "message"));
@@ -1686,13 +1733,22 @@ export class SessionSelectorComponent<T extends SessionSelectorEntry = SessionSe
 			children.push(this.#sessionList.searchInput, list);
 		}
 		const hints: (NativeHint | undefined)[] = [
-			{ keys: ["delete", "backspace"], label: "delete" },
-			{ keys: ["enter"], label: "select" },
+			{ keys: ["delete", "backspace"], label: t("tui.sessionSelector.hint.delete") },
+			{ keys: ["enter"], label: t("tui.sessionSelector.hint.select") },
 		];
 		if (this.#sessionList.onToggleScope) {
-			hints.push({ keys: ["tab"], label: this.#scope === "all" ? "current folder" : "all projects" });
+			hints.push({
+				keys: ["tab"],
+				label:
+					this.#scope === "all"
+						? t("tui.sessionSelector.scope.currentFolderInline")
+						: t("tui.sessionSelector.scope.allProjectsInline"),
+			});
 		}
-		hints.push({ keys: [boundKeys("app.interrupt", ["escape"])[0] ?? "escape"], label: "cancel" });
+		hints.push({
+			keys: [boundKeys("app.interrupt", ["escape"])[0] ?? "escape"],
+			label: t("tui.sessionSelector.hint.cancel"),
+		});
 		const result = overlayCard("omp.overlay.sessions", tabs ? this.#title : this.title, [
 			...children,
 			hintsRow(hints),
@@ -1734,13 +1790,28 @@ export class SessionSelectorComponent<T extends SessionSelectorEntry = SessionSe
 		}
 		const loading = message?.kind === "loading";
 		const toggle = list.onToggleScope !== undefined;
-		const actions = [pickerAction("resume", "Resume", "enter", { primary: true })];
-		if (this.#onDelete) actions.push(pickerAction("delete", "Delete", "backspace"));
+		const actions = [pickerAction("resume", t("tui.sessionSelector.action.resume"), "enter", { primary: true })];
+		if (this.#onDelete) actions.push(pickerAction("delete", t("tui.sessionSelector.action.delete"), "backspace"));
 		if (toggle) {
-			actions.push(pickerAction("scope", this.#scope === "all" ? "This folder" : "All projects", "tab"));
+			actions.push(
+				pickerAction(
+					"scope",
+					this.#scope === "all"
+						? t("tui.sessionSelector.scope.thisFolder")
+						: t("tui.sessionSelector.scope.allProjects"),
+					"tab",
+				),
+			);
 		}
 		actions.push(
-			pickerAction("close", "Close", boundKeys("app.interrupt", ["escape"])[0] ?? "escape", { end: true }),
+			pickerAction(
+				"close",
+				t("tui.sessionSelector.action.close"),
+				boundKeys("app.interrupt", ["escape"])[0] ?? "escape",
+				{
+					end: true,
+				},
+			),
 		);
 		const subtitle = this.#scopeLabel === false ? undefined : (this.#scopeLabel ?? path.basename(getProjectDir()));
 		const result = picker(
@@ -1748,18 +1819,18 @@ export class SessionSelectorComponent<T extends SessionSelectorEntry = SessionSe
 				title: this.#pickerTitle,
 				...(subtitle ? { subtitle } : {}),
 				icon: "history",
-				noun: "sessions",
+				noun: t("tui.sessionSelector.picker.noun"),
 				size: this.#standalone ? "screen" : "lg",
 				layout: "cards",
 				preview: "side",
 				query: view.query,
 				cursor: view.cursor,
-				placeholder: "Search sessions…",
+				placeholder: t("tui.sessionSelector.picker.placeholder"),
 				...(this.#hasScopeTabs()
 					? {
 							tabs: [
-								{ id: "folder", label: "This folder" },
-								{ id: "all", label: "All projects" },
+								{ id: "folder", label: t("tui.sessionSelector.scope.thisFolder") },
+								{ id: "all", label: t("tui.sessionSelector.scope.allProjects") },
 							],
 							tab: loading ? "all" : this.#scope,
 						}
@@ -1778,12 +1849,15 @@ export class SessionSelectorComponent<T extends SessionSelectorEntry = SessionSe
 				actions,
 				state: loading ? "loading" : errorOpen ? "error" : "ready",
 				...(loading || errorOpen ? { message: message!.text } : {}),
-				empty: this.#scope === "all" || !toggle ? "No sessions yet" : "No sessions in this folder yet",
+				empty:
+					this.#scope === "all" || !toggle
+						? t("tui.sessionSelector.picker.emptyAll")
+						: t("tui.sessionSelector.picker.emptyFolder"),
 				confirm: choice
 					? {
-							text: `Delete “${sessionLabel(choice.session)}”? This removes the session file.`,
+							text: t("tui.sessionSelector.picker.confirmText", { name: sessionLabel(choice.session) }),
 							act: "delete-confirm",
-							label: "Delete",
+							label: t("tui.sessionSelector.action.delete"),
 						}
 					: null,
 			},

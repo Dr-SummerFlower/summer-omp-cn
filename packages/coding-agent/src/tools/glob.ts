@@ -30,6 +30,7 @@ import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";
 import { toolResult } from "./tool-result";
 
 import { cfgTaskDisabledAgents } from "../task/settings";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const findSchema = type({
 	"path?": "string",
@@ -118,7 +119,7 @@ export class GlobTool implements AgentTool<typeof findSchema, GlobToolDetails> {
 		this.#stat = options?.stat ?? fs.promises.stat;
 		this.#timeoutMs = options?.timeoutMs ?? DEFAULT_GLOB_TIMEOUT_MS;
 		if (!Number.isFinite(this.#timeoutMs) || this.#timeoutMs <= 0) {
-			throw new TypeError("Glob timeout must be a positive number");
+			throw new TypeError(t("tui.ca.tools.glob.globTimeoutMustBeAPositive"));
 		}
 	}
 
@@ -258,7 +259,7 @@ export class GlobTool implements AgentTool<typeof findSchema, GlobToolDetails> {
 					// A timed-out empty result is an incomplete scan, not a verified
 					// absence — never emit the definitive "No files found" claim next
 					// to a timeout notice (the two statements contradict each other).
-					const parts = opts?.timedOut ? [] : ["No files found matching pattern"];
+					const parts = opts?.timedOut ? [] : [t("tui.ca.tools.glob.noFilesFoundMatchingPattern")];
 					if (notice) parts.push(notice);
 					if (missingPathsNote) parts.push(missingPathsNote);
 					// Zero results is useless regardless of notices: the follow-up

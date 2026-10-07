@@ -12,6 +12,7 @@ import { CHAT_MODEL_ROLE_IDS } from "../config/model-roles";
 import type { Settings } from "../config/settings";
 import MODEL_PRIO from "../priority.json" with { type: "json" };
 import { concreteThinkingLevel } from "@oh-my-pi/pi-tui/thinking";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export interface ResolvedCommitModel {
 	model: Model<Api>;
@@ -46,7 +47,7 @@ export async function resolvePrimaryModel(
 		: resolveRoleSelection(["commit", "smol", ...CHAT_MODEL_ROLE_IDS], settings, available);
 	const model = resolved?.model;
 	if (!model) {
-		throw new Error("No model available for commit generation");
+		throw new Error(t("tui.ca.commit.modelSelection.noModelAvailableForCommitGeneration"));
 	}
 	const apiKey = await modelRegistry.getApiKey(model);
 	if (!apiKey) {

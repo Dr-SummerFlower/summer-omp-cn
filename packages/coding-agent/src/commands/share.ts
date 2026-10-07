@@ -18,18 +18,19 @@ import { SessionManager } from "../session/session-manager";
 
 import { cfgSecretsEnabled } from "../secrets/settings";
 import { cfgShareRedactSecrets, cfgShareServerUrl, cfgShareStore } from "./settings";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export default class Share extends Command {
 	static description = commandHelp.description;
 	static args = {
 		session: Args.string({
-			description: "Session id (prefix) or path to a session .jsonl",
+			description: t("cli.share.sessionIdPrefixOrPathTo"),
 			required: true,
 		}),
 	};
 	static flags = {
 		gist: Flags.boolean({
-			description: "Upload to a secret GitHub gist instead of the share server",
+			description: t("cli.share.uploadToASecretGithubGist"),
 			default: false,
 		}),
 	};
@@ -53,7 +54,7 @@ export default class Share extends Command {
 			}
 		}
 		if (!sm) {
-			process.stderr.write(`Session "${sessionArg}" not found.\n`);
+			process.stderr.write(t("cli.share.sessionSessionargNotFoundN", { sessionArg: sessionArg }));
 			process.exitCode = 1;
 			return;
 		}

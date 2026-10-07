@@ -2,6 +2,7 @@ import type { Usage } from "@oh-my-pi/pi-ai";
 import { formatNumber } from "@oh-my-pi/pi-utils";
 import { MessageDividerComponent } from "../chrome/message-divider";
 import { theme } from "../theme";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /**
  * Minimum prefix the previous turn must have READ back from cache before a
@@ -93,7 +94,7 @@ export class CacheInvalidationMarkerComponent extends MessageDividerComponent {
 				label: () =>
 					info.reprocessedTokens > 0
 						? `Cache miss · ${formatNumber(info.reprocessedTokens)} tokens`
-						: "Cache miss",
+						: t("tui.chat.cacheInvalidationMarker.cacheMiss"),
 			},
 			// Too narrow to frame — preserve the legacy bare label.
 			truncateWhenNarrow: false,

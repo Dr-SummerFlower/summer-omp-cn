@@ -36,6 +36,7 @@ import {
 import { PREVIEW_PENDING_NOTICE, queueResolveHandler } from "./resolve";
 import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";
 import { toolResult } from "./tool-result";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const astEditOpSchema = type({
 	pat: type("string").describe("ast pattern"),
@@ -188,42 +189,42 @@ export class AstEditTool implements AgentTool<typeof astEditSchema, AstEditToolD
 
 	readonly examples: readonly ToolExample<AstEditSchemaInfer>[] = [
 		{
-			caption: "Rename a call site across TypeScript files",
+			caption: t("tui.ca.tools.astEdit.renameACallSiteAcrossTypescript"),
 			call: {
 				ops: [{ pat: "oldApi($$$ARGS)", out: "newApi($$$ARGS)" }],
 				paths: ["src/**/*.ts"],
 			},
 		},
 		{
-			caption: "Delete matching calls",
+			caption: t("tui.ca.tools.astEdit.deleteMatchingCalls"),
 			call: {
 				ops: [{ pat: "console.log($$$ARGS)", out: "" }],
 				paths: ["src/**/*.ts"],
 			},
 		},
 		{
-			caption: "Rewrite import source path",
+			caption: t("tui.ca.tools.astEdit.rewriteImportSourcePath"),
 			call: {
 				ops: [{ pat: 'import { $$$IMPORTS } from "old-package"', out: 'import { $$$IMPORTS } from "new-package"' }],
 				paths: ["src/**/*.ts"],
 			},
 		},
 		{
-			caption: "Modernize to optional chaining (same metavariable enforces identity)",
+			caption: t("tui.ca.tools.astEdit.modernizeToOptionalChainingSameMetavariable"),
 			call: {
 				ops: [{ pat: "$A && $A()", out: "$A?.()" }],
 				paths: ["src/**/*.ts"],
 			},
 		},
 		{
-			caption: "Swap two arguments using captures",
+			caption: t("tui.ca.tools.astEdit.swapTwoArgumentsUsingCaptures"),
 			call: {
 				ops: [{ pat: "assertEqual($A, $B)", out: "assertEqual($B, $A)" }],
 				paths: ["tests/**/*.ts"],
 			},
 		},
 		{
-			caption: "Python — convert print calls to logging",
+			caption: t("tui.ca.tools.astEdit.pythonConvertPrintCallsToLogging"),
 			call: {
 				ops: [{ pat: "print($$$ARGS)", out: "logger.info($$$ARGS)" }],
 				paths: ["src/**/*.py"],
@@ -414,7 +415,7 @@ export class AstEditTool implements AgentTool<typeof astEditSchema, AstEditToolD
 				count: fileReplacementCounts.get(filePath) ?? 0,
 			}));
 			if (result.limitReached) {
-				outputLines.push("", "Limit reached; narrow paths.");
+				outputLines.push("", t("tui.ca.tools.astEdit.limitReachedNarrowPaths"));
 			}
 			if (cappedParseErrors.length) {
 				outputLines.push("", ...formatParseErrors(cappedParseErrors, parseErrorsTotal));

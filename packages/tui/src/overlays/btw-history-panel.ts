@@ -38,6 +38,7 @@ import type { TspSpan } from "@oh-my-pi/pi-wire";
 import type { NativeChild, NativeNode, NativeUiEvent } from "../native/node";
 import { col, md, node, span, text } from "../native/describe";
 import { actionHint, hintsRow, type NativeHint, statusHintsRow } from "../native/overlay";
+import { t } from "@oh-my-pi/pi-i18n";
 
 interface BtwHistoryPanelOptions {
 	records: readonly BtwHistoryRecord[];
@@ -249,7 +250,7 @@ export class BtwHistoryPanel implements Component, Focusable {
 
 	#openComposer(record: BtwHistoryRecord): void {
 		const input = new Input();
-		input.prompt = theme.fg("accent", "Follow up: ");
+		input.prompt = theme.fg("accent", t("tui.overlays.btwHistoryPanel.followUp"));
 		input.spaceHold.handler = this.#options.spaceHold?.(input);
 		const composer: FollowUpComposer = { recordId: record.id, input, abortController: new AbortController() };
 		input.onEscape = () => {
@@ -268,16 +269,16 @@ export class BtwHistoryPanel implements Component, Focusable {
 		if (this.#followUpPending || this.#composer !== composer) return;
 		const question = value.trim();
 		if (!question) {
-			composer.notice = "Enter a follow-up question.";
+			composer.notice = t("tui.overlays.btwHistoryPanel.enterAFollowUpQuestion");
 			return;
 		}
 		const record = this.#records.find(record => record.id === composer.recordId);
 		if (!record || !this.#canFollowUp(record)) {
-			composer.notice = "A BTW request is busy. Try again when it finishes.";
+			composer.notice = t("tui.overlays.btwHistoryPanel.aBtwRequestIsBusyTry");
 			return;
 		}
 		this.#followUpPending = true;
-		composer.notice = "Starting follow-up…";
+		composer.notice = t("tui.overlays.btwHistoryPanel.startingFollowUp");
 		this.#options.requestRender();
 		try {
 			const accepted = await this.#options.onFollowUp!(record, question, composer.abortController.signal);
@@ -361,7 +362,11 @@ export class BtwHistoryPanel implements Component, Focusable {
 	}
 
 	/** A large glass sheet titled "BTW history". */
-	readonly nativeOverlay = { role: "omp.overlay.btwHistory", size: "lg", head: "BTW history" } as const;
+	readonly nativeOverlay = {
+		role: "omp.overlay.btwHistory",
+		size: "lg",
+		head: t("tui.overlays.btwHistoryPanel.btwHistory"),
+	} as const;
 
 	describe(): NativeNode {
 		const record = this.#selected();
@@ -466,7 +471,7 @@ export class BtwHistoryPanel implements Component, Focusable {
 			"list",
 			{
 				selected: this.#selectedId ?? null,
-				empty: [span("No side questions yet. Use /btw QUESTION to start one.", "muted")],
+				empty: [span(t("tui.overlays.btwHistoryPanel.noSideQuestionsYetUseBtw"), "muted")],
 			},
 			items,
 			"records",
@@ -478,7 +483,14 @@ export class BtwHistoryPanel implements Component, Focusable {
 			return text([span("No side questions yet. Use /btw QUESTION to start one.", "muted")], { wrap: "word" });
 		const children: NativeChild[] = [];
 		if (copied)
-			children.push(node("text", { spans: [span("✓ Copied to clipboard", "success")] }, undefined, "copied"));
+			children.push(
+				node(
+					"text",
+					{ spans: [span(t("tui.overlays.btwHistoryPanel.copiedToClipboard"), "success")] },
+					undefined,
+					"copied",
+				),
+			);
 		const turns = getBtwTurns(record);
 		for (let index = 0; index < turns.length; index++) {
 			if (index > 0) children.push(node("rule", undefined, undefined, `rule-${index}`));
@@ -498,7 +510,8 @@ export class BtwHistoryPanel implements Component, Focusable {
 			node("section", { head: [span("Answer", "accent strong")] }, [answer]),
 		];
 		if (turn.error) children.push(text([span(sanitizeErrorLine(turn.error), "error")], { wrap: "word" }));
-		if (turn.status === "interrupted") children.push(text([span("Not resumed in this view.", "muted")]));
+		if (turn.status === "interrupted")
+			children.push(text([span(t("tui.overlays.btwHistoryPanel.notResumedInThisView"), "muted")]));
 		return node("col", { gap: "sm" }, children, key);
 	}
 
@@ -512,14 +525,16 @@ export class BtwHistoryPanel implements Component, Focusable {
 		const latest = record ? getBtwLatestTurn(record) : undefined;
 		const hints: (NativeHint | undefined)[] = [
 			actionHint("tui.select.cancel", latest?.status === "running" ? "cancel" : "close"),
-			{ keys: ["tab", "ctrl+/"], label: "switch pane" },
+			{ keys: ["tab", "ctrl+/"], label: t("tui.overlays.btwHistoryPanel.switchPane") },
 			actionHint(["tui.select.up", "tui.select.down"], this.#focus === "list" ? "select" : "scroll"),
 		];
-		if (canFollowUp) hints.push({ keys: ["f", "enter"], label: "follow up" });
+		if (canFollowUp) hints.push({ keys: ["f", "enter"], label: t("tui.overlays.btwHistoryPanel.followUp2") });
 		if (record && getBtwCopyText(record) !== undefined) {
 			hints.push({ keys: ["c"], label: copied ? "copy again" : "copy answer" });
 		}
-		return copied ? statusHintsRow([span("✓ copied", "success")], hints) : hintsRow(hints);
+		return copied
+			? statusHintsRow([span(t("tui.overlays.btwHistoryPanel.copied"), "success")], hints)
+			: hintsRow(hints);
 	}
 
 	#renderList(width: number, height: number): readonly string[] {
@@ -613,7 +628,10 @@ export class BtwHistoryPanel implements Component, Focusable {
 			);
 		if (turn.error) lines.push("", ...wrapTextWithAnsi(theme.fg("error", sanitizeErrorLine(turn.error)), width));
 		if (turn.status === "interrupted")
-			lines.push("", ...wrapTextWithAnsi(theme.fg("muted", "Not resumed in this view."), width));
+			lines.push(
+				"",
+				...wrapTextWithAnsi(theme.fg("muted", t("tui.overlays.btwHistoryPanel.notResumedInThisView")), width),
+			);
 		return {
 			turn: {
 				question: turn.question,
@@ -744,7 +762,7 @@ export class BtwHistoryPanel implements Component, Focusable {
 		}
 		const lines: string[] = [];
 		if (framed) {
-			lines.push(topBorder(width, "BTW history"));
+			lines.push(topBorder(width, t("tui.overlays.btwHistoryPanel.btwHistory")));
 			lines.push(this.#labels.render(width)[0] ?? "");
 		} else if (height >= 3) {
 			lines.push(truncateToWidth(this.#focusLabel(this.#focus), width));

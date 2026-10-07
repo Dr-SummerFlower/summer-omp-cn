@@ -60,6 +60,7 @@ import {
 } from "../eval/settings";
 import { cfgTaskMaxRecursionDepth } from "../task/settings";
 import { cfgToolsMaxTimeout, cfgToolsSpeculativeExecutionEnabled } from "./settings";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Language tokens the eval tool accepts, in stable display order. */
 export type EvalLanguageToken = "py" | "js";
@@ -87,7 +88,7 @@ function describeLanguageField(langs: readonly EvalLanguageToken[]): string {
 /** One-line discovery summary listing the runtimes available this session. */
 function summarizeEvalLanguages(langs: readonly EvalLanguageToken[]): string {
 	const names = langs.map(lang => EVAL_LANGUAGE_NAME[lang]);
-	const list = names.length > 0 ? joinWithOr(names) : "Python or JavaScript";
+	const list = names.length > 0 ? joinWithOr(names) : t("tui.ca.tools.eval.pythonOrJavascript");
 	return `Execute ${list} in persistent kernels; load scripts or install packages`;
 }
 
@@ -436,7 +437,7 @@ export class EvalTool implements AgentTool<typeof evalSchema> {
 	/** Only syntax not obvious from the field schema; filtered by enabled language. */
 	static readonly #examples: readonly ToolExample<typeof evalSchema.infer>[] = [
 		{
-			caption: "Load a script with spaces without echoing its source",
+			caption: t("tui.ca.tools.eval.loadAScriptWithSpacesWithout"),
 			call: { language: "py", code: '%load "scripts/my setup.py"' },
 		},
 	];
@@ -701,9 +702,7 @@ export class EvalTool implements AgentTool<typeof evalSchema> {
 		// "steer": a queued user/peer message arrived mid-wait — background the
 		// cell (it keeps running) so the message injects promptly.
 		const steerNotice =
-			waitResult.kind === "steer"
-				? "Backgrounded early to handle an incoming message; the cell keeps running."
-				: undefined;
+			waitResult.kind === "steer" ? t("tui.ca.tools.eval.backgroundedEarlyToHandleAnIncoming") : undefined;
 		return this.#buildBackgroundStartResult(jobId, cells, languages, notice, latestText, latestDetails, steerNotice);
 	}
 
@@ -1048,7 +1047,7 @@ export class EvalTool implements AgentTool<typeof evalSchema> {
 					const combinedOutput = cellOutputs.join("\n\n");
 					const exitLine = `Command exited with code ${result.exitCode}`;
 					const outputText = result.cancelled
-						? combinedOutput || result.output || "Command aborted"
+						? combinedOutput || result.output || t("tui.ca.tools.eval.commandAborted")
 						: combinedOutput
 							? `${combinedOutput}\n\n${exitLine}`
 							: exitLine;

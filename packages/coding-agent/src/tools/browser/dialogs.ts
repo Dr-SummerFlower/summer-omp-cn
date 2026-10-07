@@ -1,5 +1,6 @@
 import type { Dialog, Frame, Page } from "puppeteer-core";
 import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Automatic JavaScript-dialog policy. */
 export type DialogPolicy = "accept" | "dismiss";
@@ -106,7 +107,7 @@ export class RuntimeDialogController {
 	}
 
 	#report(error: unknown, policy: DialogPolicy): void {
-		this.#logFailure("Dialog auto-handler failed", {
+		this.#logFailure(t("tui.ca.tools.browser.dialogs.dialogAutoHandlerFailed"), {
 			policy,
 			error: error instanceof Error ? error.message : String(error),
 		});

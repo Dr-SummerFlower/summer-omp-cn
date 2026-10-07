@@ -3,6 +3,7 @@
  * above the editor, drives the shared cleanse core against it, and maps Esc to
  * cancel-then-dismiss (mirroring the `/omfg` panel).
  */
+import { t } from "@oh-my-pi/pi-i18n";
 import { runCleanse } from "../../cleanse";
 import { appKey } from "@oh-my-pi/pi-tui/chrome/keybinding-hints";
 import { CleanseBoardModel } from "@oh-my-pi/pi-tui/apps/cleanse-board";
@@ -26,8 +27,8 @@ interface ParsedCleanseArgs {
 	error?: string;
 }
 
-const CLEANSE_USAGE = "Usage: /cleanse [request] [--all] [--tests] [-n <agents>] [-m <model>]";
-const CUSTOM_REQUEST_OPTION = "Describe what to fix…";
+const CLEANSE_USAGE = t("slash.cleanse.usage");
+const CUSTOM_REQUEST_OPTION = t("tui.cleanse.customRequestOption");
 
 export class CleanseCommandController {
 	#active: CleanseRun | undefined;
@@ -43,7 +44,7 @@ export class CleanseCommandController {
 		const run = this.#active;
 		if (!run) return false;
 		if (!run.settled && !run.abortController.signal.aborted) {
-			run.abortController.abort(new Error("Cleanse interrupted"));
+			run.abortController.abort(new Error(t("slash.cleanse.interrupted")));
 			return true;
 		}
 		this.#close(run);
@@ -53,14 +54,16 @@ export class CleanseCommandController {
 	dispose(): void {
 		const run = this.#active;
 		if (!run) return;
-		run.abortController.abort(new Error("Cleanse interrupted"));
+		run.abortController.abort(new Error(t("slash.cleanse.interrupted")));
 		this.#close(run);
 	}
 
 	async start(args: string): Promise<void> {
 		if (this.#active) {
 			this.ctx.showStatus(
-				`A /cleanse run is already active — ${appKey(this.ctx.keybindings, "app.interrupt")} cancels it.`,
+				t("slash.cleanse.alreadyActive", {
+					key: appKey(this.ctx.keybindings, "app.interrupt"),
+				}),
 			);
 			return;
 		}
@@ -117,9 +120,12 @@ export class CleanseCommandController {
 	}
 
 	async #pickTarget(checkers: readonly CleanseCheckerDescriptor[]): Promise<CleanseTargetChoice> {
-		const allOption = `Run all ${checkers.length} discovered checker${checkers.length === 1 ? "" : "s"}`;
+		const allOption =
+			checkers.length === 1
+				? t("slash.cleanse.runAll.one", { count: checkers.length })
+				: t("slash.cleanse.runAll.many", { count: checkers.length });
 		const labels = checkers.map(checker => `${checker.label} — ${checker.command}`);
-		const choice = await this.ctx.showHookSelector("Select what to cleanse", [
+		const choice = await this.ctx.showHookSelector(t("tui.cleanse.selectTarget"), [
 			allOption,
 			...labels,
 			CUSTOM_REQUEST_OPTION,
@@ -135,7 +141,7 @@ export class CleanseCommandController {
 	}
 
 	async #promptRequest(): Promise<string | null> {
-		const answer = await this.ctx.showHookInput("Describe what to detect and fix", 'e.g. "ts errors"');
+		const answer = await this.ctx.showHookInput(t("tui.cleanse.requestPrompt"), t("tui.cleanse.requestExample"));
 		const trimmed = answer?.trim();
 		return trimmed ? trimmed : null;
 	}

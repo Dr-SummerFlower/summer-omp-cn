@@ -9,6 +9,7 @@ import { truncateToWidth } from "@oh-my-pi/pi-tui/utils";
 import chalk from "@oh-my-pi/pi-utils/chalk";
 import { openStandaloneJudge } from "../judgment/standalone";
 import { openPath } from "../utils/open";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /**
  * Single-line TTY progress bar. On a non-TTY stream we just stay quiet -
@@ -83,12 +84,14 @@ export async function runStatsCommand(cmd: StatsCommandArgs): Promise<void> {
 	// One-shot reports need fully ingested, fully rolled-up data before printing.
 	if (cmd.json || cmd.summary) {
 		const progress = createSyncProgressReporter();
-		process.stderr.write("Syncing session files...\n");
+		process.stderr.write(t("cli.stats.syncingSessionFiles"));
 		const { processed, files } = await syncAllSessions({ onProgress: progress.onProgress });
 		progress.finish();
 		await refreshRollups();
 		const total = await getTotalMessageCount();
-		process.stderr.write(`Synced ${processed} new entries from ${files} files (${total} total)\n\n`);
+		process.stderr.write(
+			t("cli.stats.syncedProcessedNewEntriesFromFiles", { processed: processed, files: files, total: total }),
+		);
 		if (cmd.json) {
 			console.log(JSON.stringify(await getDashboardStats(), null, 2));
 		} else {
@@ -110,11 +113,11 @@ export async function runStatsCommand(cmd: StatsCommandArgs): Promise<void> {
 	// Open browser
 	openPath(url);
 
-	console.log(`Press ${formatKeyHint("ctrl+c")} to stop\n`);
+	console.log(t("cli.stats.pressFormatkeyhintCtrlCToStop", { arg: formatKeyHint("ctrl+c") }));
 
 	// Keep process running
 	process.on("SIGINT", () => {
-		console.log("\nShutting down...");
+		console.log(t("cli.stats.shuttingDown"));
 		closeDb();
 		process.exit(0);
 	});

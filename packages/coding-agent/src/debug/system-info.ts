@@ -4,6 +4,7 @@
 
 import * as os from "node:os";
 import { formatBytes, getProjectDir, VERSION } from "@oh-my-pi/pi-utils";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export interface SystemInfo {
 	os: string;
@@ -40,7 +41,7 @@ function macosMarketingName(release: string): string | undefined {
 
 /** Collect system information */
 export async function collectSystemInfo(): Promise<SystemInfo> {
-	let cpuModel = "Unknown CPU";
+	let cpuModel = t("tui.ca.debug.systemInfo.unknownCpu");
 	try {
 		cpuModel = os.cpus()[0]?.model ?? cpuModel;
 	} catch {
@@ -79,7 +80,7 @@ export async function collectSystemInfo(): Promise<SystemInfo> {
 /** Format system info for display */
 export function formatSystemInfo(info: SystemInfo): string {
 	const lines = [
-		"System Information",
+		t("tui.ca.debug.systemInfo.systemInformation"),
 		"━━━━━━━━━━━━━━━━━━",
 		`OS:      ${info.os}`,
 		`Arch:    ${info.arch}`,

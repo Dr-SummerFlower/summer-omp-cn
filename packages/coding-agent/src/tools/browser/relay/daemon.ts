@@ -18,6 +18,7 @@ import { describeQuietly, stopQuietly, waitReady } from "../../../launch/ensure"
 import { resolveWorkerSpawnCmd } from "../../../subprocess/worker-client";
 import { throwIfAborted } from "../../tool-errors";
 import { probeCdpStatus } from "../attach";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Stable broker daemon name for the relay server. */
 export const RELAY_DAEMON_NAME = "omp.browser.relay";
@@ -70,12 +71,22 @@ export async function ensureRelayDaemon(opts: { cdpUrl: string; signal?: AbortSi
 		// A manual serve or concurrent global-broker start may have won the
 		// port since the last round; adopt it instead of fighting the bind.
 		if (await probeRelayServer(opts.cdpUrl)) return true;
-		const existing = await describeQuietly(client, RELAY_DAEMON_NAME, "Browser relay", opts.signal);
+		const existing = await describeQuietly(
+			client,
+			RELAY_DAEMON_NAME,
+			t("tui.ca.tools.browser.relay.daemon.browserRelay"),
+			opts.signal,
+		);
 		if (existing && existing.state !== "exited" && existing.state !== "failed") {
 			if (existing.readyAt === undefined) await waitReady(client, RELAY_DAEMON_NAME, "Browser relay", opts.signal);
 			if (await probeRelayServer(opts.cdpUrl)) return true;
 			// Live record but nothing listening: replace the wedged daemon.
-			await stopQuietly(client, RELAY_DAEMON_NAME, "Browser relay", opts.signal);
+			await stopQuietly(
+				client,
+				RELAY_DAEMON_NAME,
+				t("tui.ca.tools.browser.relay.daemon.browserRelay2"),
+				opts.signal,
+			);
 			continue;
 		}
 		try {
@@ -99,7 +110,12 @@ export async function ensureRelayDaemon(opts: { cdpUrl: string; signal?: AbortSi
 			);
 			if (started.op !== "start") continue;
 			if (await probeRelayServer(opts.cdpUrl)) return true;
-			await stopQuietly(client, RELAY_DAEMON_NAME, "Browser relay", opts.signal);
+			await stopQuietly(
+				client,
+				RELAY_DAEMON_NAME,
+				t("tui.ca.tools.browser.relay.daemon.browserRelay3"),
+				opts.signal,
+			);
 		} catch (error) {
 			throwIfAborted(opts.signal);
 			// Lost a cross-process start race; the next round adopts the winner.

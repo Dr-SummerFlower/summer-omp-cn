@@ -19,6 +19,7 @@ import splitConfirmPrompt from "./prompts/split-confirm.md" with { type: "text" 
 import type { CommitAgentState, CommitProposal, FileChange, SplitCommitPlan } from "./state";
 import { computeDependencyOrder } from "./topo-sort";
 import { detectTrivialChange } from "./trivial";
+import { t } from "@oh-my-pi/pi-i18n";
 
 interface CommitExecutionContext {
 	cwd: string;
@@ -197,7 +198,7 @@ async function completeAgentCommitState(
 	let updatedChangelogFiles: string[] = [];
 	if (!ctx.noChangelog && ctx.changelogTargets.length > 0 && !usedFallback) {
 		if (!commitState.changelogProposal) {
-			throw new Error("Commit agent did not provide changelog entries.");
+			throw new Error(t("tui.ca.commit.agentic.index.commitAgentDidNotProvideChangelog"));
 		}
 		process.stdout.write("● Applying changelog entries...\n");
 		const updated = await applyChangelogProposals({
@@ -233,7 +234,7 @@ async function completeAgentCommitState(
 		return usedFallback;
 	}
 
-	throw new Error("Commit agent did not provide a proposal.");
+	throw new Error(t("tui.ca.commit.agentic.index.commitAgentDidNotProvideA"));
 }
 
 async function runSingleCommit(proposal: CommitProposal, ctx: CommitExecutionContext): Promise<void> {
@@ -251,7 +252,7 @@ async function runSingleCommit(proposal: CommitProposal, ctx: CommitExecutionCon
 	try {
 		await repo.commitCreate(commitMessage, {});
 	} catch (error) {
-		if (vcs.isVcsError(error)) abortOnGitFailure("Commit failed", error);
+		if (vcs.isVcsError(error)) abortOnGitFailure(t("tui.ca.commit.agentic.index.commitFailed"), error);
 		throw error;
 	}
 	process.stdout.write("Commit created.\n");

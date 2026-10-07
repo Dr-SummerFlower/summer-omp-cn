@@ -6,13 +6,13 @@ import { Args, Command } from "@oh-my-pi/pi-utils/cli";
 import { readHelp as commandHelp } from "../cli/command-help";
 import { type ReadCommandArgs, runReadCommand } from "../cli/read-cli";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export default class Read extends Command {
 	static description = commandHelp.description;
 	static args = {
 		path: Args.string({
-			description:
-				"Path, URL, or internal URI to read (append :sel for line ranges or raw mode, e.g. src/foo.ts:50-100)",
+			description: t("cli.read.pathUrlOrInternalUriTo"),
 			required: true,
 		}),
 	};

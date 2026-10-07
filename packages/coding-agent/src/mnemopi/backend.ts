@@ -45,6 +45,7 @@ import {
 
 import { cfgMemoryBackend } from "../memory-backend/settings";
 import { cfgMnemopiInjectionTokenLimit } from "./settings";
+import { t } from "@oh-my-pi/pi-i18n";
 
 // `/diagnose` is the only user of this subpath; load it lazily alongside the
 // loaders in ./state to keep mnemopi off the CLI startup module graph.
@@ -238,7 +239,7 @@ export const mnemopiBackend: MemoryBackend = {
 				active: false,
 				writable: false,
 				searchable: false,
-				message: "Mnemopi backend is not initialised for this session.",
+				message: t("tui.ca.mnemopi.backend.mnemopiBackendIsNotInitialisedFor"),
 			};
 		}
 
@@ -250,7 +251,7 @@ export const mnemopiBackend: MemoryBackend = {
 					active: false,
 					writable: false,
 					searchable: false,
-					message: "Mnemopi backend is configured but not initialised for this session.",
+					message: t("tui.ca.mnemopi.backend.mnemopiBackendIsConfiguredButNot"),
 				};
 			}
 			return summarizeMnemopiStatus(targets, session);
@@ -272,7 +273,7 @@ export const mnemopiBackend: MemoryBackend = {
 			};
 		}
 		if (options?.signal?.aborted) {
-			return { backend: "mnemopi", query, count: 0, items: [], message: "Search aborted." };
+			return { backend: "mnemopi", query, count: 0, items: [], message: t("tui.ca.mnemopi.backend.searchAborted") };
 		}
 		const limit = clampLimit(options?.limit);
 		const results = (await primary.recallResultsScoped(query)).slice(0, limit);
@@ -300,7 +301,7 @@ export const mnemopiBackend: MemoryBackend = {
 			};
 		}
 		const content = input.content.trim();
-		if (!content) return { backend: "mnemopi", stored: 0, message: "Memory content is empty." };
+		if (!content) return { backend: "mnemopi", stored: 0, message: t("tui.ca.mnemopi.backend.memoryContentIsEmpty") };
 		let id: string;
 		try {
 			id = primary.rememberScoped(content, {

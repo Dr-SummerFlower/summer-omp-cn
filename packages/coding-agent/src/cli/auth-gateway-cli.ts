@@ -41,6 +41,7 @@ import {
 	resolveAuthBrokerConfig,
 } from "../session/auth-broker-config";
 import { generateToken, readTokenFile, writeTokenFile } from "./token-file";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export type AuthGatewayAction = "serve" | "token" | "status" | "check";
 
@@ -293,13 +294,15 @@ async function runServe(flags: AuthGatewayCommandArgs["flags"]): Promise<void> {
 		resolveModel: (id: string) => modelById.get(id),
 		listModels: () => modelById.values(),
 	});
-	process.stdout.write(`auth-gateway listening on ${handle.url}\n`);
+	process.stdout.write(t("cli.authGateway.authGatewayListeningOnHandleUrl", { "handle.url": handle.url }));
 	if (gatewayToken) {
-		process.stdout.write(`bearer token: ${getTokenFilePath()} (chmod 0600)\n`);
+		process.stdout.write(
+			t("cli.authGateway.bearerTokenGettokenfilepathChmod0600N", { getTokenFilePath: getTokenFilePath() }),
+		);
 	} else {
-		process.stdout.write(`auth: disabled (--no-auth) — any client can call this gateway\n`);
+		process.stdout.write(t("cli.authGateway.authDisabledNoAuthAnyClient"));
 	}
-	process.stdout.write(`upstream broker: ${brokerConfig.url}\n`);
+	process.stdout.write(t("cli.authGateway.upstreamBrokerBrokerconfigUrlN", { "brokerConfig.url": brokerConfig.url }));
 
 	// `serve` is long-lived: rebuild the catalog periodically so models
 	// discovered after boot (for providers we already hold credentials for)
@@ -339,7 +342,7 @@ async function runServe(flags: AuthGatewayCommandArgs["flags"]): Promise<void> {
 	const stop = async (signal: NodeJS.Signals): Promise<void> => {
 		if (shutdownStarted) return;
 		shutdownStarted = true;
-		process.stdout.write(`\nReceived ${signal}, shutting down...\n`);
+		process.stdout.write(t("cli.authGateway.nreceivedSignalShuttingDownN", { signal: signal }));
 		clearInterval(catalogRefresh);
 		clearInterval(credentialSync);
 		let closeError: unknown;
@@ -442,9 +445,7 @@ async function runStatus(flags: AuthGatewayCommandArgs["flags"]): Promise<void> 
 				`token: ${tokenPresent ? chalk.green("present") : chalk.red("missing")} at ${status.tokenFile}\n`,
 			);
 			if (!tokenPresent) {
-				process.stdout.write(
-					"Run `omp auth-gateway token` or `omp auth-gateway serve` to create a bearer token.\n",
-				);
+				process.stdout.write(t("cli.authGateway.runOmpAuthGatewayTokenOr"));
 			}
 		}
 		if (!tokenPresent) process.exitCode = 1;

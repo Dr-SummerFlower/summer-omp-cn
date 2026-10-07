@@ -7,6 +7,7 @@
 import { getSSHConfigPath } from "@oh-my-pi/pi-utils";
 import chalk from "@oh-my-pi/pi-utils/chalk";
 import { addSSHHost, readSSHConfigFile, removeSSHHost, type SSHHostConfig } from "../ssh/config-writer";
+import { t } from "@oh-my-pi/pi-i18n";
 
 // =============================================================================
 // Types
@@ -46,7 +47,7 @@ export async function runSSHCommand(cmd: SSHCommandArgs): Promise<void> {
 			break;
 		default:
 			process.stdout.write(chalk.red(`Unknown action: ${cmd.action}\n`));
-			process.stdout.write(`Valid actions: add, remove, list\n`);
+			process.stdout.write(t("cli.ssh.validActionsAddRemoveListN"));
 			process.exitCode = 1;
 	}
 }

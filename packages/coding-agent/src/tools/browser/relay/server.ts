@@ -14,6 +14,7 @@
  * user's logged-in browser.
  */
 import { RelayBridge } from "./bridge";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Options for {@link startRelayServer}. */
 export interface RelayServerOptions {
@@ -121,7 +122,7 @@ export function startRelayServer(opts: RelayServerOptions): RelayServer {
 			if (path === "/json" || path === "/json/list") {
 				return Response.json(bridge.listTargets());
 			}
-			return new Response("Not found", { status: 404 });
+			return new Response(t("tui.ca.tools.browser.relay.server.notFound"), { status: 404 });
 		},
 		websocket: {
 			maxPayloadLength: MAX_PAYLOAD_BYTES,

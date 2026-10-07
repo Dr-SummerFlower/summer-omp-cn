@@ -29,6 +29,7 @@ import stealthCodecsScript from "../puppeteer/12_stealth_codecs.txt" with { type
 import stealthWorkerScript from "../puppeteer/13_stealth_worker.txt" with { type: "text" };
 import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";
 import { withDownload } from "../../downloads/activity";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export const DEFAULT_VIEWPORT = { width: 1365, height: 768, deviceScaleFactor: 1.25 };
 
@@ -102,7 +103,7 @@ export function isPuppeteerHandle(value: unknown): value is JSHandle {
 async function importPuppeteerWithSafeCwd(safeDir: string): Promise<typeof Puppeteer> {
 	const cwdDescriptor = Object.getOwnPropertyDescriptor(process, "cwd");
 	if (!cwdDescriptor || typeof cwdDescriptor.value !== "function") {
-		throw new Error("Unable to safely override process.cwd for Puppeteer import");
+		throw new Error(t("tui.ca.tools.browser.launch.unableToSafelyOverrideProcessCwd"));
 	}
 
 	try {
@@ -139,7 +140,10 @@ async function importPuppeteerWithSafeCwd(safeDir: string): Promise<typeof Puppe
 	}
 	if (restorationFailed) {
 		const failure = importFailed
-			? new AggregateError([importFailure, restorationFailure], "Puppeteer import and cwd restoration failed")
+			? new AggregateError(
+					[importFailure, restorationFailure],
+					t("tui.ca.tools.browser.launch.puppeteerImportAndCwdRestorationFailed"),
+				)
 			: restorationFailure;
 		puppeteerCwdFailed = true;
 		puppeteerCwdFailure = failure;
@@ -283,7 +287,7 @@ export async function ensureChromiumExecutable(): Promise<string | undefined> {
 			const sysChrome = await resolveSystemChromium();
 			if (sysChrome) {
 				logger.warn(
-					"Chrome for Testing unavailable; falling back to the system Chrome bundle. On macOS this can let the " +
+					t("tui.ca.tools.browser.launch.chromeForTestingUnavailableFallingBack") +
 						"headless browser daemon capture your link clicks (#8673). Set PUPPETEER_EXECUTABLE_PATH to a " +
 						"dedicated Chromium to avoid this.",
 					{ path: sysChrome, error: (err as Error).message },
@@ -718,7 +722,7 @@ async function resolveUserAgentOverride(page: Page): Promise<UserAgentOverride> 
 	const brands: { brand: string; version: string }[] = [];
 	brands[order[0]!] = { brand: greaseyBrand, version: "99" };
 	brands[order[1]!] = { brand: "Chromium", version: String(majorVersion) };
-	brands[order[2]!] = { brand: "Google Chrome", version: String(majorVersion) };
+	brands[order[2]!] = { brand: t("tui.ca.tools.browser.launch.googleChrome"), version: String(majorVersion) };
 	const fullVersionList = brands.map(({ brand }) => ({
 		brand,
 		version: brand === greaseyBrand ? "99.0.0.0" : fullVersion,

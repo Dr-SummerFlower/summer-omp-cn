@@ -16,6 +16,7 @@
 
 import { startRemoteDebugger } from "bun:jsc";
 import * as net from "node:net";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const DEFAULT_HOST = "127.0.0.1";
 /** How long to keep probing for the inspector socket before giving up. */
@@ -54,7 +55,7 @@ async function reserveFreePort(host: string): Promise<number> {
 	server.listen(0, host, () => {
 		const addr = server.address();
 		if (addr && typeof addr === "object") listening.resolve(addr.port);
-		else listening.reject(new Error("Failed to reserve a debugger port"));
+		else listening.reject(new Error(t("tui.ca.debug.remoteDebugger.failedToReserveADebuggerPort")));
 	});
 	try {
 		return await listening.promise;

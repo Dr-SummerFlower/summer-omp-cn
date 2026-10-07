@@ -1,4 +1,5 @@
 import type { ConventionalAnalysis } from "../../commit/types";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export interface ValidationResult {
 	valid: boolean;
@@ -8,16 +9,16 @@ export interface ValidationResult {
 export function validateSummary(summary: string, maxChars: number): ValidationResult {
 	const errors: string[] = [];
 	if (!summary.trim()) {
-		errors.push("Summary is empty");
+		errors.push(t("tui.ca.commit.analysis.validation.summaryIsEmpty"));
 	}
 	if (summary.length > maxChars) {
 		errors.push(`Summary exceeds ${maxChars} characters`);
 	}
 	if (summary.trimEnd().endsWith(".")) {
-		errors.push("Summary must not end with a period");
+		errors.push(t("tui.ca.commit.analysis.validation.summaryMustNotEndWithA"));
 	}
 	if (summary.includes("\n")) {
-		errors.push("Summary must be a single line");
+		errors.push(t("tui.ca.commit.analysis.validation.summaryMustBeASingleLine"));
 	}
 	return { valid: errors.length === 0, errors };
 }
@@ -27,15 +28,15 @@ export function validateScope(scope: string | null): ValidationResult {
 	const errors: string[] = [];
 	const segments = scope.split("/");
 	if (segments.length > 2) {
-		errors.push("Scope may contain at most two segments");
+		errors.push(t("tui.ca.commit.analysis.validation.scopeMayContainAtMostTwo"));
 	}
 	for (const segment of segments) {
 		if (!segment) {
-			errors.push("Scope segments cannot be empty");
+			errors.push(t("tui.ca.commit.analysis.validation.scopeSegmentsCannotBeEmpty"));
 			continue;
 		}
 		if (segment !== segment.toLowerCase()) {
-			errors.push("Scope must be lowercase");
+			errors.push(t("tui.ca.commit.analysis.validation.scopeMustBeLowercase"));
 		}
 		if (!/^[a-z0-9][a-z0-9-_]*$/.test(segment)) {
 			errors.push(`Scope segment has invalid characters: ${segment}`);
@@ -52,7 +53,7 @@ export function validateAnalysis(analysis: ConventionalAnalysis): ValidationResu
 	}
 	for (const detail of analysis.details) {
 		if (!detail.text.trim()) {
-			errors.push("Detail text is empty");
+			errors.push(t("tui.ca.commit.analysis.validation.detailTextIsEmpty"));
 			continue;
 		}
 		if (!detail.text.trim().endsWith(".")) {

@@ -23,6 +23,7 @@ import { node, span } from "../native/describe";
 import type { DescribeContext, NativeChild, NativeNode } from "../native/node";
 import { hintsRow, type NativeHint, overlayCard } from "../native/overlay";
 import { plainText } from "../native/spans";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export interface HookEditorOptions {
 	/** Edit text with the host's configured external editor. */
@@ -137,7 +138,7 @@ export class HookEditorComponent extends OverlayPanel implements Focusable {
 
 		const externalHint: NativeHint = {
 			keys: boundKeys("app.editor.external", ["ctrl+g"]).slice(0, 1),
-			label: "external editor",
+			label: t("tui.overlays.hookEditor.externalEditor"),
 		};
 		const nativeHints: NativeHint[] = this.#promptStyle
 			? [

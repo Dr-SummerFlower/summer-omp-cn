@@ -2,6 +2,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import type { Message } from "@oh-my-pi/pi-ai";
+import { t } from "@oh-my-pi/pi-i18n";
 import { textContent } from "@oh-my-pi/pi-tui/chat/transcript-entry";
 import { getSessionsDir } from "@oh-my-pi/pi-utils/dirs";
 import * as logger from "@oh-my-pi/pi-utils/logger";
@@ -128,10 +129,10 @@ function formatTimeAgo(date: Date): string {
 	const diffHours = Math.floor(diffMs / 3600000);
 	const diffDays = Math.floor(diffMs / 86400000);
 
-	if (diffMins < 1) return "just now";
-	if (diffMins < 60) return `${diffMins}m ago`;
-	if (diffHours < 24) return `${diffHours}h ago`;
-	if (diffDays < 7) return `${diffDays}d ago`;
+	if (diffMins < 1) return t("tui.welcome.age.justNow");
+	if (diffMins < 60) return t("tui.welcome.age.minutes", { n: diffMins });
+	if (diffHours < 24) return t("tui.welcome.age.hours", { n: diffHours });
+	if (diffDays < 7) return t("tui.welcome.age.days", { n: diffDays });
 	return date.toLocaleDateString();
 }
 
@@ -150,7 +151,7 @@ function sessionDisplayName(info: SessionInfo): string {
 	const ts = Number.isFinite(created) ? created : info.modified.getTime();
 	const date = new Date(ts);
 	const time = date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
-	return `Untitled · ${time}`;
+	return t("tui.welcome.untitled", { time });
 }
 
 /**

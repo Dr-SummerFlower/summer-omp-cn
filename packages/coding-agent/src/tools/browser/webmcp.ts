@@ -1,5 +1,6 @@
 import { truncateHeadBytes } from "@oh-my-pi/pi-tui/tools/streaming-output";
 import type { CDPSession, Frame, NewDocumentScriptEvaluation, Page, Realm, WebMCPTool } from "puppeteer-core";
+import { t } from "@oh-my-pi/pi-i18n";
 
 declare module "puppeteer-core" {
 	interface Frame {
@@ -338,7 +339,7 @@ export function installWebMcpPageHook(key: string): void {
 	};
 	const remember = (tool: PageModelContextTool, signal?: AbortSignal): void => {
 		if (typeof tool?.name !== "string" || !/^[A-Za-z0-9_.-]{1,128}$/.test(tool.name)) {
-			throw new TypeError("WebMCP tool name must contain 1-128 ASCII letters, digits, '_', '-', or '.'");
+			throw new TypeError(t("tui.ca.tools.browser.webmcp.webmcpToolNameMustContain1"));
 		}
 		if (typeof (tool.execute ?? tool.handler) !== "function") {
 			throw new TypeError(`WebMCP tool ${JSON.stringify(tool.name)} requires an execute function`);
@@ -486,7 +487,7 @@ export async function webMcpInvokeInPage(
 ): Promise<WebMcpHookInvokeEnvelope> {
 	const realm = globalThis as typeof globalThis & Record<string, unknown>;
 	const bridge = realm[key] as PageWebMcpBridge | undefined;
-	if (!bridge) return { ok: false, error: "WebMCP page hook is unavailable" };
+	if (!bridge) return { ok: false, error: t("tui.ca.tools.browser.webmcp.webmcpPageHookIsUnavailable") };
 	try {
 		const result = await bridge.invoke(name, params);
 		const encoded = JSON.stringify(result === undefined ? null : result);
@@ -585,8 +586,7 @@ export class WebMcpController {
 		this.#host = host;
 		this.#nativeSupported = options.nativeSupported;
 		this.#unavailableReason =
-			options.unavailableReason ??
-			"Chrome WebMCP CDP is unavailable and no page-side tool registrations were observed.";
+			options.unavailableReason ?? t("tui.ca.tools.browser.webmcp.chromeWebmcpCdpIsUnavailableAnd");
 	}
 
 	/** Discover page-provided tools, omitting schemas unless an exact name is requested. */
@@ -677,12 +677,16 @@ export class WebMcpController {
 			if (!response.ok) {
 				return {
 					ok: false,
-					error: untrustedBoundary(response.error ?? "WebMCP invocation failed"),
+					error: untrustedBoundary(response.error ?? t("tui.ca.tools.browser.webmcp.webmcpInvocationFailed")),
 					untrusted: true,
 				};
 			}
 			if (response.encoded === undefined) {
-				return { ok: false, error: untrustedBoundary("WebMCP result was not JSON-serializable"), untrusted: true };
+				return {
+					ok: false,
+					error: untrustedBoundary(t("tui.ca.tools.browser.webmcp.webmcpResultWasNotJsonSerializable")),
+					untrusted: true,
+				};
 			}
 			return boundedResult(JSON.parse(response.encoded) as unknown);
 		} catch (error) {
@@ -735,13 +739,13 @@ export class WebMcpController {
 	#cloneInput(params: unknown): object {
 		if (params === undefined) return {};
 		if (params === null || typeof params !== "object" || Array.isArray(params)) {
-			throw new TypeError("WebMCP params must be a JSON object");
+			throw new TypeError(t("tui.ca.tools.browser.webmcp.webmcpParamsMustBeAJson"));
 		}
 		const encoded = JSON.stringify(params);
 		if (encoded === undefined) throw new TypeError("WebMCP params must be JSON-serializable");
 		const clone = JSON.parse(encoded) as unknown;
 		if (clone === null || typeof clone !== "object" || Array.isArray(clone)) {
-			throw new TypeError("WebMCP params must remain a JSON object after serialization");
+			throw new TypeError(t("tui.ca.tools.browser.webmcp.webmcpParamsMustRemainAJson"));
 		}
 		return clone;
 	}
@@ -845,7 +849,7 @@ export async function installWebMcp(page: Page): Promise<WebMcpController> {
 		await Promise.race([
 			session.send("WebMCP.enable"),
 			Bun.sleep(1_000).then(() => {
-				throw new Error("WebMCP CDP probe timed out");
+				throw new Error(t("tui.ca.tools.browser.webmcp.webmcpCdpProbeTimedOut"));
 			}),
 		]);
 		nativeSupported = true;

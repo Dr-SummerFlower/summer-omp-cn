@@ -11,6 +11,7 @@ import {
 } from "../cli/auth-broker-cli";
 import { authBrokerHelp as commandHelp } from "../cli/command-help";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export default class AuthBroker extends Command {
 	static description = commandHelp.description;
@@ -22,34 +23,34 @@ export default class AuthBroker extends Command {
 		}),
 		// Second positional: provider id (login/logout) or filesystem path (import).
 		source: Args.string({
-			description: "OAuth provider id (login/logout) or path (import)",
+			description: t("cli.authBroker.oauthProviderIdLoginLogoutOr"),
 			required: false,
 		}),
 	};
 
 	static flags = {
-		json: Flags.boolean({ description: "Output JSON" }),
-		bind: Flags.string({ description: "Bind address for `serve` (host:port)", char: "b" }),
-		regenerate: Flags.boolean({ description: "Regenerate the bearer token" }),
+		json: Flags.boolean({ description: t("cli.agents.outputJson") }),
+		bind: Flags.string({ description: t("cli.authBroker.bindAddressForServeHostPort"), char: "b" }),
+		regenerate: Flags.boolean({ description: t("cli.authBroker.regenerateTheBearerToken") }),
 		via: Flags.string({
-			description: "SSH user@host for remote login (login --via=user@host)",
+			description: t("cli.authBroker.sshUserHostForRemoteLogin"),
 		}),
 		provider: Flags.string({
-			description: "Override provider id for `import` (e.g. when JSON `type` is unrecognized)",
+			description: t("cli.authBroker.overrideProviderIdForImportE"),
 		}),
 		"include-disabled": Flags.boolean({
-			description: "Import credentials whose JSON has `disabled: true` (import)",
+			description: t("cli.authBroker.importCredentialsWhoseJsonHasDisabled"),
 		}),
 		"from-local": Flags.boolean({
-			description: "migrate source: local SQLite + env vars (required for `migrate`)",
+			description: t("cli.authBroker.migrateSourceLocalSqliteEnvVars"),
 		}),
 		"include-env": Flags.boolean({
-			description: "Capture env-var API keys for providers not yet on broker (migrate)",
+			description: t("cli.authBroker.captureEnvVarApiKeysFor"),
 		}),
 		"include-oauth": Flags.boolean({
-			description: "Also upload OAuth from local SQLite during migrate (default skips them)",
+			description: t("cli.authBroker.alsoUploadOauthFromLocalSqlite"),
 		}),
-		"dry-run": Flags.boolean({ description: "Print actions without executing (import / login --via / migrate)" }),
+		"dry-run": Flags.boolean({ description: t("cli.authBroker.printActionsWithoutExecutingImportLogin") }),
 	};
 
 	static examples = [

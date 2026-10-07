@@ -1,3 +1,4 @@
+import { t } from "@oh-my-pi/pi-i18n";
 import { APP_NAME } from "@oh-my-pi/pi-utils/dirs";
 import type { TspSpan } from "@oh-my-pi/pi-wire";
 import { formatDoubleTap, formatKeyHint, formatKeyHints, type KeyName } from "../app-keybindings";
@@ -122,7 +123,7 @@ function expandTipKeys(tip: string): string {
 }
 
 export function renderWelcomeTip(tip: string, boxWidth: number, phase = 0): string[] {
-	const label = "Tip: ";
+	const label = t("tui.welcome.tipLabel");
 	const labelWidth = visibleWidth(label);
 	const bodyBudget = boxWidth - 1 - labelWidth; // 1 = leading indent
 	if (bodyBudget < 8) return [];
@@ -208,7 +209,7 @@ export class WelcomeComponent implements Component {
 		this.#nagRoll ??= Math.random();
 		this.#tipRoll ??= Math.random();
 		if (theme.getSymbolPreset() === "unicode" && this.#nagRoll < 0.1) {
-			return "Please use nerdfont 😭.";
+			return t("tui.prompt.welcome.pleaseUseNerdfont");
 		}
 		return pickWeightedTip(TIPS, this.#tipRoll) || undefined;
 	}
@@ -238,7 +239,7 @@ export class WelcomeComponent implements Component {
 		const brand = keyed(
 			col(
 				[
-					art([span("Welcome back!", "strong")], "omp.welcome.greeting"),
+					art([span(t("tui.welcome.greeting"), "strong")], "omp.welcome.greeting"),
 					node(
 						"image",
 						{
@@ -269,16 +270,17 @@ export class WelcomeComponent implements Component {
 			keyed(row([kbd(key), line([span(label, "muted")])], { gap: "sm" }), label);
 		const info: NativeChild[] = [
 			line([span(this.version, "dim mono")], "omp.welcome.version"),
-			section("tips", "Tips", [
-				shortcut("#", "prompt actions"),
-				shortcut("/", "commands"),
-				shortcut("!", "run bash"),
-				shortcut("$", "run python"),
+			section("tips", t("tui.welcome.tips"), [
+				shortcut("#", t("tui.welcome.shortcut.promptActions")),
+				shortcut("/", t("tui.welcome.shortcut.commands")),
+				shortcut("!", t("tui.welcome.shortcut.bash")),
+				shortcut("$", t("tui.welcome.shortcut.python")),
 			]),
 		];
 		if (this.lspServers !== null) {
 			const lsp: NativeChild[] = [];
-			if (this.lspServers.length === 0) lsp.push(line([span("No LSP servers", "dim")], undefined, "none"));
+			if (this.lspServers.length === 0)
+				lsp.push(line([span(t("tui.welcome.noLspServers"), "dim")], undefined, "none"));
 			for (const server of this.lspServers.slice(0, WELCOME_LSP_SLOTS)) {
 				const [symbol, token] =
 					server.status === "ready"
@@ -304,10 +306,11 @@ export class WelcomeComponent implements Component {
 					),
 				);
 			}
-			info.push(section("lsp", "LSP servers", lsp));
+			info.push(section("lsp", t("tui.welcome.lspServers"), lsp));
 		}
 		const recents: NativeChild[] = [];
-		if (this.recentSessions.length === 0) recents.push(line([span("No recent sessions", "dim")], undefined, "none"));
+		if (this.recentSessions.length === 0)
+			recents.push(line([span(t("tui.welcome.noRecentSessions"), "dim")], undefined, "none"));
 		for (const [index, session] of this.recentSessions.slice(0, WELCOME_SESSION_SLOTS).entries()) {
 			recents.push(
 				keyed(
@@ -328,7 +331,7 @@ export class WelcomeComponent implements Component {
 				),
 			);
 		}
-		info.push(section("recents", "Recent sessions", recents));
+		info.push(section("recents", t("tui.welcome.recentSessions"), recents));
 		const body: NativeChild[] = [
 			keyed(
 				row([brand, keyed(col(info, { gap: "md", role: "omp.welcome.info" }), "info")], {
@@ -474,7 +477,7 @@ export class WelcomeComponent implements Component {
 		// Dynamic model/provider labels are truncated inside the fixed column.
 		// Letting them influence the responsive breakpoint changes the box height
 		// when authoritative session data replaces the empty prepaint labels.
-		const leftMinContentWidth = Math.max(minLeftCol, visibleWidth("Welcome back!"));
+		const leftMinContentWidth = Math.max(minLeftCol, visibleWidth(t("tui.welcome.greeting")));
 		const desiredLeftCol = Math.max(
 			Math.min(preferredLeftCol, Math.max(minLeftCol, Math.floor(dualContentWidth * 0.35))),
 			leftMinContentWidth,
@@ -494,7 +497,7 @@ export class WelcomeComponent implements Component {
 		// Left column - centered content
 		const leftLines = [
 			"",
-			this.#centerText(theme.bold("Welcome back!"), leftCol),
+			this.#centerText(theme.bold(t("tui.welcome.greeting")), leftCol),
 			"",
 			...logoColored.map(l => this.#centerText(l, leftCol)),
 			"",
@@ -509,7 +512,7 @@ export class WelcomeComponent implements Component {
 		// Recent sessions content
 		const sessionLines: string[] = [];
 		if (this.recentSessions.length === 0) {
-			sessionLines.push(` ${theme.fg("dim", "No recent sessions")}`);
+			sessionLines.push(` ${theme.fg("dim", t("tui.welcome.noRecentSessions"))}`);
 		} else {
 			// Reserve width for the bullet prefix (" • ") and the trailing " (timeAgo)"
 			// so the relative time is never the part that gets truncated. The name
@@ -534,14 +537,14 @@ export class WelcomeComponent implements Component {
 
 		// Right column
 		const rightLines = [
-			` ${theme.bold(theme.fg("accent", "Tips"))}`,
-			` ${theme.fg("dim", "#")}${theme.fg("muted", " for prompt actions")}`,
-			` ${theme.fg("dim", "/")}${theme.fg("muted", " for commands")}`,
-			` ${theme.fg("dim", "!")}${theme.fg("muted", " to run bash")}`,
-			` ${theme.fg("dim", "$")}${theme.fg("muted", " to run python")}`,
+			` ${theme.bold(theme.fg("accent", t("tui.welcome.tips")))}`,
+			` ${theme.fg("dim", "#")} ${theme.fg("muted", t("tui.welcome.shortcut.promptActions"))}`,
+			` ${theme.fg("dim", "/")} ${theme.fg("muted", t("tui.welcome.shortcut.commands"))}`,
+			` ${theme.fg("dim", "!")} ${theme.fg("muted", t("tui.welcome.shortcut.bash"))}`,
+			` ${theme.fg("dim", "$")} ${theme.fg("muted", t("tui.welcome.shortcut.python"))}`,
 			...this.#renderLspSection(separator),
 			separator,
-			` ${theme.bold(theme.fg("accent", "Recent sessions"))}`,
+			` ${theme.bold(theme.fg("accent", t("tui.welcome.recentSessions")))}`,
 			...sessionLines,
 			"",
 		];
@@ -599,7 +602,7 @@ export class WelcomeComponent implements Component {
 		if (this.lspServers === null) return [];
 		const lspLines: string[] = [];
 		if (this.lspServers.length === 0) {
-			lspLines.push(` ${theme.fg("dim", "No LSP servers")}`);
+			lspLines.push(` ${theme.fg("dim", t("tui.welcome.noLspServers"))}`);
 		} else {
 			for (const server of this.lspServers.slice(0, WELCOME_LSP_SLOTS)) {
 				const icon =
@@ -618,7 +621,7 @@ export class WelcomeComponent implements Component {
 		while (lspLines.length < WELCOME_LSP_SLOTS) {
 			lspLines.push("");
 		}
-		return [separator, ` ${theme.bold(theme.fg("accent", "LSP Servers"))}`, ...lspLines];
+		return [separator, ` ${theme.bold(theme.fg("accent", t("tui.welcome.lspServers")))}`, ...lspLines];
 	}
 
 	/**

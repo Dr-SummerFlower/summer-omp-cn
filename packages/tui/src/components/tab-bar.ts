@@ -62,6 +62,7 @@ export class TabBar implements Component {
 	#activeIndex: number = 0;
 	#theme: TabBarTheme;
 	#label: string;
+	#customHint?: string;
 	#hoverTabId: string | null = null;
 	#native?: { signature: string; node: NativeNode };
 	/** Per-render tab hit zones: 0-based line + [start, end) columns. */
@@ -73,11 +74,17 @@ export class TabBar implements Component {
 	/** Render the trailing "(tab to cycle)" hint. Disable when the host folds the hint into its own footer. */
 	showHint = true;
 
-	constructor(label: string, tabs: Tab[], theme: TabBarTheme, initialIndex: number = 0) {
+	constructor(label: string, tabs: Tab[], theme: TabBarTheme, initialIndex: number = 0, hintText?: string) {
 		this.#label = label;
 		this.#tabs = tabs;
 		this.#theme = theme;
 		this.#activeIndex = initialIndex;
+		this.#customHint = hintText;
+	}
+
+	/** Trailing cycle hint: the caller-provided override, else the platform-aware default. */
+	#hintText(): string {
+		return this.#customHint ?? `(${formatKeyHint("tab")} to cycle)`;
 	}
 	/** Return tab identities and active-tab state for debug inspection. */
 	debugState(): Record<string, unknown> {
@@ -191,7 +198,7 @@ export class TabBar implements Component {
 		if (this.#label) parts.push(node("text", { spans: styleSpans(`${this.#label}:`, this.#theme.label) }));
 		parts.push(tabs);
 		if (this.showHint) {
-			parts.push(node("text", { spans: styleSpans(`(${formatKeyHint("tab")} to cycle)`, this.#theme.hint) }));
+			parts.push(node("text", { spans: styleSpans(this.#hintText(), this.#theme.hint) }));
 		}
 		const described = parts.length === 1 ? tabs : row(parts, { gap: "md", align: "center" });
 		this.#native = { signature, node: described };
@@ -262,7 +269,7 @@ export class TabBar implements Component {
 			// Navigation hint
 			if (this.showHint) {
 				chunks.push({ text: "  " });
-				chunks.push({ text: this.#theme.hint(`(${formatKeyHint("tab")} to cycle)`) });
+				chunks.push({ text: this.#theme.hint(this.#hintText()) });
 			}
 			return chunks;
 		};

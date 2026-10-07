@@ -7,6 +7,7 @@ import type { EffectiveExtensionRoots } from "../capability/types";
 import { initializeWithSettings } from "../discovery";
 import { cfgDisabledExtensions, cfgExtensions, cfgSkills, type SkillsSettings } from "../extensibility/settings";
 import { loadSkills, type SkillWarning } from "../extensibility/skills";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Public skill listing entry: the fields a machine consumer may rely on. */
 export interface SkillSummary {
@@ -115,7 +116,7 @@ export async function handleSkillList(args: string[], cwd: string, json: boolean
 	for (const skill of result.skills) {
 		process.stdout.write(`${toTerminalSafe(skill.name)}\t${toTerminalSafe(skill.description)}\n`);
 	}
-	if (result.skills.length === 0) process.stderr.write("No skills discovered.\n");
+	if (result.skills.length === 0) process.stderr.write(t("cli.skillList.noSkillsDiscovered"));
 	for (const warning of result.warnings) {
 		process.stderr.write(`warning: ${toTerminalSafe(warning.message)}\n`);
 	}

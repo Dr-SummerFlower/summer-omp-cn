@@ -26,6 +26,7 @@ import type {
 	CustomCommandsLoadResult,
 	LoadedCustomCommand,
 } from "./types";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const arktype = Object.assign(Function.prototype.bind.call(type, undefined) as typeof type, type, { type });
 
@@ -42,7 +43,10 @@ async function loadCommandModule(
 		const factory = (module.default ?? module) as CustomCommandFactory;
 
 		if (typeof factory !== "function") {
-			return { commands: null, error: "Command must export a default function" };
+			return {
+				commands: null,
+				error: t("tui.ca.extensibility.customCommands.loader.commandMustExportADefaultFunction"),
+			};
 		}
 
 		const result = await factory(sharedApi);
@@ -51,7 +55,7 @@ async function loadCommandModule(
 		// Validate commands
 		for (const cmd of commands) {
 			if (!cmd.name || typeof cmd.name !== "string") {
-				return { commands: null, error: "Command must have a name" };
+				return { commands: null, error: t("tui.ca.extensibility.customCommands.loader.commandMustHaveAName") };
 			}
 			if (!cmd.description || typeof cmd.description !== "string") {
 				return { commands: null, error: `Command "${cmd.name}" must have a description` };

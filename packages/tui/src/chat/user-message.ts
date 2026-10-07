@@ -26,6 +26,7 @@ import { base64ImageNode } from "../native/blobs";
 import { hasTranscriptActions, runTranscriptAction } from "./transcript-actions";
 import { type NativeChild, type NativeNode, type NativeUiEvent, rootToggleExpanded } from "../native/node";
 import { Memo } from "../native/memo";
+import { t } from "@oh-my-pi/pi-i18n";
 
 // OSC 133 shell integration: marks prompt zones for terminal multiplexers.
 //
@@ -203,13 +204,13 @@ export class UserMessageComponent extends Container implements ReactionTarget {
 				text("Copy", {
 					role: "omp.user.tool",
 					actions: { click: "copy-message" },
-					title: "Copy message",
+					title: t("tui.chat.userMessage.copyMessage"),
 					key: "copy",
 				}),
 				text("Rewind", {
 					role: "omp.user.tool",
 					actions: { click: "rewind" },
-					title: "Rewind the conversation to an earlier message",
+					title: t("tui.chat.userMessage.rewindTheConversationToAnEarlier"),
 					key: "rewind",
 				}),
 			);
@@ -237,7 +238,7 @@ export class UserMessageComponent extends Container implements ReactionTarget {
 				node("badge", {
 					text: "steered",
 					tone: "accent",
-					title: "Delivered into the response that was streaming",
+					title: t("tui.chat.userMessage.deliveredIntoTheResponseThatWas"),
 				}),
 			);
 		}
@@ -454,7 +455,7 @@ function syntheticInputLabel(text: string): string {
 		const line = raw.trim();
 		if (!line) continue;
 		const heading = /^#{1,6}\s+(.*)$/.exec(line);
-		return heading ? heading[1]!.trim() || "Synthetic input" : "Synthetic input";
+		return heading ? heading[1]!.trim() || t("tui.chat.userMessage.syntheticInput") : "Synthetic input";
 	}
-	return "Synthetic input";
+	return t("tui.chat.userMessage.syntheticInput2");
 }

@@ -32,6 +32,7 @@ import sampleDoc from "./snapcompact-shape-preview-doc.md" with { type: "text" }
 import type { DescribeContext, NativeNode } from "../native/node";
 import { col, node, span, text } from "../native/describe";
 import { registerNativeBlob } from "../native/blobs";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Mini-frame edge in px — a small page from the real rasterizer ≈ a zoomed crop. */
 const SRC_FRAME_PX = 128;
@@ -96,9 +97,12 @@ export class SnapcompactShapePreview implements Component {
 		if (memo !== undefined && memo.variant === this.#variant && memo.entry === entry) return memo.node;
 		const { label, stats } = this.#caption(shape, name);
 		let sample: NativeNode;
-		if (!entry) sample = text([span("(graphic sample needs an image-capable terminal)", "dim")]);
-		else if (entry.state === "rendering") sample = node("spinner", { label: [span("rendering sample…", "dim")] });
-		else if (entry.state === "failed") sample = text([span("(sample render failed)", "dim")]);
+		if (!entry)
+			sample = text([span(t("tui.overlays.snapcompactShapePreview.graphicSampleNeedsAnImageCapable"), "dim")]);
+		else if (entry.state === "rendering")
+			sample = node("spinner", { label: [span(t("tui.overlays.snapcompactShapePreview.renderingSample"), "dim")] });
+		else if (entry.state === "failed")
+			sample = text([span(t("tui.overlays.snapcompactShapePreview.sampleRenderFailed"), "dim")]);
 		else {
 			sample = node("image", {
 				blob: registerNativeBlob(entry.bytes, "image/png"),

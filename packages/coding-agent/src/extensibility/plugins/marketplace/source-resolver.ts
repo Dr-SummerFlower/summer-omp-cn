@@ -16,6 +16,7 @@ import * as vcs from "@oh-my-pi/pi-natives/vcs";
 import { isEnoent, pathIsWithin } from "@oh-my-pi/pi-utils";
 
 import type { MarketplaceCatalogMetadata, MarketplacePluginEntry, PluginSource } from "./types";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const GIT_CLONE_TIMEOUT_MS = 30 * 60 * 1000;
 
@@ -84,7 +85,7 @@ export async function validatePluginSource(
 			) {
 				throw new Error(`Unknown plugin source type: "${unknownSource.source}"`);
 			}
-			throw new Error("Unknown plugin source type");
+			throw new Error(t("tui.ca.extensibility.plugins.marketplace.sourceResolver.unknownPluginSourceType"));
 		}
 	}
 }

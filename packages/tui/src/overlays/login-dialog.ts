@@ -12,6 +12,7 @@ import { col, keyed, node, span, text } from "../native/describe";
 import type { NativeChild, NativeNode, NativeUiEvent } from "../native/node";
 import { actionBar, actionButton } from "../native/overlay";
 import { plainText } from "../native/spans";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** `Enter code: ABCD-1234` style device-flow instructions: the lead-in and the code. */
 const DEVICE_CODE_INSTRUCTIONS = /^(.*\bcode:?\s+)([A-Za-z0-9][A-Za-z0-9-]{3,})\s*$/s;
@@ -90,8 +91,8 @@ export class LoginDialogComponent extends OverlayPanel {
 		this.#abortController.abort();
 		const reject = this.#inputRejecter;
 		this.#clearInputHandlers();
-		reject?.(new Error("Login cancelled"));
-		this.#onComplete(false, "Login cancelled");
+		reject?.(new Error(t("tui.overlays.loginDialog.loginCancelled")));
+		this.#onComplete(false, t("tui.overlays.loginDialog.loginCancelled2"));
 	}
 
 	/**
@@ -173,7 +174,11 @@ export class LoginDialogComponent extends OverlayPanel {
 		this.#tui.requestRender();
 
 		if (signal?.aborted) {
-			return Promise.reject(signal.reason instanceof Error ? signal.reason : new Error("Login input cancelled"));
+			return Promise.reject(
+				signal.reason instanceof Error
+					? signal.reason
+					: new Error(t("tui.overlays.loginDialog.loginInputCancelled")),
+			);
 		}
 		const { promise, resolve, reject } = Promise.withResolvers<string>();
 		this.#inputResolver = resolve;
@@ -182,7 +187,11 @@ export class LoginDialogComponent extends OverlayPanel {
 			const onAbort = () => {
 				if (this.#inputRejecter !== reject) return;
 				this.#clearInputHandlers();
-				reject(signal.reason instanceof Error ? signal.reason : new Error("Login input cancelled"));
+				reject(
+					signal.reason instanceof Error
+						? signal.reason
+						: new Error(t("tui.overlays.loginDialog.loginInputCancelled2")),
+				);
 			};
 			signal.addEventListener("abort", onAbort, { once: true });
 			this.#inputAbortCleanup = () => signal.removeEventListener("abort", onAbort);
@@ -349,8 +358,16 @@ export class LoginDialogComponent extends OverlayPanel {
 		const children: NativeChild[] = [
 			actionBar(
 				[
-					actionButton("Open sign-in page ↗", "open", { href: url, key: "openLink", title: url }),
-					actionButton("Copy link", "copy", { href: url, key: "copyLink", title: "Copy the sign-in link" }),
+					actionButton(t("tui.overlays.loginDialog.openSignInPage"), "open", {
+						href: url,
+						key: "openLink",
+						title: url,
+					}),
+					actionButton(t("tui.overlays.loginDialog.copyLink"), "copy", {
+						href: url,
+						key: "copyLink",
+						title: t("tui.overlays.loginDialog.copyTheSignInLink"),
+					}),
 				],
 				"links",
 			),
@@ -364,7 +381,10 @@ export class LoginDialogComponent extends OverlayPanel {
 		if (launchUrl) {
 			children.push(
 				text(
-					[span("Local shortcut (this machine only): ", "dim"), span(launchUrl, "dim link", { href: launchUrl })],
+					[
+						span(t("tui.overlays.loginDialog.localShortcutThisMachineOnly"), "dim"),
+						span(launchUrl, "dim link", { href: launchUrl }),
+					],
 					{
 						truncate: "middle",
 						lines: 1,
@@ -384,7 +404,7 @@ export class LoginDialogComponent extends OverlayPanel {
 					text([span(device[2]!, "mono")], {
 						role: "omp.login.code",
 						actions: { click: "copy" },
-						title: "Copy code",
+						title: t("tui.overlays.loginDialog.copyCode"),
 					}),
 				]
 			: [text([span(instructions, "warning")], { wrap: "word" })];

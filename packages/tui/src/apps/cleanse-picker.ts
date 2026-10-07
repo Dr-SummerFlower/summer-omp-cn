@@ -7,6 +7,7 @@
  */
 import { type SelectItem } from "../components/select-list";
 import { promptStandaloneText, selectStandaloneItem } from "./standalone-picker";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Checker metadata presented by the target picker. */
 export interface CleanseCheckerChoice {
@@ -37,16 +38,16 @@ export async function pickCleanseTarget(checkers: readonly CleanseCheckerChoice[
 		})),
 		{
 			value: "request",
-			label: "Describe what to fix…",
-			description: "A discovery agent figures out the command to run",
+			label: t("tui.apps.cleansePicker.describeWhatToFix"),
+			description: t("tui.apps.cleansePicker.aDiscoveryAgentFiguresOutThe"),
 		},
 	];
-	const selection = await selectStandaloneItem("Select what to cleanse:", items, {
+	const selection = await selectStandaloneItem(t("tui.apps.cleansePicker.selectWhatToCleanse"), items, {
 		maxVisible: 12,
 		picker: {
 			icon: "wand",
 			noun: "checkers",
-			subtitle: "Run the checkers, then repair what they find",
+			subtitle: t("tui.apps.cleansePicker.runTheCheckersThenRepairWhat"),
 			confirm: "Cleanse",
 		},
 	});

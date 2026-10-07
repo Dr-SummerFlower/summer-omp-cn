@@ -21,6 +21,7 @@ import {
 	OmpCommitInference,
 } from "./inference";
 import { detectRepositoryContext, formatRepositoryContext } from "./repo-context";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Options for generating a conventional message from the staged tree. */
 export interface GenerateGitCommitOptions {
@@ -53,20 +54,20 @@ export async function generateGitCommit(options: GenerateGitCommitOptions): Prom
 	let stagedFiles = await repo.changedFiles({ cached: true }, options.signal);
 	let stagedAll = false;
 	if (stagedFiles.length === 0 && options.stageIfEmpty !== false) {
-		options.onProgress?.("Staging all changes…");
+		options.onProgress?.(t("tui.ca.commit.conventional.service.stagingAllChanges"));
 		await repo.stageFiles([], options.signal);
 		stagedAll = true;
 		stagedFiles = await repo.changedFiles({ cached: true }, options.signal);
 	}
 	if (stagedFiles.length === 0) throw new Error("No staged changes to analyze");
 
-	options.onProgress?.("Reading staged changes…");
+	options.onProgress?.(t("tui.ca.commit.conventional.service.readingStagedChanges"));
 	const initialDiff = await repo.diffText({ cached: true }, options.signal);
 	const diff =
 		Buffer.byteLength(initialDiff) <= config.maxDiffLength
 			? initialDiff
 			: await repo.diffText({ cached: true, context: 1 }, options.signal);
-	if (!diff.trim()) throw new Error("No staged changes to analyze");
+	if (!diff.trim()) throw new Error(t("tui.ca.commit.conventional.service.noStagedChangesToAnalyze"));
 
 	const numstatEntries = await repo.numstat({ cached: true }, options.signal);
 	const stat = renderStat(numstatEntries);

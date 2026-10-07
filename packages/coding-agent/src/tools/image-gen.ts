@@ -21,6 +21,7 @@ import type { CustomTool } from "../extensibility/custom-tools/types";
 import imageGenDescription from "../prompts/tools/image-gen.md" with { type: "text" };
 import { resolveConfiguredModelTarget } from "../session/role-models";
 import { resolveReadPath } from "./path-utils";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const IMAGE_TIMEOUT = 3 * 60 * 1000;
 const MAX_IMAGE_SIZE = 35 * 1024 * 1024;
@@ -106,7 +107,7 @@ async function resolveInputImage(input: ImageInput, cwd: string): Promise<{ data
 		const normalized = normalizeDataUrl(input.data.trim());
 		const mimeType = normalized.mimeType ?? input.mime_type;
 		if (!mimeType) throw new Error("mime_type is required when providing raw base64 data.");
-		if (!normalized.data) throw new Error("Image data is empty.");
+		if (!normalized.data) throw new Error(t("tui.ca.tools.imageGen.imageDataIsEmpty"));
 		return { data: normalized.data, mimeType };
 	}
 	throw new Error("input entries must include either path or data.");

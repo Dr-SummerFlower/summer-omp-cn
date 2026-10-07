@@ -1,5 +1,6 @@
 import { type } from "@oh-my-pi/omptype";
 import { TOOL_TIMEOUTS } from "../tools/tool-timeouts";
+import { t } from "@oh-my-pi/pi-i18n";
 
 // =============================================================================
 // Tool Schema
@@ -17,7 +18,7 @@ export const lspSchema = type({
 	"timeout?": type.number
 		.atLeast(TOOL_TIMEOUTS.lsp.min)
 		.atMost(TOOL_TIMEOUTS.lsp.max)
-		.describe("Timeout in seconds (default 20; range 5–300)."),
+		.describe(t("tui.ca.lsp.types.timeoutInSecondsDefault20Range")),
 	payload: "string?",
 });
 

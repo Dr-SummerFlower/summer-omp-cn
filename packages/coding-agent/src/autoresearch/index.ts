@@ -26,6 +26,7 @@ import { createRunExperimentTool } from "./tools/run-experiment";
 import { createUpdateNotesTool } from "./tools/update-notes";
 import type { AutoresearchRuntime, PendingRunSummary } from "./types";
 import type { ExperimentResult } from "@oh-my-pi/pi-tui/tools/autoresearch";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const EXPERIMENT_TOOL_NAMES = ["init_experiment", "run_experiment", "log_experiment", "update_notes"];
 
@@ -123,17 +124,17 @@ export const createAutoresearchExtension: ExtensionFactory = api => {
 	api.registerTool(createUpdateNotesTool({ dashboard, getRuntime, pi: api }));
 
 	api.registerCommand("autoresearch", {
-		description: "Toggle builtin autoresearch mode, or pass off / clear, or a goal message.",
+		description: t("tui.ca.autoresearch.index.toggleBuiltinAutoresearchModeOrPass"),
 		getArgumentCompletions(argumentPrefix: string): AutocompleteItem[] | null {
 			if (argumentPrefix.includes(" ")) return null;
 			const normalized = argumentPrefix.trim().toLowerCase();
 			if (normalized.length === 0) return null;
 			const completions: AutocompleteItem[] = [
-				{ label: "off", value: "off", description: "Leave autoresearch mode" },
+				{ label: "off", value: "off", description: t("tui.ca.autoresearch.index.leaveAutoresearchMode") },
 				{
 					label: "clear",
 					value: "clear",
-					description: "Reset worktree to baseline and close the active session",
+					description: t("tui.ca.autoresearch.index.resetWorktreeToBaselineAndClose"),
 				},
 			];
 			const filtered = completions.filter(item => item.label.startsWith(normalized));
@@ -225,7 +226,7 @@ export const createAutoresearchExtension: ExtensionFactory = api => {
 	});
 
 	api.registerShortcut("ctrl+x", {
-		description: "Toggle autoresearch dashboard",
+		description: t("tui.ca.autoresearch.index.toggleAutoresearchDashboard"),
 		handler(ctx): void {
 			const runtime = getRuntime(ctx);
 			if (runtime.state.results.length === 0 && !runtime.runningExperiment) {
@@ -238,7 +239,7 @@ export const createAutoresearchExtension: ExtensionFactory = api => {
 	});
 
 	api.registerShortcut("ctrl+shift+x", {
-		description: "Show autoresearch dashboard overlay",
+		description: t("tui.ca.autoresearch.index.showAutoresearchDashboardOverlay"),
 		handler(ctx): Promise<void> {
 			return dashboard.showOverlay(ctx, getRuntime(ctx));
 		},

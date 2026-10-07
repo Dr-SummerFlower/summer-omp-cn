@@ -8,6 +8,7 @@ import { sessionMemoryToolRefs } from "../memory-backend/tool-names";
 import type { ToolSession } from ".";
 
 import { cfgMemoryBackend } from "../memory-backend/settings";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const memoryReflectSchema = type({
 	query: type("string").describe("question to answer"),
@@ -45,7 +46,7 @@ export class MemoryReflectTool implements AgentTool<typeof memoryReflectSchema> 
 			if (backend === "mnemopi") {
 				const state = this.session.getMnemopiSessionState?.();
 				if (!state) {
-					throw new Error("Mnemopi backend is not initialised for this session.");
+					throw new Error(t("tui.ca.tools.memoryReflect.mnemopiBackendIsNotInitialisedFor"));
 				}
 
 				try {
@@ -72,7 +73,7 @@ export class MemoryReflectTool implements AgentTool<typeof memoryReflectSchema> 
 
 			const state = this.session.getHindsightSessionState?.();
 			if (!state) {
-				throw new Error("Hindsight backend is not initialised for this session.");
+				throw new Error(t("tui.ca.tools.memoryReflect.hindsightBackendIsNotInitialisedFor"));
 			}
 
 			try {
@@ -83,7 +84,7 @@ export class MemoryReflectTool implements AgentTool<typeof memoryReflectSchema> 
 					tags: state.recallTags,
 					tagsMatch: state.recallTagsMatch,
 				});
-				const text = response.text?.trim() || "No relevant information found to reflect on.";
+				const text = response.text?.trim() || t("tui.ca.tools.memoryReflect.noRelevantInformationFoundToReflect");
 				return {
 					content: [{ type: "text", text }],
 					details: {},

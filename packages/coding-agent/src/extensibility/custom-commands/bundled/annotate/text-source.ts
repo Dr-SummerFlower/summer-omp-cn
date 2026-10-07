@@ -5,6 +5,7 @@ import type { CustomCommandContext } from "../../../../extensibility/custom-comm
 import { isTranscriptEntry } from "../../../../session/session-context";
 import type { SessionEntry } from "../../../../session/session-entries";
 import type { TextReviewSource } from "@oh-my-pi/pi-tui/overlays/annotation-types";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export type AnnotationSourceKind = "code-review" | "last" | "session" | "file" | "prompt";
 
@@ -40,7 +41,7 @@ export async function selectAnnotationSourceKind(
 	ui: Pick<CustomCommandContext["ui"], "select">,
 ): Promise<AnnotationSourceKind | undefined> {
 	const selected = await ui.select(
-		"Select content to annotate",
+		t("tui.ca.extensibility.customCommands.bundled.annotate.textSource.selectContentToAnnotate"),
 		ANNOTATION_SOURCE_CHOICES.map(choice => choice.label),
 	);
 	return ANNOTATION_SOURCE_CHOICES.find(choice => choice.label === selected)?.kind;
@@ -105,7 +106,10 @@ export async function selectSessionTextReviewSource(
 	const latest = latestAssistantEntry(branch);
 	if (options?.autoSelect === "latest-assistant") {
 		if (!latest) {
-			ctx.ui.notify("No non-empty assistant reply is available on the active session branch.", "warning");
+			ctx.ui.notify(
+				t("tui.ca.extensibility.customCommands.bundled.annotate.textSource.noNonEmptyAssistantReplyIs"),
+				"warning",
+			);
 			return undefined;
 		}
 		return {
@@ -120,7 +124,10 @@ export async function selectSessionTextReviewSource(
 
 	const entries = branch.filter(isTranscriptEntry);
 	if (entries.length === 0) {
-		ctx.ui.notify("No messages to annotate yet.", "warning");
+		ctx.ui.notify(
+			t("tui.ca.extensibility.customCommands.bundled.annotate.textSource.noMessagesToAnnotateYet"),
+			"warning",
+		);
 		return undefined;
 	}
 	const selection = await ctx.ui.custom<SessionPick | undefined>((tui, _theme, _keybindings, done) => {

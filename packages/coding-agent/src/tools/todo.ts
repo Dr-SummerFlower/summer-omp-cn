@@ -16,6 +16,7 @@ import type { ToolSession } from "../sdk";
 import type { SessionEntry } from "../session/session-entries";
 
 import { normalizePathLikeInput, resolveToCwd } from "./path-utils";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Whether an unknown value is a persisted todo phase. */
 export function isTodoPhase(value: unknown): value is TodoPhase {
@@ -263,7 +264,7 @@ function resolveTaskOrError(
 	errors: string[],
 ): { task: TodoItem; phase: TodoPhase } | undefined {
 	if (!content) {
-		errors.push("Missing task content");
+		errors.push(t("tui.ca.tools.todo.missingTaskContent"));
 		return undefined;
 	}
 	const hit = findTaskByContent(phases, content);
@@ -283,7 +284,7 @@ function resolveTaskOrError(
 
 function resolvePhaseOrError(phases: TodoPhase[], name: string | undefined, errors: string[]): TodoPhase | undefined {
 	if (!name) {
-		errors.push("Missing phase name");
+		errors.push(t("tui.ca.tools.todo.missingPhaseName"));
 		return undefined;
 	}
 	const phase = findPhaseByName(phases, name);
@@ -317,7 +318,7 @@ function initPhases(entry: TodoOpEntryValue, errors: string[]): TodoPhase[] {
 			? [{ phase: entry.phase ?? DEFAULT_INIT_PHASE, items: entry.items }]
 			: undefined);
 	if (!list) {
-		errors.push("Missing list for init operation");
+		errors.push(t("tui.ca.tools.todo.missingListForInitOperation"));
 		return [];
 	}
 	// Duplicate phase names / task contents would be permanently unaddressable
@@ -344,11 +345,11 @@ function initPhases(entry: TodoOpEntryValue, errors: string[]): TodoPhase[] {
 
 function appendItems(phases: TodoPhase[], entry: TodoOpEntryValue, errors: string[]): TodoPhase[] {
 	if (!entry.phase) {
-		errors.push("Missing phase name for append operation");
+		errors.push(t("tui.ca.tools.todo.missingPhaseNameForAppendOperation"));
 		return phases;
 	}
 	if (!entry.items || entry.items.length === 0) {
-		errors.push("Missing items for append operation");
+		errors.push(t("tui.ca.tools.todo.missingItemsForAppendOperation"));
 		return phases;
 	}
 
@@ -635,7 +636,7 @@ function formatSummary(phases: TodoPhase[], errors: string[], readOnly = false):
 	const tasks = phases.flatMap(phase => phase.tasks);
 	if (tasks.length === 0) {
 		if (errors.length > 0) return `Errors: ${errors.join("; ")}`;
-		return readOnly ? "Todo list is empty." : "Todo list cleared.";
+		return readOnly ? t("tui.ca.tools.todo.todoListIsEmpty") : "Todo list cleared.";
 	}
 
 	const remainingByPhase = phases
@@ -656,7 +657,7 @@ function formatSummary(phases: TodoPhase[], errors: string[], readOnly = false):
 	const lines: string[] = [];
 	if (errors.length > 0) lines.push(`Errors: ${errors.join("; ")}`);
 	if (remainingTasks.length === 0) {
-		lines.push("Remaining items: none.");
+		lines.push(t("tui.ca.tools.todo.remainingItemsNone"));
 	} else {
 		lines.push(`Remaining items (${remainingTasks.length}):`);
 		for (const task of remainingTasks) {

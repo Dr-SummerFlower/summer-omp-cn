@@ -9,6 +9,7 @@ import { compact, node, span, text } from "../native/describe";
 import { OwnerMemo } from "../native/memo";
 import { errorView, noteText, resultText, toolHead } from "./native-view";
 import type { NativeToolView, RenderResultOptions, ToolRenderer, ToolRenderResult } from "./renderer";
+import { t } from "@oh-my-pi/pi-i18n";
 /** Lifecycle state of a tracked goal. */
 export type GoalStatus = "active" | "paused" | "budget-limited" | "complete" | "dropped";
 
@@ -132,7 +133,9 @@ export const goalToolRenderer = {
 			const header = renderStatusLine({ icon: "error", title: "Goal", description }, uiTheme);
 			return framedToolCard(uiTheme, () => ({
 				header,
-				sections: [{ content: formatErrorDetail(fallbackText || "Goal tool failed", uiTheme).split("\n") }],
+				sections: [
+					{ content: formatErrorDetail(fallbackText || t("tui.tools.goal.goalToolFailed"), uiTheme).split("\n") },
+				],
 				phase: "error",
 				borderColor: "error",
 			}));

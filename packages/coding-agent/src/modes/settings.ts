@@ -11,6 +11,7 @@ import {
 	STATUS_LINE_SEPARATOR_VALUES,
 } from "@oh-my-pi/pi-tui/status-line/schema";
 import { setChatTranscriptDisplayPreferences } from "@oh-my-pi/pi-tui/chat/display-preferences";
+import { setLanguage } from "@oh-my-pi/pi-i18n";
 import { setEditorGapComposerShape } from "@oh-my-pi/pi-tui/prompt/editor-top-gap";
 import { setEmojiAutocompleteEnabled } from "@oh-my-pi/pi-tui/prompt/prompt-action-autocomplete";
 import { WORD_COMPLETION_METHODS } from "@oh-my-pi/pi-tui/prompt/word-completion";
@@ -355,6 +356,27 @@ export const cfgTuiMaxInlineImages = register({
 	default: 8,
 	description:
 		"Maximum number of inline images kept as live terminal graphics (default 8). Older images fall back to a text placeholder via a full redraw once the limit is exceeded. Set to 0 to keep every image (no limit).",
+});
+
+// Language
+export const cfgLanguage = register({
+	id: "language",
+	type: "enum",
+	values: ["en", "zh-CN"] as const,
+	default: "en",
+	ui: {
+		tab: "appearance",
+		group: "Display",
+		label: "Language",
+		description: "Interface language",
+		options: [
+			{ value: "en", label: "English", description: "Use the English interface" },
+			{ value: "zh-CN", label: "简体中文", description: "使用简体中文界面" },
+		],
+	},
+});
+effect(cfgLanguage, language => {
+	setLanguage(language);
 });
 
 export const cfgTuiResizeScrollback = register({

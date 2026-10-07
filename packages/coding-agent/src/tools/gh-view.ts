@@ -33,6 +33,7 @@ import type {
 } from "./gh-types";
 import { type CacheStatus, getOrFetchView, resolveGithubCacheAuthKey } from "./github-cache";
 import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export const GH_REPO_FIELDS = [
 	"nameWithOwner",
@@ -239,7 +240,7 @@ export function formatCommentsSection(comments: GhComment[] | undefined): string
 		const createdAt = comment.createdAt ? ` · ${comment.createdAt}` : "";
 		lines.push(`### ${author}${createdAt}`);
 		lines.push("");
-		lines.push(normalizeText(comment.body) || "No comment body.");
+		lines.push(normalizeText(comment.body) || t("tui.ca.tools.ghView.noCommentBody"));
 		if (comment.url) {
 			lines.push("");
 			lines.push(`URL: ${comment.url}`);
@@ -270,7 +271,7 @@ export function formatReviewsSection(reviews: GhPrReview[] | undefined): string[
 			lines.push(`Commit: ${formatShortSha(review.commit.oid)}`);
 		}
 		lines.push("");
-		lines.push(normalizeText(review.body) || "No review body.");
+		lines.push(normalizeText(review.body) || t("tui.ca.tools.ghView.noReviewBody"));
 		lines.push("");
 	}
 
@@ -299,10 +300,10 @@ export function formatReviewCommentsSection(comments: GhPrReviewComment[] | unde
 		lines.push("");
 		pushLine(lines, "Location", formatReviewCommentLocation(comment));
 		pushLine(lines, "Side", comment.side);
-		pushLine(lines, "Reply to", comment.inReplyToId);
+		pushLine(lines, t("tui.ca.tools.ghView.replyTo"), comment.inReplyToId);
 		pushLine(lines, "URL", comment.url);
 		lines.push("");
-		lines.push(normalizeText(comment.body) || "No review comment body.");
+		lines.push(normalizeText(comment.body) || t("tui.ca.tools.ghView.noReviewCommentBody"));
 		lines.push("");
 	}
 
@@ -311,17 +312,17 @@ export function formatReviewCommentsSection(comments: GhPrReviewComment[] | unde
 
 export function formatRepoView(data: GhRepoViewData, input: { repo?: string; branch?: string }): string {
 	const lines: string[] = [];
-	const name = data.nameWithOwner ?? input.repo ?? "GitHub Repository";
+	const name = data.nameWithOwner ?? input.repo ?? t("tui.ca.tools.ghView.githubRepository");
 	lines.push(`# ${name}`);
 	lines.push("");
-	lines.push(normalizeText(data.description) || "No description provided.");
+	lines.push(normalizeText(data.description) || t("tui.ca.tools.ghView.noDescriptionProvided"));
 	lines.push("");
 	pushLine(lines, "URL", data.url);
-	pushLine(lines, "Default branch", data.defaultBranchRef?.name);
+	pushLine(lines, t("tui.ca.tools.ghView.defaultBranch"), data.defaultBranchRef?.name);
 	pushLine(lines, "Branch", normalizeOptionalString(input.branch));
 	pushLine(lines, "Visibility", data.visibility ?? undefined);
-	pushLine(lines, "Viewer permission", data.viewerPermission ?? undefined);
-	pushLine(lines, "Primary language", data.primaryLanguage?.name);
+	pushLine(lines, t("tui.ca.tools.ghView.viewerPermission"), data.viewerPermission ?? undefined);
+	pushLine(lines, t("tui.ca.tools.ghView.primaryLanguage"), data.primaryLanguage?.name);
 	pushLine(lines, "Stars", data.stargazerCount);
 	pushLine(lines, "Forks", data.forkCount);
 	pushLine(lines, "Archived", data.isArchived);
@@ -345,7 +346,7 @@ export function formatIssueView(
 	lines.push(`# Issue #${issueNumber}: ${data.title ?? "Untitled"}`);
 	lines.push("");
 	pushLine(lines, "State", data.state);
-	pushLine(lines, "State reason", data.stateReason ?? undefined);
+	pushLine(lines, t("tui.ca.tools.ghView.stateReason"), data.stateReason ?? undefined);
 	pushLine(lines, "Author", formatAuthor(data.author));
 	pushLine(lines, "Created", data.createdAt);
 	pushLine(lines, "Updated", data.updatedAt);
@@ -354,7 +355,7 @@ export function formatIssueView(
 	lines.push("");
 	lines.push("## Body");
 	lines.push("");
-	lines.push(normalizeText(data.body) || "No description provided.");
+	lines.push(normalizeText(data.body) || t("tui.ca.tools.ghView.noDescriptionProvided2"));
 
 	if ((input.comments ?? true) && data.comments) {
 		const commentSection = formatCommentsSection(data.comments);
@@ -395,8 +396,8 @@ export function formatPrView(data: GhPrViewData, input: { pr?: string; repo?: st
 	pushLine(lines, "Author", formatAuthor(data.author));
 	pushLine(lines, "Base", data.baseRefName);
 	pushLine(lines, "Head", data.headRefName);
-	pushLine(lines, "Review decision", data.reviewDecision ?? undefined);
-	pushLine(lines, "Merge state", data.mergeStateStatus);
+	pushLine(lines, t("tui.ca.tools.ghView.reviewDecision"), data.reviewDecision ?? undefined);
+	pushLine(lines, t("tui.ca.tools.ghView.mergeState"), data.mergeStateStatus);
 	pushLine(lines, "Created", data.createdAt);
 	pushLine(lines, "Updated", data.updatedAt);
 	pushLine(lines, "Labels", formatLabels(data.labels));
@@ -404,7 +405,7 @@ export function formatPrView(data: GhPrViewData, input: { pr?: string; repo?: st
 	lines.push("");
 	lines.push("## Body");
 	lines.push("");
-	lines.push(normalizeText(data.body) || "No description provided.");
+	lines.push(normalizeText(data.body) || t("tui.ca.tools.ghView.noDescriptionProvided3"));
 
 	const fileSection = formatPrFiles(data.files);
 	if (fileSection.length > 0) {

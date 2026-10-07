@@ -2,6 +2,7 @@ import { type } from "@oh-my-pi/omptype";
 import type { CommitAgentState } from "../../../commit/agentic/state";
 import { CHANGELOG_CATEGORIES, type ChangelogCategory } from "../../../commit/types";
 import type { CustomTool } from "../../../extensibility/custom-tools/types";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const changelogCategoryProperties = {
 	"Breaking Changes?": "string[]",
@@ -131,7 +132,9 @@ export function createProposeChangelogTool(
 				state.changelogProposal = { entries: normalized };
 			}
 
-			let text = response.valid ? "Changelog entries accepted." : "Changelog validation failed.";
+			let text = response.valid
+				? t("tui.ca.commit.agentic.tools.proposeChangelog.changelogEntriesAccepted")
+				: "Changelog validation failed.";
 			if (response.errors.length > 0) {
 				text += `\n\nErrors:\n${response.errors.map(e => `- ${e}`).join("\n")}`;
 			}

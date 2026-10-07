@@ -87,6 +87,7 @@
         "@oh-my-pi/pi-agent-core": "catalog:",
         "@oh-my-pi/pi-ai": "catalog:",
         "@oh-my-pi/pi-catalog": "catalog:",
+        "@oh-my-pi/pi-i18n": "catalog:",
         "@oh-my-pi/pi-mnemopi": "catalog:",
         "@oh-my-pi/pi-natives": "catalog:",
         "@oh-my-pi/pi-tui": "catalog:",
@@ -130,6 +131,13 @@
         "@types/bun": "catalog:",
         "@types/react": "catalog:",
         "@types/react-dom": "catalog:",
+      },
+    },
+    "packages/i18n": {
+      "name": "@oh-my-pi/pi-i18n",
+      "version": "18.4.4",
+      "devDependencies": {
+        "@types/bun": "catalog:",
       },
     },
     "packages/metaharness": {
@@ -261,6 +269,7 @@
         "@oh-my-pi/pi-agent-core": "catalog:",
         "@oh-my-pi/pi-ai": "catalog:",
         "@oh-my-pi/pi-catalog": "catalog:",
+        "@oh-my-pi/pi-i18n": "catalog:",
         "@oh-my-pi/pi-natives": "catalog:",
         "@oh-my-pi/pi-utils": "catalog:",
         "@oh-my-pi/pi-wire": "catalog:",
@@ -347,6 +356,7 @@
     "@oh-my-pi/pi-ai": "18.4.4",
     "@oh-my-pi/pi-catalog": "18.4.4",
     "@oh-my-pi/pi-coding-agent": "18.4.4",
+    "@oh-my-pi/pi-i18n": "18.4.4",
     "@oh-my-pi/pi-mnemopi": "18.4.4",
     "@oh-my-pi/pi-natives": "18.4.4",
     "@oh-my-pi/pi-tui": "18.4.4",
@@ -712,6 +722,8 @@
     "@oh-my-pi/pi-catalog": ["@oh-my-pi/pi-catalog@workspace:packages/catalog"],
 
     "@oh-my-pi/pi-coding-agent": ["@oh-my-pi/pi-coding-agent@workspace:packages/coding-agent"],
+
+    "@oh-my-pi/pi-i18n": ["@oh-my-pi/pi-i18n@workspace:packages/i18n"],
 
     "@oh-my-pi/pi-metaharness": ["@oh-my-pi/pi-metaharness@workspace:packages/metaharness"],
 

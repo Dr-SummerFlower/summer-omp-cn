@@ -9,6 +9,7 @@ import { theme } from "../../theme/theme";
 import { sanitizeDisplayText } from "../../overlays/extensions/display-text";
 import { DebugViewerFrame, type DebugViewerFrameContent, type DebugViewerFrameContext } from "./viewer-frame";
 import { formatDebugLogExpandedLines, parseDebugLogPid, parseDebugLogTimestampMs } from "./log-formatting";
+import { t } from "@oh-my-pi/pi-i18n";
 /** Host capabilities for copying and fetching earlier log entries. */
 export interface LogViewerDeps {
 	copyToClipboard(text: string): void;
@@ -532,7 +533,7 @@ export class DebugLogViewerComponent implements Component {
 		this.#onError = options.onError;
 		this.#onUpdate = options.onUpdate;
 		this.#frame = new DebugViewerFrame({
-			title: "Recent Logs",
+			title: t("tui.apps.debug.logViewer.recentLogs"),
 			getHeight: () => process.stdout.rows || this.#terminalRows || 24,
 			headerRows: 2,
 			footerRows: 2,
@@ -849,7 +850,7 @@ export class DebugLogViewerComponent implements Component {
 		const selected = selectedPayload.length === 0 ? [] : selectedPayload.split("\n");
 
 		if (selected.length === 0) {
-			const message = "No log entry selected";
+			const message = t("tui.apps.debug.logViewer.noLogEntrySelected");
 			this.#statusMessage = message;
 			this.#onStatus?.(message);
 			return;

@@ -20,6 +20,7 @@ import * as PiCodingAgent from "../../index";
 import * as typebox from "../legacy-typebox";
 import { createNoOpUIContext, resolvePath, withHostGuard } from "../utils";
 import type { CustomToolAPI, CustomToolFactory, LoadedCustomTool, ToolLoadError } from "./types";
+import { t } from "@oh-my-pi/pi-i18n";
 
 interface LoadToolResult {
 	tools: LoadedCustomTool[];
@@ -79,7 +80,16 @@ async function loadTool(
 		const factory = (module.default ?? module) as CustomToolFactory;
 
 		if (typeof factory !== "function") {
-			return { tools: [], errors: [{ path: toolPath, error: "Tool must export a default function", source }] };
+			return {
+				tools: [],
+				errors: [
+					{
+						path: toolPath,
+						error: t("tui.ca.extensibility.customTools.loader.toolMustExportADefaultFunction"),
+						source,
+					},
+				],
+			};
 		}
 
 		const toolResult: unknown = await withHostGuard(async () => factory(sharedApi));
@@ -153,7 +163,7 @@ export class CustomToolLoader {
 			pi,
 			pushPendingAction: action => {
 				if (!pushPendingAction) {
-					throw new Error("Pending action store unavailable for custom tools in this runtime.");
+					throw new Error(t("tui.ca.extensibility.customTools.loader.pendingActionStoreUnavailableForCustom"));
 				}
 				pushPendingAction({
 					label: action.label,

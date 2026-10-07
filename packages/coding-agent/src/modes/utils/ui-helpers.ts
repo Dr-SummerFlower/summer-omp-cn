@@ -2,6 +2,7 @@ import type { AgentMessage } from "@oh-my-pi/pi-agent-core";
 import type { AssistantMessage, ImageContent, Usage } from "@oh-my-pi/pi-ai";
 import { getStreamingPartialJson } from "@oh-my-pi/pi-ai/utils/block-symbols";
 import { type Component, Spacer, Text } from "@oh-my-pi/pi-tui";
+import { t } from "@oh-my-pi/pi-i18n";
 import { StatusNotice } from "@oh-my-pi/pi-tui/chrome/status-notice";
 import { QueuedMessagesBand } from "@oh-my-pi/pi-tui/prompt/queued-messages";
 import { logger } from "@oh-my-pi/pi-utils";
@@ -1029,8 +1030,11 @@ export class UiHelpers {
 				}
 			}
 			if (compactionCount > 0) {
-				const times = compactionCount === 1 ? "1 time" : `${compactionCount} times`;
-				this.ctx.showStatus(`Session compacted ${times}`);
+				const times =
+					compactionCount === 1
+						? t("tui.status.sessionCompacted.one")
+						: t("tui.status.sessionCompacted.many", { count: compactionCount });
+				this.ctx.showStatus(times);
 			}
 			if (options.clearTerminalHistory) {
 				this.ctx.ui.requestRender(true, { clearScrollback: true });
@@ -1059,12 +1063,16 @@ export class UiHelpers {
 	}
 
 	showError(errorMessage: string): void {
-		const text = new Text(`Error: ${errorMessage}`, 1, 0).setStyleFn(t => theme.fg("error", t));
+		const text = new Text(`${t("common.feedback.errorPrefix")} ${errorMessage}`, 1, 0).setStyleFn(t =>
+			theme.fg("error", t),
+		);
 		this.ctx.present([new Spacer(1), text]);
 	}
 
 	showWarning(warningMessage: string, options?: { hideWithToolActivity?: boolean }): void {
-		const text = new Text(`Warning: ${warningMessage}`, 1, 0).setStyleFn(t => theme.fg("warning", t));
+		const text = new Text(`${t("common.feedback.warningPrefix")} ${warningMessage}`, 1, 0).setStyleFn(t =>
+			theme.fg("warning", t),
+		);
 		const content = [new Spacer(1), text];
 		this.ctx.present(options?.hideWithToolActivity ? new ToolActivityContainer(content) : content);
 	}
@@ -1072,8 +1080,8 @@ export class UiHelpers {
 	showNewVersionNotification(newVersion: string): void {
 		const block = new TranscriptBlock();
 		block.addChild(new DynamicBorder(text => theme.fg("warning", text)));
-		const title = "Update Available";
-		const prefix = `New version ${newVersion} is available. Run: `;
+		const title = t("tui.status.updateAvailable");
+		const prefix = `${t("tui.status.newVersion")} ${newVersion} ${t("tui.status.updateCommand")} `;
 		const command = "omp update";
 		block.addChild(
 			new Text(`${title}\n${prefix}${command}`, 1, 0).setStyleFn(
@@ -1100,8 +1108,8 @@ export class UiHelpers {
 		}
 
 		const groups = [
-			{ label: "Steering", messages: steeringMessages },
-			{ label: "After yield", messages: followUpMessages },
+			{ label: t("tui.transcript.steering"), messages: steeringMessages },
+			{ label: t("tui.transcript.afterYield"), messages: followUpMessages },
 		].filter(group => group.messages.length > 0);
 		if (groups.length > 0) {
 			const dequeueKey = this.ctx.keybindings.getKeys("app.message.dequeue")[0] ?? "alt+up";
@@ -1124,7 +1132,7 @@ export class UiHelpers {
 		else this.ctx.editor.clearDraft(text);
 		this.ctx.updatePendingMessagesDisplay();
 		this.ctx.showStatus(
-			queuedImages ? "Queued message with image for after compaction" : "Queued message for after compaction",
+			queuedImages ? t("tui.input.queuedAfterCompactionWithImage") : t("tui.input.queuedAfterCompaction.one"),
 		);
 	}
 
@@ -1194,10 +1202,11 @@ export class UiHelpers {
 			this.ctx.session.clearQueue();
 			this.ctx.compactionQueuedMessages = queuedMessages;
 			this.ctx.updatePendingMessagesDisplay();
+			const reason = error instanceof Error ? error.message : String(error);
 			this.ctx.showError(
-				`Failed to send queued message${queuedMessages.length > 1 ? "s" : ""}: ${
-					error instanceof Error ? error.message : String(error)
-				}`,
+				queuedMessages.length > 1
+					? t("tui.input.failedToSendQueued.many", { reason })
+					: t("tui.input.failedToSendQueued.one", { reason }),
 			);
 		};
 

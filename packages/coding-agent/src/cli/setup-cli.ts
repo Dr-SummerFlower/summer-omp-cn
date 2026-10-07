@@ -20,6 +20,7 @@ import { downloadTtsModel, isTtsLocalModelKey, isTtsModelCached, TTS_LOCAL_MODEL
 import { selectSetupModel } from "@oh-my-pi/pi-tui/apps/setup-model-picker";
 
 import { cfgPythonInterpreter } from "../eval/settings";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export type SetupComponent = "python" | "speech";
 
@@ -310,25 +311,14 @@ async function handleSpeechSetup(flags: { json?: boolean; check?: boolean }): Pr
  * Print setup command help.
  */
 export function printSetupHelp(): void {
-	console.log(`${chalk.bold(`${APP_NAME} setup`)} - Run onboarding or install dependencies for optional features
-
-${chalk.bold("Usage:")}
-  ${APP_NAME} setup                     Run the onboarding wizard
-  ${APP_NAME} setup <component> [options]
-
-${chalk.bold("Components:")}
-  python    Verify a Python 3 interpreter is reachable for code execution
-  speech    Pick and download speech-to-text and text-to-speech models
-
-${chalk.bold("Options:")}
-  -c, --check   Check if dependencies are installed without installing
-  --json        Output status as JSON
-
-${chalk.bold("Examples:")}
-  ${APP_NAME} setup                  Run the onboarding wizard
-  ${APP_NAME} setup python           Check Python execution dependencies
-  ${APP_NAME} setup speech           Pick and download the STT and TTS models
-  ${APP_NAME} setup speech --check   Check if speech dependencies are available
-  ${APP_NAME} setup python --check   Check if Python execution is available
-`);
+	console.log(
+		t("cli.setup.help", {
+			title: chalk.bold(`${APP_NAME} setup`),
+			headingUsage: chalk.bold(t("cli.help.heading.usage")),
+			app: APP_NAME,
+			headingComponents: chalk.bold(t("cli.help.heading.components")),
+			headingOptions: chalk.bold(t("cli.help.heading.options")),
+			headingExamples: chalk.bold(t("cli.help.heading.examples")),
+		}),
+	);
 }

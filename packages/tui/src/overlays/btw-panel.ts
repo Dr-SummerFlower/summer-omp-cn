@@ -9,6 +9,7 @@ import { formatKeyHint } from "../app-keybindings";
 import type { NativeNode } from "../native/node";
 import { col, md, node, span, text } from "../native/describe";
 import { hintsRow, type NativeHint, statusHintsRow } from "../native/overlay";
+import { t } from "@oh-my-pi/pi-i18n";
 
 type BtwPanelState = "running" | "complete" | "branching" | "aborted" | "error";
 
@@ -155,7 +156,10 @@ export class BtwPanelComponent extends OverlayPanel {
 
 	#describeBody(): NativeNode {
 		if (this.#state === "error") {
-			return text([span(sanitizeErrorLine(this.#errorMessage ?? "Unknown error"), "error")], { wrap: "word" });
+			return text(
+				[span(sanitizeErrorLine(this.#errorMessage ?? t("tui.overlays.btwPanel.unknownError")), "error")],
+				{ wrap: "word" },
+			);
 		}
 		const answer = this.#visibleAnswer;
 		if (answer) return md(answer, { stream: this.#state === "running" });
@@ -164,15 +168,18 @@ export class BtwPanelComponent extends OverlayPanel {
 	}
 
 	#describeFooter(canFollowUp: boolean, canBranch: boolean): NativeNode {
-		const esc: NativeHint = { keys: boundKeys("app.interrupt", ["escape"]).slice(0, 1), label: "to close" };
+		const esc: NativeHint = {
+			keys: boundKeys("app.interrupt", ["escape"]).slice(0, 1),
+			label: t("tui.overlays.btwPanel.toClose"),
+		};
 		switch (this.#state) {
 			case "running":
-				return hintsRow([{ ...esc, label: "to cancel" }]);
+				return hintsRow([{ ...esc, label: t("tui.overlays.btwPanel.toCancel") }]);
 			case "complete": {
 				const hints: NativeHint[] = [];
 				if (this.isCopyable()) hints.push({ keys: ["c"], label: this.#copied ? "to copy again" : "to copy" });
-				if (canFollowUp) hints.push({ keys: ["f"], label: "to follow up" });
-				if (canBranch) hints.push({ keys: ["b"], label: "to branch" });
+				if (canFollowUp) hints.push({ keys: ["f"], label: t("tui.overlays.btwPanel.toFollowUp") });
+				if (canBranch) hints.push({ keys: ["b"], label: t("tui.overlays.btwPanel.toBranch") });
 				hints.push(esc);
 				if (!this.#copied) return hintsRow(hints);
 				return statusHintsRow([span("✓ Copied to clipboard", "success")], hints);

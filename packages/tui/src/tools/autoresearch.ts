@@ -9,6 +9,7 @@ import { plainText } from "../native/spans";
 import { errorView, resultText, toolHead } from "./native-view";
 import type { NativeToolView, ToolRenderer, ToolRenderResult } from "./renderer";
 import type { TruncationResult } from "./streaming-output";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Whether a lower or higher metric is better. */
 export type MetricDirection = "lower" | "higher";
@@ -396,9 +397,15 @@ export const runExperimentToolRenderer = {
 					status.node,
 					details.tailOutput.trim() ? ansi(details.tailOutput, { follow: true }) : undefined,
 					details.truncation && details.fullOutputPath
-						? text([span("Full output: ", "warning"), span(shortenPath(details.fullOutputPath), "path")], {
-								truncate: "middle",
-							})
+						? text(
+								[
+									span(t("tui.tools.autoresearch.fullOutput"), "warning"),
+									span(shortenPath(details.fullOutputPath), "path"),
+								],
+								{
+									truncate: "middle",
+								},
+							)
 						: undefined,
 				]),
 			};

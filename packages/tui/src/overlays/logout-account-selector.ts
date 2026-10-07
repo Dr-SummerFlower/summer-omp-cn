@@ -11,6 +11,7 @@ import type { DescribeContext, NativeNode, NativeUiEvent } from "../native/node"
 import { CLOSE_ACTION, dockedPicker, PICKER_KEY, pickerAction, pickerEvent } from "../native/picker";
 import type { TspPickerItem } from "@oh-my-pi/pi-wire";
 import { actionHint, hintsRow, overlayCard } from "../native/overlay";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const LOGOUT_SELECTOR_MAX_VISIBLE = 10;
 
@@ -98,7 +99,13 @@ export class LogoutAccountSelectorComponent extends OverlayPanel {
 		}
 
 		if (total === 0) {
-			this.#listContainer.addChild(new TruncatedText(theme.fg("muted", "No stored accounts to log out"), 0, 0));
+			this.#listContainer.addChild(
+				new TruncatedText(
+					theme.fg("muted", t("tui.overlays.logoutAccountSelector.noStoredAccountsToLogOut")),
+					0,
+					0,
+				),
+			);
 		}
 
 		this.#listContainer.addChild(
@@ -146,7 +153,7 @@ export class LogoutAccountSelectorComponent extends OverlayPanel {
 		if (cx.supports("picker")) {
 			this.#pickerRoot ??= dockedPicker({
 				title: `${this.#providerName} accounts`,
-				subtitle: "Pick the account to sign out",
+				subtitle: t("tui.overlays.logoutAccountSelector.pickTheAccountToSignOut"),
 				icon: "key-round",
 				noun: "accounts",
 				size: "md",
@@ -161,8 +168,14 @@ export class LogoutAccountSelectorComponent extends OverlayPanel {
 				}))),
 				current: this.#accounts.filter(account => account.active).map(account => String(account.credentialId)),
 				selected: this.#menu.selectedKey ?? null,
-				empty: "No stored accounts to log out",
-				actions: [pickerAction("confirm", "Sign out", "enter", { primary: true, danger: true }), CLOSE_ACTION],
+				empty: t("tui.overlays.logoutAccountSelector.noStoredAccountsToLogOut2"),
+				actions: [
+					pickerAction("confirm", t("tui.overlays.logoutAccountSelector.signOut"), "enter", {
+						primary: true,
+						danger: true,
+					}),
+					CLOSE_ACTION,
+				],
 			});
 			return this.#pickerRoot;
 		}
@@ -184,7 +197,7 @@ export class LogoutAccountSelectorComponent extends OverlayPanel {
 				"list",
 				{
 					selected: this.#menu.selectedKey ?? null,
-					empty: "No stored accounts to log out",
+					empty: t("tui.overlays.logoutAccountSelector.noStoredAccountsToLogOut3"),
 					max: { lines: LOGOUT_SELECTOR_MAX_VISIBLE },
 				},
 				this.#nativeItems,
@@ -192,7 +205,7 @@ export class LogoutAccountSelectorComponent extends OverlayPanel {
 			),
 			(this.#nativeHints ??= hintsRow([
 				actionHint(["tui.select.up", "tui.select.down"], "select"),
-				{ keys: ["enter"], label: "log out account" },
+				{ keys: ["enter"], label: t("tui.overlays.logoutAccountSelector.logOutAccount") },
 				actionHint("tui.select.cancel", "cancel"),
 			])),
 		]);

@@ -43,6 +43,7 @@ import { formatContextUsage } from "../chrome/context-thresholds";
 import { node, span, text } from "../native/describe";
 import type { DescribeContext, NativeChild, NativeNode } from "../native/node";
 import { actionHint, hintsRow, overlayCard } from "../native/overlay";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Parsed message and model metadata relevant to a transcript viewer. */
 export type AgentTranscriptEntry = SessionMessageEntryLike | { type: "model_change"; model: string };
@@ -696,7 +697,11 @@ export class AgentTranscriptViewer implements Component {
 				{ keys: [this.#deps.expandKeys[0] ?? "ctrl+o"], label: "expand" },
 			]),
 		);
-		const head = [span("Agent Hub", "accent"), span(` ${theme.sep.dot} `, "dim"), span(id, "accent")];
+		const head = [
+			span(t("tui.overlays.agentTranscriptViewer.agentHub"), "accent"),
+			span(` ${theme.sep.dot} `, "dim"),
+			span(id, "accent"),
+		];
 		const described = overlayCard("omp.hub.transcript", head, children);
 		this.#nativeCache = { signature, node: described };
 		return described;
@@ -791,10 +796,13 @@ export class AgentTranscriptViewer implements Component {
 	#placeholder(maxWidth: number): string {
 		if (this.#deps.remote) {
 			if (this.#remoteError) return sanitizeErrorLine(this.#remoteError, maxWidth);
-			if (this.#remoteUnavailable) return "Transcript lives on the host — not available.";
-			return this.#hasRemoteData ? "No messages yet." : "Loading transcript from host…";
+			if (this.#remoteUnavailable) return t("tui.overlays.agentTranscriptViewer.transcriptLivesOnTheHostNot");
+			return this.#hasRemoteData
+				? t("tui.overlays.agentTranscriptViewer.noMessagesYet")
+				: "Loading transcript from host…";
 		}
-		if (!this.#deps.registry.get(this.#deps.agentId)?.sessionFile) return "No session file available yet.";
-		return "No messages yet.";
+		if (!this.#deps.registry.get(this.#deps.agentId)?.sessionFile)
+			return t("tui.overlays.agentTranscriptViewer.noSessionFileAvailableYet");
+		return t("tui.overlays.agentTranscriptViewer.noMessagesYet2");
 	}
 }

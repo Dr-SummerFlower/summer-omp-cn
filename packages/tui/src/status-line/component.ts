@@ -55,6 +55,7 @@ import type {
 	StatusLineSegmentOptions,
 	StatusLineSettings,
 } from "./types";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** What a click on a native status segment asks omp to open. */
 export type StatusLineNativeAction = "status.model" | "status.context" | "status.git" | "status.cost" | "status.path";
@@ -3394,7 +3395,9 @@ export class StatusLineComponent<TSession extends StatusLineSession = StatusLine
 		const boundaries = ctx.autoCompactEnabled ? this.#compactionBoundaries(window) : null;
 		const lines = [
 			pct === null ? "Context usage unknown" : `Context ${Math.round(pct)}% used`,
-			window > 0 ? `${formatNumber(ctx.contextTokens)} of ${formatNumber(window)} tokens` : "No context window",
+			window > 0
+				? `${formatNumber(ctx.contextTokens)} of ${formatNumber(window)} tokens`
+				: t("tui.statusLine.component.noContextWindow"),
 		];
 		if (boundaries) lines.push(`Auto-compact at ${Math.round(boundaries.thresholdPercent)}%`);
 		if (ctx.compactionSpeculation === "running") lines.push("Compaction summary in progress");

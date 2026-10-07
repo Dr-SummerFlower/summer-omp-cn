@@ -28,6 +28,7 @@ import type { NativeChild } from "../native/node";
 import { OwnerMemo } from "../native/memo";
 import { plainText } from "../native/spans";
 import { errorText, noteText, resultText } from "./native-view";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const MAX_COLLAPSED_ITEMS = PREVIEW_LIMITS.COLLAPSED_ITEMS;
 
@@ -42,7 +43,7 @@ function renderFallbackText(contentText: string, expanded: boolean, theme: Theme
 	let text = `${headerIcon} ${theme.fg("dim", "Response")}${expandHint}`;
 
 	if (displayLines.length === 0) {
-		text += `\n ${theme.fg("dim", theme.tree.last)} ${theme.fg("muted", "No response data")}`;
+		text += `\n ${theme.fg("dim", theme.tree.last)} ${theme.fg("muted", t("tui.tools.webSearch.noResponseData"))}`;
 		return new Text(text, 0, 0);
 	}
 
@@ -67,7 +68,10 @@ export interface SearchRenderDetails {
 
 /** Render a web search failure as a framed error panel, matching the success layout. */
 function renderSearchErrorPanel(message: string, providerLabel: string | undefined, theme: Theme): Component {
-	const header = renderStatusLine({ icon: "error", title: "Web Search", description: providerLabel }, theme);
+	const header = renderStatusLine(
+		{ icon: "error", title: t("tui.tools.webSearch.webSearch2"), description: providerLabel },
+		theme,
+	);
 	const body = theme.fg("error", `Error: ${replaceTabs(message)}`);
 	return framedToolCard(theme, () => ({
 		header,
@@ -162,7 +166,7 @@ export function renderSearchResult(
 		const renderedAnswer = answerMarkdown ? answerMarkdown.render(contentWidth) : [];
 		let answerLines: readonly string[];
 		if (renderedAnswer.length === 0) {
-			answerLines = [theme.fg("muted", "No answer text returned")];
+			answerLines = [theme.fg("muted", t("tui.tools.webSearch.noAnswerTextReturned"))];
 		} else if (args?.maxAnswerLines !== undefined && !expanded) {
 			// CLI compact mode (`omp q`) caps the answer; the TUI passes no cap and shows it in full.
 			// `renderedAnswer` is the Markdown component's shared cache — slice copies before appending.
@@ -227,7 +231,8 @@ export function renderSearchResult(
 				},
 				{
 					label: theme.fg("toolTitle", "Sources"),
-					content: sourceTree.length > 0 ? sourceTree : [theme.fg("muted", "No sources returned")],
+					content:
+						sourceTree.length > 0 ? sourceTree : [theme.fg("muted", t("tui.tools.webSearch.noSourcesReturned"))],
 				},
 				{ label: theme.fg("toolTitle", "Metadata"), content: metaLines },
 			],
@@ -248,7 +253,7 @@ export function renderSearchCall(
 
 type SearchRenderArgs = { query?: string; [key: string]: unknown };
 
-const SEARCH_TITLE = "Web search";
+const SEARCH_TITLE = t("tui.tools.webSearch.webSearch");
 
 function searchHead(query: string | undefined, meta?: string, badge?: { text: string; title?: string }) {
 	return {
@@ -294,7 +299,7 @@ function describeSearchResult(
 		return {
 			tool: searchHead(argQuery, label),
 			tone: "error",
-			body: [errorText(plainText(details.error).trim() || "Web search failed")],
+			body: [errorText(plainText(details.error).trim() || t("tui.tools.webSearch.webSearchFailed"))],
 		};
 	}
 
@@ -304,7 +309,7 @@ function describeSearchResult(
 		return {
 			tool: searchHead(argQuery),
 			tone: "warning",
-			body: [noteText(rawText || "No response data")],
+			body: [noteText(rawText || t("tui.tools.webSearch.noResponseData2"))],
 		};
 	}
 

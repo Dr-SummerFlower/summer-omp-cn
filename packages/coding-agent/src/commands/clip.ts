@@ -9,18 +9,19 @@ import { uploadClip } from "../stream/clip-upload";
 import { latestRecording, recordingsDir } from "../stream/recording";
 
 import { cfgStreamServerUrl } from "../stream/settings";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export default class Clip extends Command {
 	static description = commandHelp.description;
 
 	static args = {
-		file: Args.string({ description: "Recording to upload (default: the newest /record capture)" }),
+		file: Args.string({ description: t("cli.clip.recordingToUploadDefaultTheNewest") }),
 	};
 
 	static flags = {
-		title: Flags.string({ char: "t", description: "Clip title (defaults to the recording's title)" }),
-		description: Flags.string({ char: "d", description: "Clip description shown under the player" }),
-		server: Flags.string({ description: "Stream server base URL (overrides stream.serverUrl)" }),
+		title: Flags.string({ char: "t", description: t("cli.clip.clipTitleDefaultsToTheRecording") }),
+		description: Flags.string({ char: "d", description: t("cli.clip.clipDescriptionShownUnderThePlayer") }),
+		server: Flags.string({ description: t("cli.clip.streamServerBaseUrlOverridesStream") }),
 	};
 
 	static examples = [

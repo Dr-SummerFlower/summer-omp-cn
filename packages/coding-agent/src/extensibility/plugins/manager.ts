@@ -30,6 +30,7 @@ import type {
 	PluginSettingSchema,
 	ProjectPluginOverrides,
 } from "./types";
+import { t } from "@oh-my-pi/pi-i18n";
 
 // =============================================================================
 // Validation
@@ -978,7 +979,7 @@ export class PluginManager {
 		checks.push({
 			name: "plugins_directory",
 			status: pluginsDirExists ? "ok" : "warning",
-			message: pluginsDirExists ? `Found at ${pluginsDir}` : "Not created yet",
+			message: pluginsDirExists ? `Found at ${pluginsDir}` : t("tui.ca.extensibility.plugins.manager.notCreatedYet"),
 		});
 
 		// Check 2: package.json exists
@@ -998,7 +999,7 @@ export class PluginManager {
 		checks.push({
 			name: "package_manifest",
 			status: hasPkgJson ? "ok" : "warning",
-			message: hasPkgJson ? "Found" : "Not created yet",
+			message: hasPkgJson ? "Found" : t("tui.ca.extensibility.plugins.manager.notCreatedYet2"),
 		});
 
 		// Check 3: node_modules exists
@@ -1007,7 +1008,7 @@ export class PluginManager {
 		checks.push({
 			name: "node_modules",
 			status: hasNodeModules ? "ok" : hasPkgJson ? "error" : "warning",
-			message: hasNodeModules ? "Found" : "Missing (run npm install in plugins dir)",
+			message: hasNodeModules ? "Found" : t("tui.ca.extensibility.plugins.manager.missingRunNpmInstallInPlugins"),
 		});
 
 		const deps = pkg.dependencies || {};
@@ -1034,7 +1035,7 @@ export class PluginManager {
 							checks.push({
 								name: `plugin:${name}`,
 								status: "error",
-								message: "Missing from node_modules",
+								message: t("tui.ca.extensibility.plugins.manager.missingFromNodeModules"),
 								fixed,
 							});
 						} else {
@@ -1042,7 +1043,7 @@ export class PluginManager {
 							checks.push({
 								name: `orphan:${name}`,
 								status: "warning",
-								message: "Plugin in config but not installed",
+								message: t("tui.ca.extensibility.plugins.manager.pluginInConfigButNotInstalled"),
 								fixed,
 							});
 						}
@@ -1252,13 +1253,13 @@ export function validateSetting(value: unknown, schema: PluginSettingSchema): Va
 	switch (schema.type) {
 		case "string":
 			if (typeof value !== "string") {
-				return { valid: false, error: "Expected string" };
+				return { valid: false, error: t("tui.ca.extensibility.plugins.manager.expectedString") };
 			}
 			break;
 
 		case "number":
 			if (typeof value !== "number" || Number.isNaN(value)) {
-				return { valid: false, error: "Expected number" };
+				return { valid: false, error: t("tui.ca.extensibility.plugins.manager.expectedNumber") };
 			}
 			if (schema.min !== undefined && value < schema.min) {
 				return { valid: false, error: `Must be >= ${schema.min}` };
@@ -1270,7 +1271,7 @@ export function validateSetting(value: unknown, schema: PluginSettingSchema): Va
 
 		case "boolean":
 			if (typeof value !== "boolean") {
-				return { valid: false, error: "Expected boolean" };
+				return { valid: false, error: t("tui.ca.extensibility.plugins.manager.expectedBoolean") };
 			}
 			break;
 

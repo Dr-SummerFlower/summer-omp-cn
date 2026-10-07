@@ -22,6 +22,7 @@ import { waitForRelayExtension } from "./relay/probe";
 import { ensureSharedBrowser } from "./shared-daemon";
 import type { TernKind } from "./tern/kind";
 import { TernSocketClient } from "./tern/wire";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export type PuppeteerBrowserKind =
 	| {
@@ -383,7 +384,11 @@ async function disposeBrowserHandle(handle: BrowserHandle, opts: ReleaseBrowserO
 			// process tree so cleanup always completes.
 			const proc = handle.browser.process();
 			try {
-				await withTimeout(handle.browser.close(), HEADLESS_CLOSE_TIMEOUT_MS, "Timed out closing headless browser");
+				await withTimeout(
+					handle.browser.close(),
+					HEADLESS_CLOSE_TIMEOUT_MS,
+					t("tui.ca.tools.browser.registry.timedOutClosingHeadlessBrowser"),
+				);
 			} catch (err) {
 				logger.debug("Failed to close headless browser; force-killing", { error: (err as Error).message });
 				if (proc?.pid !== undefined) await gracefulKillTreeOnce(proc.pid).catch(() => undefined);

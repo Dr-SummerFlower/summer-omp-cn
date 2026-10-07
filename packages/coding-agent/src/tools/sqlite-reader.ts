@@ -1,6 +1,7 @@
 import { Database, type SQLQueryBindings } from "bun:sqlite";
 import { formatBytes, replaceTabs, truncateToWidth } from "@oh-my-pi/pi-tui/render/render-utils";
 import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const SQLITE_MAGIC = new Uint8Array([
 	0x53, 0x51, 0x4c, 0x69, 0x74, 0x65, 0x20, 0x66, 0x6f, 0x72, 0x6d, 0x61, 0x74, 0x20, 0x33, 0x00,
@@ -403,8 +404,7 @@ const FORBIDDEN_WHERE_KEYWORDS = new Set([
 	"pragma",
 ]);
 
-const COMMENT_OR_TERMINATOR_ERROR =
-	"SQLite 'where' clause must not contain comments or statement terminators; use '?q=SELECT ...' for raw SQL";
+const COMMENT_OR_TERMINATOR_ERROR = t("tui.ca.tools.sqliteReader.sqliteWhereClauseMustNotContain");
 const FORBIDDEN_KEYWORD_ERROR =
 	"SQLite 'where' clause must not contain LIMIT/OFFSET/UNION/INTERSECT/EXCEPT/ATTACH/DETACH/PRAGMA; use '?q=SELECT ...' for raw SQL";
 
@@ -732,9 +732,7 @@ export function queryRows(
 	const totalCount = db.prepare<SqliteCountRow, []>(countSql).get()?.count ?? 0;
 	const statement = db.prepare<SqliteRow, SQLQueryBindings[]>(selectSql);
 	if (statement.paramsCount !== 2) {
-		throw new ToolError(
-			"SQLite where clause changed the expected pagination parameters; use q=SELECT ... for raw SQL",
-		);
+		throw new ToolError(t("tui.ca.tools.sqliteReader.sqliteWhereClauseChangedTheExpected"));
 	}
 	const rows = statement.all(opts.limit, opts.offset);
 	return { columns, rows, totalCount };
@@ -754,7 +752,7 @@ export function getRowByKey(
 
 export function getRowByRowId(db: Database, table: string, key: string): Record<string, unknown> | null {
 	getTableMasterRow(db, table);
-	const binding = coerceIntegerKey(key, "SQLite ROWID");
+	const binding = coerceIntegerKey(key, t("tui.ca.tools.sqliteReader.sqliteRowid"));
 	return db
 		.prepare<SqliteRow, SQLQueryBindings[]>(`SELECT * FROM ${quoteSqliteIdentifier(table)} WHERE rowid = ? LIMIT 1`)
 		.get(binding);
@@ -829,7 +827,7 @@ export function updateRowByRowId(db: Database, table: string, key: string, data:
 
 	const assignments = entries.map(([column]) => `${quoteSqliteIdentifier(column)} = ?`).join(", ");
 	const bindings = entries.map(([, value]) => value);
-	bindings.push(coerceIntegerKey(key, "SQLite ROWID"));
+	bindings.push(coerceIntegerKey(key, t("tui.ca.tools.sqliteReader.sqliteRowid2")));
 	const statement = db.prepare<SqliteRow, SQLQueryBindings[]>(
 		`UPDATE ${quoteSqliteIdentifier(table)} SET ${assignments} WHERE rowid = ?`,
 	);
@@ -852,7 +850,7 @@ export function deleteRowByKey(
 
 export function deleteRowByRowId(db: Database, table: string, key: string): number {
 	getTableMasterRow(db, table);
-	const binding = coerceIntegerKey(key, "SQLite ROWID");
+	const binding = coerceIntegerKey(key, t("tui.ca.tools.sqliteReader.sqliteRowid3"));
 	const statement = db.prepare<SqliteRow, SQLQueryBindings[]>(
 		`DELETE FROM ${quoteSqliteIdentifier(table)} WHERE rowid = ?`,
 	);
@@ -887,7 +885,12 @@ export function renderSchema(
 	const schemaLines = replaceTabs(createSql)
 		.split("\n")
 		.map(line => truncateToWidth(line, MAX_RENDER_WIDTH));
-	const parts = [schemaLines.join("\n"), "", "Sample rows:", buildAsciiTable(sampleRows.columns, sampleRows.rows)];
+	const parts = [
+		schemaLines.join("\n"),
+		"",
+		t("tui.ca.tools.sqliteReader.sampleRows"),
+		buildAsciiTable(sampleRows.columns, sampleRows.rows),
+	];
 	return parts.join("\n");
 }
 

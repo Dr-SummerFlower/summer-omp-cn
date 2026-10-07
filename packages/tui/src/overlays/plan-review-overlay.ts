@@ -59,11 +59,12 @@ import { col, item, keyed, md, node, row as rowNode, span, text } from "../nativ
 import { leafKey, type NativeChild, type NativeNode, type NativeUiEvent } from "../native/node";
 import { actionButton, actionHint, hintsRow, itemIndex, type NativeHint, selectList } from "../native/overlay";
 import { getKeybindings } from "../keybindings";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Title shown in the overlay's top border. */
-const OVERLAY_TITLE = "Plan Review";
+const overlayTitle = (): string => t("tui.planReview.title.overlay");
 /** Native sheet title when the plan has no title heading of its own. */
-const NATIVE_TITLE = "Plan review";
+const nativeTitle = (): string => t("tui.planReview.title.native");
 /** Minimum plan-body rows kept visible even on short terminals. */
 const MIN_BODY_ROWS = 3;
 /** Visible rows for the in-overlay annotation editor before it scrolls. */
@@ -1037,7 +1038,7 @@ export class PlanReviewOverlay implements Component {
 			for (const title of this.#deleted) feedback += `- ${title}\n`;
 		}
 		for (const section of annotated) {
-			feedback += `\n## ${section.title || "Plan preamble"}\n`;
+			feedback += `\n## ${section.title || t("tui.overlays.planReviewOverlay.planPreamble")}\n`;
 			for (const annotation of section.annotations) {
 				if (annotation.target.kind === "line") feedback += `> Line: ${annotation.target.context}\n`;
 				feedback += this.#formatAnnotationFeedback(annotation.note);
@@ -1325,7 +1326,7 @@ export class PlanReviewOverlay implements Component {
 						0,
 						Math.min(chooser.selected - Math.floor(optionLimit / 2), chooser.entries.length - optionLimit),
 					);
-		const lines = [theme.bold(theme.fg("accent", "Edit annotation"))];
+		const lines = [theme.bold(theme.fg("accent", t("tui.overlays.planReviewOverlay.editAnnotation")))];
 		for (let windowIndex = 0; windowIndex < optionLimit; windowIndex++) {
 			const optionIndex = start + windowIndex;
 			const selection = chooser.entries[optionIndex];
@@ -1336,7 +1337,7 @@ export class PlanReviewOverlay implements Component {
 			const target = annotation.target.kind === "section" ? "section" : `line ${annotation.target.context}`;
 			const note = sanitizeStatusText(annotation.note);
 			const marker = optionIndex === chooser.selected ? theme.fg("accent", "› ") : "  ";
-			const label = `${marker}${sanitizeStatusText(section.title || "Plan preamble")} · ${target} · ${note}`;
+			const label = `${marker}${sanitizeStatusText(section.title || t("tui.overlays.planReviewOverlay.planPreamble2"))} · ${target} · ${note}`;
 			lines.push(truncateToWidth(label, innerWidth, Ellipsis.Unicode));
 		}
 		if (!Number.isFinite(maxRows) || maxRows >= 2) {
@@ -1356,7 +1357,7 @@ export class PlanReviewOverlay implements Component {
 		if (this.#annotating) {
 			const target = this.#annotationTarget;
 			const section = target ? this.#sections[target.sectionIndex] : undefined;
-			const title = sanitizeStatusText(section?.title || "Plan preamble");
+			const title = sanitizeStatusText(section?.title || t("tui.overlays.planReviewOverlay.planPreamble3"));
 			const location =
 				target?.row === null
 					? `‹${title}›`
@@ -1383,8 +1384,8 @@ export class PlanReviewOverlay implements Component {
 	/** The native sheet: large glass, titled by the plan's own title heading (the body never repeats it). */
 	get nativeOverlay(): NonNullable<Component["nativeOverlay"]> {
 		const heading = this.#sections[this.#titleIndex]?.title;
-		const title = heading ? sanitizeStatusText(heading) : NATIVE_TITLE;
-		if (this.#nativeOverlay?.title !== title) {
+		const title = heading ? sanitizeStatusText(heading) : nativeTitle();
+		if (!this.#nativeOverlay || this.#nativeOverlay.title !== title) {
 			this.#nativeOverlay = {
 				title,
 				props: { role: "omp.overlay.planReview", size: "lg", anchor: "center", head: title },
@@ -1445,7 +1446,7 @@ export class PlanReviewOverlay implements Component {
 			children.push(node("spinner", { label: [span(label, "accent strong")] }, undefined, "options"));
 			children.push(
 				keyed(
-					text([span("Applying your selection — this can take a moment while context is prepared.", "dim")], {
+					text([span(t("tui.overlays.planReviewOverlay.applyingYourSelectionThisCanTake"), "dim")], {
 						wrap: "word",
 					}),
 					"footer",
@@ -1483,11 +1484,19 @@ export class PlanReviewOverlay implements Component {
 		if (this.#committed) return undefined;
 		const buttons: NativeNode[] = [];
 		if (this.callbacks.onCopyPlan)
-			buttons.push(actionButton("Copy", "copyPlan", { keys: "c", title: "Copy plan  c" }));
+			buttons.push(
+				actionButton("Copy", "copyPlan", { keys: "c", title: t("tui.overlays.planReviewOverlay.copyPlanC") }),
+			);
 		// Unbound: the button still mirrors the callback, without a keycap.
 		const editorKeyId = getKeybindings().getKeys("app.editor.external")[0];
 		if (this.callbacks.onExternalEditor) {
-			buttons.push(actionButton("Edit in $EDITOR", "externalEditor", editorKeyId ? { keys: editorKeyId } : {}));
+			buttons.push(
+				actionButton(
+					t("tui.overlays.planReviewOverlay.editInEditor"),
+					"externalEditor",
+					editorKeyId ? { keys: editorKeyId } : {},
+				),
+			);
 		}
 		if (buttons.length === 0) return undefined;
 		return node("row", { role: "omp.plan.tools", gap: "sm", align: "center", justify: "end" }, buttons, "tools");
@@ -1615,11 +1624,11 @@ export class PlanReviewOverlay implements Component {
 				const where = annotation?.target.kind === "line" ? `line ${annotation.target.context}` : "section";
 				return item(`c${i}`, {
 					label: sanitizeStatusText(annotation?.note ?? ""),
-					detail: `${sanitizeStatusText(section?.title || "Plan preamble")} · ${where}`,
+					detail: `${sanitizeStatusText(section?.title || t("tui.overlays.planReviewOverlay.planPreamble4"))} · ${where}`,
 				});
 			});
 			return [
-				keyed(text([span("Edit annotation", "accent strong")]), "chooserHead"),
+				keyed(text([span(t("tui.overlays.planReviewOverlay.editAnnotation2"), "accent strong")]), "chooserHead"),
 				selectList("chooser", entries, { selected: `c${chooser.selected}` }),
 				hintsRow(
 					[
@@ -1633,14 +1642,16 @@ export class PlanReviewOverlay implements Component {
 		}
 		if (this.#annotating) {
 			const target = this.#annotationTarget;
-			const title = sanitizeStatusText(this.#sections[target?.sectionIndex ?? -1]?.title || "Plan preamble");
+			const title = sanitizeStatusText(
+				this.#sections[target?.sectionIndex ?? -1]?.title || t("tui.overlays.planReviewOverlay.planPreamble5"),
+			);
 			const location = target?.row === null ? `‹${title}›` : `‹${title}› · ${target?.context ?? ""}`;
 			const hints: (NativeHint | undefined)[] = [
 				actionHint("tui.input.submit", "save"),
 				actionHint("tui.input.newLine", "newline"),
 				actionHint("tui.select.cancel", "cancel"),
 			];
-			if (this.#editingAnnotation) hints.push({ keys: [], label: "empty deletes" });
+			if (this.#editingAnnotation) hints.push({ keys: [], label: t("tui.overlays.planReviewOverlay.emptyDeletes") });
 			if (this.#externalEditorLabel) hints.push({ keys: [], label: `${this.#externalEditorLabel} editor` });
 			// The feedback field, inline under the plan: its caption names the anchor, omp's editor holds the text.
 			return [
@@ -1649,7 +1660,9 @@ export class PlanReviewOverlay implements Component {
 					{ role: "omp.plan.feedback", gap: "xs" },
 					[
 						keyed(
-							text([span("Note on ", "muted"), span(location, "accent")], { truncate: "end" }),
+							text([span(t("tui.overlays.planReviewOverlay.noteOn"), "muted"), span(location, "accent")], {
+								truncate: "end",
+							}),
 							"annotateHead",
 						),
 						this.#editor,
@@ -1721,7 +1734,7 @@ export class PlanReviewOverlay implements Component {
 			? Math.max(0, termHeight - baseChrome - MIN_BODY_ROWS)
 			: Number.POSITIVE_INFINITY;
 		const footerLines = committed
-			? [theme.fg("dim", "Applying your selection — this can take a moment while context is prepared.")]
+			? [theme.fg("dim", t("tui.overlays.planReviewOverlay.applyingYourSelectionThisCanTake2"))]
 			: this.#renderFooterLines(innerWidth, chooserFooterRows);
 
 		// Chrome rows: top border, two dividers, bottom border, plus the
@@ -1748,7 +1761,7 @@ export class PlanReviewOverlay implements Component {
 		const out: string[] = [];
 		if (sidebarShown) {
 			const { lines: sidebar, posForRow } = this.#renderSidebarLines(regionRows, sidebarWidth);
-			out.push(topBorderSplit(width, OVERLAY_TITLE, sidebarWidth));
+			out.push(topBorderSplit(width, overlayTitle(), sidebarWidth));
 			for (let i = 0; i < regionRows; i++) {
 				const pos = posForRow[i];
 				if (pos !== undefined) this.#tocClickRows.set(out.length, pos);
@@ -1757,7 +1770,7 @@ export class PlanReviewOverlay implements Component {
 			}
 			out.push(dividerSplit(width, sidebarWidth));
 		} else {
-			out.push(topBorder(width, OVERLAY_TITLE));
+			out.push(topBorder(width, overlayTitle()));
 			for (const line of body) {
 				this.#bodyClickRows.add(out.length);
 				out.push(row(line, width));

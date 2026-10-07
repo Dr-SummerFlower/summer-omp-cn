@@ -8,16 +8,17 @@ import { commitHelp as commandHelp } from "../cli/command-help";
 import { CommitAbortedError, runCommitCommand } from "../commit";
 import type { CommitCommandArgs } from "../commit/types";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export default class Commit extends Command {
 	static description = commandHelp.description;
 	static flags = {
-		push: Flags.boolean({ description: "Push after committing" }),
-		"dry-run": Flags.boolean({ description: "Preview without committing" }),
-		"no-changelog": Flags.boolean({ description: "Skip changelog updates" }),
-		legacy: Flags.boolean({ description: "Use legacy deterministic pipeline" }),
-		context: Flags.string({ char: "c", description: "Additional context for the model" }),
-		model: Flags.string({ char: "m", description: "Override model selection" }),
+		push: Flags.boolean({ description: t("cli.commit.pushAfterCommitting") }),
+		"dry-run": Flags.boolean({ description: t("cli.commit.previewWithoutCommitting") }),
+		"no-changelog": Flags.boolean({ description: t("cli.commit.skipChangelogUpdates") }),
+		legacy: Flags.boolean({ description: t("cli.commit.useLegacyDeterministicPipeline") }),
+		context: Flags.string({ char: "c", description: t("cli.commit.additionalContextForTheModel") }),
+		model: Flags.string({ char: "m", description: t("cli.commit.overrideModelSelection") }),
 	};
 
 	async run(): Promise<void> {

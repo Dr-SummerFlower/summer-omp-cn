@@ -11,6 +11,7 @@ import { resizeImage } from "../../utils/image-resize";
 import { buildChangedFrameContactSheetPng, requireMediaBinary, runFfmpeg } from "../../utils/video";
 import { resolveToCwd } from "../path-utils";
 import type { RunOutput } from "./run-output";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const DEFAULT_FPS = 30;
 const DEFAULT_QUALITY = 80;
@@ -244,7 +245,7 @@ export function installCursorOverlay(): void {
 		if (document.getElementById("__omp_recording_cursor__")) return;
 		root = document.createElement("div");
 		root.id = "__omp_recording_cursor__";
-		root.setAttribute("aria-label", "OMP recording cursor overlay");
+		root.setAttribute("aria-label", t("tui.ca.tools.browser.recording.ompRecordingCursorOverlay"));
 		root.setAttribute("aria-hidden", "true");
 		root.setAttribute("inert", "");
 		root.style.cssText = "position:fixed;inset:0;z-index:2147483647;pointer-events:none;overflow:hidden";
@@ -480,7 +481,8 @@ export class RecordingController {
 		signal?: AbortSignal,
 	): Promise<RecordingStartResult> {
 		if (this.#active) throw new BrowserRecordingError(`A recording is already active at ${this.#active.path}`);
-		if (this.#starting) throw new BrowserRecordingError("A recording is already starting");
+		if (this.#starting)
+			throw new BrowserRecordingError(t("tui.ca.tools.browser.recording.aRecordingIsAlreadyStarting"));
 		if (typeof rawPath !== "string" || rawPath.trim().length === 0) {
 			throw new BrowserRecordingError("tab.recordStart() requires a non-empty output path");
 		}

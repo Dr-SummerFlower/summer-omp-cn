@@ -14,6 +14,7 @@ import {
 	type ComputerWorkerOutbound,
 	type RunErrorPayload,
 } from "./protocol";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const START_TIMEOUT_MS = 10_000;
 const CLOSE_TIMEOUT_MS = 1_500;
@@ -92,7 +93,7 @@ function wrapWorker(worker: Worker): ComputerWorkerHandle {
 				handler(event.error instanceof Error ? event.error : new Error(event.message));
 			const onMessageError = (event: MessageEvent): void =>
 				handler(new Error(`Computer worker message error: ${String(event.data)}`));
-			const onClose = (): void => handler(new Error("Computer worker exited"));
+			const onClose = (): void => handler(new Error(t("tui.ca.tools.computer.supervisor.computerWorkerExited")));
 			worker.addEventListener("error", onError);
 			worker.addEventListener("messageerror", onMessageError);
 			worker.addEventListener("close", onClose);
@@ -176,7 +177,11 @@ export class ComputerSupervisor implements ComputerController {
 		else signal?.addEventListener("abort", abort, { once: true });
 		try {
 			this.#safeSend({ type: "capabilities", id, session: snapshot });
-			return await withTimeout(promise, CAPABILITIES_TIMEOUT_MS, "Timed out fetching computer capabilities");
+			return await withTimeout(
+				promise,
+				CAPABILITIES_TIMEOUT_MS,
+				t("tui.ca.tools.computer.supervisor.timedOutFetchingComputerCapabilities"),
+			);
 		} finally {
 			signal?.removeEventListener("abort", abort);
 			this.#pendingCapabilities.delete(id);
@@ -233,7 +238,7 @@ export class ComputerSupervisor implements ComputerController {
 		this.#startPromise = withTimeout(
 			started.promise,
 			this.#timeouts.startMs,
-			"Timed out starting computer worker",
+			t("tui.ca.tools.computer.supervisor.timedOutStartingComputerWorker"),
 		).catch(async error => {
 			await this.#terminate(error);
 			throw error;
@@ -277,7 +282,12 @@ export class ComputerSupervisor implements ComputerController {
 				id: message.id,
 				reply: {
 					ok: false,
-					error: { name: "ToolError", message: "No active run for tool call", isToolError: true, isAbort: false },
+					error: {
+						name: "ToolError",
+						message: t("tui.ca.tools.computer.supervisor.noActiveRunForToolCall"),
+						isToolError: true,
+						isAbort: false,
+					},
 				},
 			});
 			return;
@@ -368,7 +378,11 @@ export class ComputerSupervisor implements ComputerController {
 		});
 		try {
 			worker.send({ type: "close" });
-			await withTimeout(closed.promise, this.#timeouts.closeMs, "Timed out closing computer worker");
+			await withTimeout(
+				closed.promise,
+				this.#timeouts.closeMs,
+				t("tui.ca.tools.computer.supervisor.timedOutClosingComputerWorker"),
+			);
 		} catch {
 			// Forced termination below is the bounded close fallback.
 		} finally {
@@ -423,10 +437,10 @@ export async function smokeTestComputerWorker(
 	};
 
 	try {
-		const pong = waitFor("pong", "Computer worker smoke ping timed out");
+		const pong = waitFor("pong", t("tui.ca.tools.computer.supervisor.computerWorkerSmokePingTimedOut"));
 		worker.send({ type: "ping", id: `computer-smoke-${Snowflake.next()}` });
 		await pong;
-		const closed = waitFor("closed", "Computer worker smoke close timed out");
+		const closed = waitFor("closed", t("tui.ca.tools.computer.supervisor.computerWorkerSmokeCloseTimedOut"));
 		worker.send({ type: "close" });
 		await closed;
 	} finally {

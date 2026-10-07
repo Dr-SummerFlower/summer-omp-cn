@@ -52,6 +52,7 @@ import {
 	isShadowedExtension,
 	type ProviderTab,
 } from "./types";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Runtime operations remain owned by the embedding application. */
 export interface ExtensionDashboardRuntime {
@@ -231,7 +232,9 @@ export class ExtensionDashboard implements Component {
 		this.#mainList.setToolSource(toolFrame);
 		this.#inspector.setToolSource(toolFrame);
 
-		this.#frameTop.setLines([topBorder(width, "Extension Control Center")]);
+		this.#frameTop.setLines([
+			topBorder(width, t("tui.overlays.extensions.extensionDashboard.extensionControlCenter")),
+		]);
 		this.#frameTabs.setLines(tabLines.map(line => row(line, width)));
 		this.#frameUpperDivider.setLines([divider(width)]);
 		this.#frameBody.setLines(this.#body.render(innerWidth).map(line => row(line, width)));

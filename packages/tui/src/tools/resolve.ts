@@ -16,6 +16,7 @@ import type { Theme } from "../theme/theme";
 import { Ellipsis, padToWidth, renderStatusLine, truncateToWidth } from "../render";
 
 import { replaceTabs } from "../render/render-utils";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Device name for applying a staged action. */
 export const RESOLVE_DEVICE_NAME = "resolve";
@@ -114,7 +115,7 @@ export const resolveRenderer = {
 	): Component {
 		const details = result.details;
 		const label = replaceTabs(details?.label ?? "pending action");
-		const reason = replaceTabs(details?.reason?.trim() || "No reason provided");
+		const reason = replaceTabs(details?.reason?.trim() || t("tui.tools.resolve.noReasonProvided"));
 		const action = details?.action ?? "apply";
 		const isApply = action === "apply" && !result.isError;
 		const isFailedApply = action === "apply" && result.isError;
@@ -172,7 +173,7 @@ export const resolveRenderer = {
 		return resolveResultMemo.get(result, [], () => {
 			const details = result.details;
 			const label = plainText(details?.label ?? "pending action");
-			const reason = plainText(details?.reason?.trim() || "No reason provided");
+			const reason = plainText(details?.reason?.trim() || t("tui.tools.resolve.noReasonProvided2"));
 			const action = details?.action ?? "apply";
 			const isApply = action === "apply" && !result.isError;
 			const verb = isApply ? "Accept" : action === "apply" ? "Failed" : "Discard";

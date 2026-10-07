@@ -6,6 +6,7 @@ import { ConventionalFileDiff, condenseStat, parsePromptDiff } from "./diff";
 import type { CommitInference } from "./inference";
 import { parseConventionalAnalysisMarkdown, parseFileObservationsMarkdown } from "./markdown";
 import { renderConventionalPrompt } from "./prompts";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const MAX_FILE_TOKENS = 50_000;
 const MAP_PHASE_CONCURRENCY = 16;
@@ -77,7 +78,7 @@ export async function runMapReduce(input: {
 			systemPrompt: prompts.system,
 			userPrompt: prompts.user,
 			toolName: "create_conventional_analysis",
-			progressLabel: "Reducing file observations…",
+			progressLabel: t("tui.ca.commit.conventional.mapReduce.reducingFileObservations"),
 		},
 		response => parseConventionalAnalysisMarkdown(response.text),
 	);
@@ -111,7 +112,7 @@ async function mapPhase(
 		if (!file?.isBinary) continue;
 		observations[index] = {
 			file: file.filename,
-			observations: ["Binary file changed."],
+			observations: [t("tui.ca.commit.conventional.mapReduce.binaryFileChanged")],
 			additions: file.additions,
 			deletions: file.deletions,
 			status: file.status,
@@ -322,7 +323,7 @@ class ContextHeaders {
 		if (others.length === 0) return "";
 		const shown = [...others].sort((left, right) => right[1] - left[1]).slice(0, MAX_CONTEXT_FILES);
 		const lines = [
-			"OTHER FILES IN THIS CHANGE:",
+			t("tui.ca.commit.conventional.mapReduce.otherFilesInThisChange"),
 			...shown.map(([file, size, description]) => `- ${file} (${size} lines): ${description}`),
 		];
 		if (shown.length < others.length) lines.push(`... and ${others.length - shown.length} more files`);

@@ -5,33 +5,34 @@ import { Args, Command, Flags } from "@oh-my-pi/pi-utils/cli";
 import type { SkillSearchSort } from "@oh-my-pi/pi-wire/skillshare";
 import { skillHelp as commandHelp } from "../cli/command-help";
 import { runSkillCommand, SKILL_ACTIONS, SKILL_USAGE, type SkillAction } from "../cli/skill-cli";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export default class Skill extends Command {
 	static description = commandHelp.description;
 	static aliases = ["skills"];
 
 	static args = {
-		action: Args.string({ description: "Skill action", required: false, options: SKILL_ACTIONS }),
+		action: Args.string({ description: t("cli.skill.skillAction"), required: false, options: SKILL_ACTIONS }),
 		targets: Args.string({
-			description: "Specs, names, directories, or action arguments",
+			description: t("cli.skill.specsNamesDirectoriesOrActionArguments"),
 			required: false,
 			multiple: true,
 		}),
 	};
 
 	static flags = {
-		global: Flags.boolean({ char: "g", description: "Use the user-global skills.json (install/update/uninstall)" }),
-		yes: Flags.boolean({ char: "y", description: "Install or update skills that ship scripts without asking" }),
-		json: Flags.boolean({ description: "Output JSON (search, info, token, list)" }),
-		sort: Flags.string({ description: "Search order", options: ["relevance", "downloads", "recent"] }),
-		scope: Flags.string({ description: "Publishing scope (default: your Stencil username)" }),
-		tag: Flags.string({ description: "Dist-tag for the published version" }),
-		"dry-run": Flags.boolean({ description: "Pack and validate without publishing" }),
-		"allow-secrets": Flags.boolean({ description: "Publish even when credential-shaped strings are found" }),
-		registry: Flags.string({ description: "Registry base URL (overrides skills.registryUrl)" }),
-		undo: Flags.boolean({ description: "Reverse a yank or deprecation" }),
-		package: Flags.string({ description: "Restrict a new token to a package (repeatable)", multiple: true }),
-		expires: Flags.integer({ description: "Token lifetime in days" }),
+		global: Flags.boolean({ char: "g", description: t("cli.skill.useTheUserGlobalSkillsJson") }),
+		yes: Flags.boolean({ char: "y", description: t("cli.skill.installOrUpdateSkillsThatShip") }),
+		json: Flags.boolean({ description: t("cli.skill.outputJsonSearchInfoTokenList") }),
+		sort: Flags.string({ description: t("cli.skill.searchOrder"), options: ["relevance", "downloads", "recent"] }),
+		scope: Flags.string({ description: t("cli.skill.publishingScopeDefaultYourStencilUsername") }),
+		tag: Flags.string({ description: t("cli.skill.distTagForThePublishedVersion") }),
+		"dry-run": Flags.boolean({ description: t("cli.skill.packAndValidateWithoutPublishing") }),
+		"allow-secrets": Flags.boolean({ description: t("cli.skill.publishEvenWhenCredentialShapedStrings") }),
+		registry: Flags.string({ description: t("cli.skill.registryBaseUrlOverridesSkillsRegistryurl") }),
+		undo: Flags.boolean({ description: t("cli.skill.reverseAYankOrDeprecation") }),
+		package: Flags.string({ description: t("cli.skill.restrictANewTokenToA"), multiple: true }),
+		expires: Flags.integer({ description: t("cli.skill.tokenLifetimeInDays") }),
 	};
 
 	static examples = [

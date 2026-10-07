@@ -25,6 +25,7 @@ import type {
 } from "./types";
 
 import { cfgMemoryBackend } from "../memory-backend/settings";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const DEFAULT_MEMORY_FILE = "memory_summary.md";
 const MEMORY_NAMESPACE = "root";
@@ -467,7 +468,10 @@ export class MemoryProtocolHandler implements ProtocolHandler {
 		if (caller.backend === "off") return [];
 		const completions: UrlCompletion[] = [];
 		if (caller.backend === "local") {
-			completions.push({ value: MEMORY_NAMESPACE, description: "Project memory summary" });
+			completions.push({
+				value: MEMORY_NAMESPACE,
+				description: t("tui.ca.internalUrls.memoryProtocol.projectMemorySummary"),
+			});
 		}
 		const mnemopiAvailable = caller.legacy
 			? mnemopiSessionStatesFromRegistry().length > 0
@@ -477,7 +481,7 @@ export class MemoryProtocolHandler implements ProtocolHandler {
 		if (mnemopiAvailable) {
 			completions.push({
 				value: "<memory-id>",
-				description: "Full mnemopi memory by id (from recall)",
+				description: t("tui.ca.internalUrls.memoryProtocol.fullMnemopiMemoryByIdFrom"),
 			});
 		}
 		return completions;

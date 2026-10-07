@@ -13,6 +13,7 @@ import { DynamicBorder } from "../chrome/dynamic-border";
 import type { TspSpan, TspText } from "@oh-my-pi/pi-wire";
 import type { DescribeContext, NativeNode } from "../native/node";
 import { card, col, node, row, span, text } from "../native/describe";
+import { t } from "@oh-my-pi/pi-i18n";
 
 interface ContextSkill {
 	readonly name: string;
@@ -448,11 +449,23 @@ export function computeContextBreakdown(session: ContextUsageSession, options: C
 	}
 
 	const categories: CategoryInfo[] = [
-		{ id: "systemPrompt", label: "System prompt", tokens: systemPromptTokens, color: "accent", glyph: CELL_FILLED },
-		{ id: "systemTools", label: "System tools", tokens: toolsTokens, color: "warning", glyph: CELL_FILLED },
+		{
+			id: "systemPrompt",
+			label: t("tui.statusLine.contextUsage.systemPrompt"),
+			tokens: systemPromptTokens,
+			color: "accent",
+			glyph: CELL_FILLED,
+		},
+		{
+			id: "systemTools",
+			label: t("tui.statusLine.contextUsage.systemTools"),
+			tokens: toolsTokens,
+			color: "warning",
+			glyph: CELL_FILLED,
+		},
 		{
 			id: "systemContext",
-			label: "System context",
+			label: t("tui.statusLine.contextUsage.systemContext"),
 			tokens: systemContextTokens,
 			color: "customMessageLabel",
 			glyph: CELL_FILLED,
@@ -604,7 +617,7 @@ function buildLegendParts(breakdown: ContextBreakdown): LegendPart[][] {
 		{ t: ` (${percentString(usedTokens, contextWindow)})`, s: "muted" },
 	]);
 	lines.push([]);
-	lines.push([{ t: "Estimated usage by category", s: "muted" }]);
+	lines.push([{ t: t("tui.statusLine.contextUsage.estimatedUsageByCategory"), s: "muted" }]);
 
 	for (const category of categories) {
 		const pct = percentString(category.tokens, contextWindow);
@@ -647,9 +660,9 @@ function buildSnapcompactParts(breakdown: ContextBreakdown): LegendPart[][] {
 	const snap = breakdown.snapcompact;
 	if (snap) {
 		if (!snap.visionCapable) {
-			lines.push([{ t: "Snapcompact: inactive (model has no image input)", s: "muted" }]);
+			lines.push([{ t: t("tui.statusLine.contextUsage.snapcompactInactiveModelHasNoImage"), s: "muted" }]);
 		} else {
-			lines.push([{ t: "Snapcompact (estimated wire savings)", s: "muted" }]);
+			lines.push([{ t: t("tui.statusLine.contextUsage.snapcompactEstimatedWireSavings"), s: "muted" }]);
 			if (snap.systemPrompt) {
 				const sp = snap.systemPrompt;
 				const scope = sp.scope === "agents-md" ? "AGENTS.md" : "all";
@@ -768,9 +781,12 @@ function describeContextFrame(breakdown: ContextBreakdown): NativeNode {
 	for (const category of breakdown.categories) {
 		items.push({ k: [swatch(category.color), span(` ${category.label}`)], v: figure(category.tokens) });
 	}
-	items.push({ k: [swatch("dim", "□"), span(" Free space")], v: figure(freeTokens) });
+	items.push({ k: [swatch("dim", "□"), span(t("tui.statusLine.contextUsage.freeSpace"))], v: figure(freeTokens) });
 	if (autoCompactBufferTokens > 0) {
-		items.push({ k: [swatch("warning", "▨"), span(" Autocompact buffer")], v: figure(autoCompactBufferTokens) });
+		items.push({
+			k: [swatch("warning", "▨"), span(t("tui.statusLine.contextUsage.autocompactBuffer"))],
+			v: figure(autoCompactBufferTokens),
+		});
 	}
 	const marks =
 		thresholdTokens !== undefined
@@ -831,7 +847,7 @@ function describeContextFrame(breakdown: ContextBreakdown): NativeNode {
  */
 export function describeContextUsage(breakdown: ContextBreakdown): NativeNode {
 	if (breakdown.contextWindow <= 0) {
-		return text([{ t: "Context usage is unavailable: no model is selected for this session.", s: "muted" }]);
+		return text([{ t: t("tui.statusLine.contextUsage.contextUsageIsUnavailableNoModel"), s: "muted" }]);
 	}
 	const cells = planCells(breakdown);
 	const grid: NativeNode[] = [];
@@ -866,7 +882,7 @@ export class ContextUsageView extends Container {
 		super();
 		this.#breakdown = breakdown;
 		this.addChild(new DynamicBorder());
-		this.addChild(new Text(theme.bold(theme.fg("accent", "Context Usage")), 1, 0));
+		this.addChild(new Text(theme.bold(theme.fg("accent", t("tui.statusLine.contextUsage.contextUsage"))), 1, 0));
 		this.addChild(new Spacer(1));
 		this.addChild(new Text(renderContextUsage(breakdown, theme), 1, 0));
 		this.addChild(new DynamicBorder());
@@ -881,7 +897,7 @@ export class ContextUsageView extends Container {
 				? describeContextUsage(breakdown)
 				: meter
 					? describeContextFrame(breakdown)
-					: card({ role: "omp.context", head: [span("Context usage", "strong")] }, [
+					: card({ role: "omp.context", head: [span(t("tui.statusLine.contextUsage.contextUsage2"), "strong")] }, [
 							describeContextUsage(breakdown),
 						]);
 		this.#native = { meter, node: described };
@@ -895,7 +911,7 @@ export class ContextUsageView extends Container {
  */
 export function renderContextUsage(breakdown: ContextBreakdown, theme: Theme): string {
 	if (breakdown.contextWindow <= 0) {
-		return theme.fg("muted", "Context usage is unavailable: no model is selected for this session.");
+		return theme.fg("muted", t("tui.statusLine.contextUsage.contextUsageIsUnavailableNoModel2"));
 	}
 
 	const cells = planCells(breakdown);

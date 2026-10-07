@@ -1,5 +1,6 @@
 import type { ConventionalGenerationConfig } from "./config";
 import { codePointLength, sliceCodePoints } from "./text";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const DEFAULT_LOW_PRIORITY_EXTENSIONS = [
 	"lock",
@@ -43,7 +44,13 @@ const DIFF_HEADER_PREFIXES = [
 	"---",
 ];
 
-const NONCONTENT_CHANGE_PREFIXES = ["Binary files", "rename from", "rename to", "copy from", "copy to"];
+const NONCONTENT_CHANGE_PREFIXES = [
+	t("tui.ca.commit.conventional.diff.binaryFiles"),
+	"rename from",
+	"rename to",
+	"copy from",
+	"copy to",
+];
 
 const PRIORITY = {
 	binary: -100,

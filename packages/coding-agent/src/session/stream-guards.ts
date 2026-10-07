@@ -8,6 +8,7 @@ import {
 import type { AssistantMessage, AssistantMessageEvent, Model } from "@oh-my-pi/pi-ai";
 import { GeminiHeaderRunDetector } from "@oh-my-pi/pi-ai/utils/thinking-loop";
 import { type RepeatedToolCallDetection, ToolCallLoopGuard } from "@oh-my-pi/pi-ai/utils/tool-call-loop-guard";
+import { t } from "@oh-my-pi/pi-i18n";
 import { logger, prompt } from "@oh-my-pi/pi-utils";
 import type { Settings } from "../config/settings";
 import geminiToolReminderTemplate from "../prompts/system/gemini-tool-call-reminder.md" with { type: "text" };
@@ -214,11 +215,7 @@ export class LoopGuards {
 			provider: model?.provider,
 			headers: headerCount,
 		});
-		this.#host.emitNotice(
-			"warning",
-			`Interrupted ${headerCount} planning headers with no tool call; reminded the model to issue one.`,
-			"loop-guard",
-		);
+		this.#host.emitNotice("warning", t("tui.session.geminiHeaderInterrupt", { count: headerCount }), "loop-guard");
 		this.#host.agent.abort(GEMINI_HEADER_INTERRUPT_REASON);
 		const generation = this.#host.promptGeneration();
 		this.#host.schedulePostPromptTask(async signal => {

@@ -3,34 +3,35 @@ import { Args, Command, Flags } from "@oh-my-pi/pi-utils/cli";
 import { runCleanseCommand } from "../cleanse";
 import { cleanseHelp as commandHelp } from "../cli/command-help";
 import { CliUsageError } from "../cli/usage-error";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export default class Cleanse extends Command {
 	static description = commandHelp.description;
 	static args = {
 		request: Args.string({
-			description: 'What to detect and fix (e.g. "ts errors"); a discovery agent works out the command',
+			description: t("cli.cleanse.whatToDetectAndFixE"),
 			required: false,
 		}),
 	};
 	static flags = {
 		agents: Flags.integer({
 			char: "n",
-			description: "Maximum number of file-disjoint subagents",
+			description: t("cli.cleanse.maximumNumberOfFileDisjointSubagents"),
 			default: 32,
 		}),
 		model: Flags.string({
 			char: "m",
-			description: "Subagent model selector",
+			description: t("cli.cleanse.subagentModelSelector"),
 			default: "@smol",
 		}),
 		tests: Flags.boolean({
 			char: "t",
-			description: "Also run configured project test suites",
+			description: t("cli.cleanse.alsoRunConfiguredProjectTestSuites"),
 			default: false,
 		}),
 		all: Flags.boolean({
 			char: "a",
-			description: "Run every discovered checker without the interactive picker",
+			description: t("cli.cleanse.runEveryDiscoveredCheckerWithoutThe"),
 			default: false,
 		}),
 	};

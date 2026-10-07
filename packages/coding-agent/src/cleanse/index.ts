@@ -17,6 +17,7 @@ import {
 } from "./checkers";
 import { runCleanseLoop } from "./loop";
 import type { CleanseCommandResult, CleanseDiagnosticReport, CleanseLoopResult } from "./types";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const DEFAULT_MODEL = "@smol";
 const DISPLAY_FILE_LIMIT = 50;
@@ -92,7 +93,7 @@ export async function runCleanse(
 		let request = options.request?.trim() || undefined;
 		let suite: CleanseDiagnosticSuite | undefined;
 		if (!request) {
-			board.phase("Detecting configured project checkers...");
+			board.phase(t("tui.ca.cleanse.index.detectingConfiguredProjectCheckers"));
 			suite = await discoverCleanseDiagnosticSuite(cwd, { includeTests: options.includeTests });
 			board.phase(undefined);
 			const pickTarget = options.all === true ? undefined : ui.pickTarget;
@@ -100,7 +101,7 @@ export async function runCleanse(
 				if (suite.checkers.length > 0) {
 					const choice = await pickTarget(suite.checkers);
 					if (choice.kind === "cancel") {
-						ui.printError("Cleanse cancelled.");
+						ui.printError(t("tui.ca.cleanse.index.cleanseCancelled"));
 						return {
 							exitCode: 130,
 							status: "cancelled",
@@ -146,8 +147,8 @@ export async function runCleanse(
 			printSkippedChecks(ui, report);
 			ui.printError(
 				request
-					? "Checker discovery produced no runnable command."
-					: "No supported checker with an available executable was found.",
+					? t("tui.ca.cleanse.index.checkerDiscoveryProducedNoRunnableCommand")
+					: t("tui.ca.cleanse.index.noSupportedCheckerWithAnAvailable"),
 			);
 			return { exitCode: 1, status: "unsupported", report, sessionFile: runtime?.sessionFile };
 		}
@@ -201,7 +202,7 @@ export async function runCleanse(
 		board.close();
 		await runtime?.close(loopResult);
 		if (loopResult.status === "cancelled") {
-			ui.printError("Cleanse cancelled.");
+			ui.printError(t("tui.ca.cleanse.index.cleanseCancelled2"));
 			return {
 				exitCode: 130,
 				status: "cancelled",
@@ -213,7 +214,7 @@ export async function runCleanse(
 			ui.print(
 				loopResult.workers === 0
 					? `Clean: ${loopResult.report.checks.length} checker${loopResult.report.checks.length === 1 ? "" : "s"} passed.`
-					: "Clean: all detected diagnostics are resolved.",
+					: t("tui.ca.cleanse.index.cleanAllDetectedDiagnosticsAreResolved"),
 			);
 			return { exitCode: 0, status: "clean", report: loopResult.report, sessionFile: runtime?.sessionFile };
 		}
@@ -223,7 +224,7 @@ export async function runCleanse(
 		if (!signal.aborted) throw error;
 		const report: CleanseDiagnosticReport = loopResult?.report ?? { checks: [], diagnostics: [], skipped: [] };
 		board.close();
-		ui.printError("Cleanse cancelled.");
+		ui.printError(t("tui.ca.cleanse.index.cleanseCancelled3"));
 		return { exitCode: 130, status: "cancelled", report, sessionFile: runtime?.sessionFile };
 	} finally {
 		board.close();
@@ -234,7 +235,7 @@ export async function runCleanse(
 /** CLI adapter for {@link runCleanse}: stdout board, one-shot pickers, SIGINT/SIGTERM cancellation. */
 export async function runCleanseCommand(options: CleanseCommandOptions = {}): Promise<CleanseCommandResult> {
 	const abortController = new AbortController();
-	const abort = (): void => abortController.abort(new Error("Cleanse interrupted"));
+	const abort = (): void => abortController.abort(new Error(t("tui.ca.cleanse.index.cleanseInterrupted")));
 	process.once("SIGINT", abort);
 	process.once("SIGTERM", abort);
 	const interactive = process.stdin.isTTY === true && process.stdout.isTTY === true;

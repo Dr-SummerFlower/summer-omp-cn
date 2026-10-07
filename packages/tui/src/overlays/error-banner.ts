@@ -1,3 +1,4 @@
+import { t } from "@oh-my-pi/pi-i18n";
 import { Container, Spacer, Text } from "../index";
 import { WidthAwareText } from "../render/index";
 import { theme } from "../theme/theme";
@@ -43,7 +44,7 @@ export class ErrorBannerComponent extends Container {
 				0,
 			),
 		);
-		this.addChild(new Text(theme.fg("dim", "Dismissed when you send your next message."), 1, 0));
+		this.addChild(new Text(theme.fg("dim", t("tui.errorBanner.dismissHint")), 1, 0));
 		this.addChild(new DynamicBorder(str => theme.fg("error", str)));
 	}
 
@@ -58,14 +59,16 @@ export class ErrorBannerComponent extends Container {
 			this.#message
 				.split("\n")
 				.find(line => line.trim() !== "")
-				?.trim() || "Error";
+				?.trim() || t("common.feedback.error");
 		const multiline = this.#message !== headline;
 		const message = this.#expanded
 			? text([span(this.#message, "error")], { wrap: "word", grow: 1 })
 			: text([span(headline, "error")], { truncate: "end", lines: 1, grow: 1, title: this.#message });
 		const children: NativeNode[] = [message];
 		if (multiline || headline.length > 80) {
-			children.push(actionButton(this.#expanded ? "Less" : "Details", "details"));
+			children.push(
+				actionButton(this.#expanded ? t("tui.errorBanner.less") : t("tui.errorBanner.details"), "details"),
+			);
 		}
 		this.#native = node(
 			"row",

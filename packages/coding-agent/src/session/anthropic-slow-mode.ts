@@ -29,6 +29,7 @@ import type {
 	AnthropicSlowModeSignal,
 	Model,
 } from "@oh-my-pi/pi-ai";
+import { t } from "@oh-my-pi/pi-i18n";
 import { logger } from "@oh-my-pi/pi-utils";
 import type { AuthStorage } from "./auth-storage";
 
@@ -110,25 +111,25 @@ export function formatSlowModeResetClock(resetsAtSec: number, now = Date.now()):
 		: at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
-const END_NOTICES: Record<AnthropicSlowModeEndReason, { level: NoticeLevel; message: string } | undefined> = {
-	reset: { level: "info", message: "Claude session limit reset — low priority ended." },
+const END_NOTICES: Record<AnthropicSlowModeEndReason, { level: NoticeLevel; key: string } | undefined> = {
+	reset: { level: "info", key: "tui.slowMode.end.reset" },
 	user: undefined,
 	weekly: {
 		level: "warning",
-		message: "Low priority ended: the weekly Claude limit is reached.",
+		key: "tui.slowMode.end.weekly",
 	},
 	budget: {
 		level: "warning",
-		message: "Low priority ended: this week's low-priority allowance is used up.",
+		key: "tui.slowMode.end.budget",
 	},
-	off: { level: "warning", message: "Low priority ended: Anthropic turned it off for this account." },
-	ineligible: { level: "warning", message: "Low priority ended: this account is no longer eligible." },
-	wall: { level: "warning", message: "Low priority ended: Anthropic stopped serving the slow lane." },
+	off: { level: "warning", key: "tui.slowMode.end.off" },
+	ineligible: { level: "warning", key: "tui.slowMode.end.ineligible" },
+	wall: { level: "warning", key: "tui.slowMode.end.wall" },
 	max_wait: {
 		level: "warning",
-		message: "Low priority paused for 10 minutes after waiting too long for spare capacity.",
+		key: "tui.slowMode.end.maxWait",
 	},
-	extra_usage: { level: "info", message: "Low priority ended: extra usage is now serving requests." },
+	extra_usage: { level: "info", key: "tui.slowMode.end.extraUsage" },
 };
 
 /** Slow-mode state machine for one Claude account lane; see the module docs. */
@@ -205,31 +206,40 @@ export class AnthropicSlowModeController {
 		const resetsAtSec = lowPriority ? this.activeResetsAtSec(now) : undefined;
 		if (resetsAtSec !== undefined) {
 			const left = this.allowanceLeftPercent();
-			return `low priority until ${formatSlowModeResetClock(resetsAtSec, now)}${left === undefined ? "" : ` · ${left}% left`}`;
+			const suffix = left === undefined ? "" : t("tui.slowMode.status.leftPercent", { percent: left });
+			return `${t("tui.slowMode.status.until", { clock: formatSlowModeResetClock(resetsAtSec, now) })}${suffix}`;
 		}
 		const wrapUp = this.#currentWrapUp(now);
 		if (!wrapUp) return undefined;
-		if (wrapUp.extraUsage) return "limit reached · wrap-up, then extra usage";
-		return `limit reached · wrapping up${wrapUp.resetsAtSec === undefined ? "" : ` · resets ${formatSlowModeResetClock(wrapUp.resetsAtSec, now)}`}`;
+		if (wrapUp.extraUsage) return t("tui.slowMode.status.wrapUpExtraUsage");
+		const resets =
+			wrapUp.resetsAtSec === undefined
+				? ""
+				: t("tui.slowMode.status.wrappingUpResets", { clock: formatSlowModeResetClock(wrapUp.resetsAtSec, now) });
+		return `${t("tui.slowMode.status.wrappingUp")}${resets}`;
 	}
 
 	/** Whether the slow lane can be entered now, and on which window. */
 	availability(now = Date.now()): AnthropicSlowModeAvailability {
-		if (this.isActive(now)) return { kind: "unavailable", reason: "Low priority is already on." };
+		if (this.isActive(now)) return { kind: "unavailable", reason: t("tui.slowMode.availability.alreadyOn") };
 		const blocked = this.#blocked;
 		if (blocked !== undefined && now < blocked.untilSec * 1000) {
 			return {
 				kind: "unavailable",
 				reason:
 					blocked.reason === "budget"
-						? "This week's low-priority allowance is used up. It is offered again after your weekly limit resets."
-						: `Your weekly Claude limit is reached; low priority is unavailable until it resets at ${formatSlowModeResetClock(blocked.untilSec, now)}.`,
+						? t("tui.slowMode.availability.budgetUsedUp")
+						: t("tui.slowMode.availability.weeklyLimit", {
+								clock: formatSlowModeResetClock(blocked.untilSec, now),
+							}),
 			};
 		}
 		if (this.#coolingOffUntilMs !== undefined && now < this.#coolingOffUntilMs) {
 			return {
 				kind: "unavailable",
-				reason: `Low priority is taking a break until ${formatSlowModeResetClock(Math.ceil(this.#coolingOffUntilMs / 1000), now)} after waiting too long for spare capacity.`,
+				reason: t("tui.slowMode.availability.coolingOff", {
+					clock: formatSlowModeResetClock(Math.ceil(this.#coolingOffUntilMs / 1000), now),
+				}),
 			};
 		}
 		const stopped = this.#stoppedResetsAtSec;
@@ -239,8 +249,7 @@ export class AnthropicSlowModeController {
 		if (offer !== undefined && offer * 1000 > now) return { kind: "available", resetsAtSec: offer, resume: false };
 		return {
 			kind: "unavailable",
-			reason:
-				"Low priority isn't available right now. Anthropic offers it after a Claude subscription reaches its session limit.",
+			reason: t("tui.slowMode.availability.notOffered"),
 		};
 	}
 
@@ -289,7 +298,7 @@ export class AnthropicSlowModeController {
 	#end(reason: AnthropicSlowModeEndReason, options: AnthropicSlowModeHookOptions): void {
 		if (!this.stop(reason)) return;
 		const notice = END_NOTICES[reason];
-		if (notice) options.notify?.(notice.level, notice.message);
+		if (notice) options.notify?.(notice.level, t(notice.key));
 	}
 
 	/** Adopt server-stated retry pacing and allowance usage. */
@@ -345,15 +354,17 @@ export class AnthropicSlowModeController {
 		this.#wrapUp = wrapUp;
 		if (previous) return;
 		const resets =
-			wrapUp.resetsAtSec === undefined ? "" : ` (resets ${formatSlowModeResetClock(wrapUp.resetsAtSec, now)})`;
+			wrapUp.resetsAtSec === undefined
+				? ""
+				: t("tui.slowMode.wrapUp.resets", { clock: formatSlowModeResetClock(wrapUp.resetsAtSec, now) });
 		const lowPriority = options.lowPriority?.() ?? true;
 		options.notify?.(
 			"info",
 			wrapUp.extraUsage
-				? `Claude usage limit reached${resets} — a short wrap-up allowance runs first, then extra usage.`
+				? t("tui.slowMode.wrapUp.extraUsage", { resets })
 				: lowPriority && this.#laneCanFollow(wrapUp, now)
-					? `Claude usage limit reached${resets} — finishing on a short wrap-up allowance from your weekly limit; low priority takes over if Anthropic offers it.`
-					: `Claude usage limit reached${resets} — finishing on a short wrap-up allowance from your weekly limit; the agent will wrap up its current step.`,
+					? t("tui.slowMode.wrapUp.lowPriority", { resets })
+					: t("tui.slowMode.wrapUp.wrapUpStep", { resets }),
 		);
 	}
 
@@ -428,7 +439,9 @@ export class AnthropicSlowModeController {
 			const until = formatSlowModeResetClock(signal.unifiedResetAtSec, now);
 			options.notify?.(
 				"info",
-				`${afterWrapUp ? "Wrap-up allowance used" : "Claude session limit reached"} — continuing at low priority until ${until}. Your weekly limit still applies and responses may pause while waiting for spare capacity. Run /slow off to stop.`,
+				afterWrapUp
+					? t("tui.slowMode.accept.afterWrapUp", { until })
+					: t("tui.slowMode.accept.limitReached", { until }),
 			);
 			return { delayMs: 0, capacityWait: false };
 		}
@@ -471,7 +484,7 @@ export class AnthropicSlowModeController {
 		if (failure.attempts === 0) {
 			options.notify?.(
 				"info",
-				`Working at low priority — waiting for spare capacity (next try in ${Math.max(1, Math.round(delayMs / 1000))}s).`,
+				t("tui.slowMode.working.waitingCapacity", { seconds: Math.max(1, Math.round(delayMs / 1000)) }),
 			);
 		}
 		return { delayMs, capacityWait: true };

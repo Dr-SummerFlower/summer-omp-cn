@@ -6,12 +6,13 @@ import { APP_NAME } from "@oh-my-pi/pi-utils";
 import { Args, Command } from "@oh-my-pi/pi-utils/cli";
 import { loginHelp as commandHelp } from "../cli/command-help";
 import { runLoginCommand } from "../cli/login-cli";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export default class Login extends Command {
 	static description = commandHelp.description;
 	static args = {
 		provider: Args.string({
-			description: "OAuth provider id (e.g. anthropic, openai-codex); omit to pick interactively",
+			description: t("cli.login.oauthProviderIdEGAnthropic"),
 			required: false,
 		}),
 	};

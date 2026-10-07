@@ -27,6 +27,7 @@ import { getEditorTheme, theme } from "../../theme/theme";
 import { type AvatarSource, identiconLines } from "./avatar";
 import { pill, selectionBgAnsi, softPill, tintChip, withBg } from "./colors";
 import type { ChangedFile, GitViewState } from "./state";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Generated conventional commit fields shown in the commit form. */
 export interface GitCommitMessage {
@@ -1113,21 +1114,31 @@ export class Sidebar {
 		const actions: NativeNode[] =
 			area === "unstaged"
 				? [
-						quietButton("Stage all", "stage-all", "Stage every change (space on the head)"),
+						quietButton(
+							t("tui.apps.git.sidebar.stageAll"),
+							"stage-all",
+							"Stage every change (space on the head)",
+						),
 						node(
 							"icon",
 							{
 								name: "wand",
 								role: "omp.app.ibtn",
-								title: "Stage by description…",
-								aria: "Stage by description",
+								title: t("tui.apps.git.sidebar.stageByDescription2"),
+								aria: t("tui.apps.git.sidebar.stageByDescription"),
 								actions: { click: "stage-ai" },
 							},
 							undefined,
 							"ai",
 						),
 					]
-				: [quietButton("Unstage all", "unstage-all", "Unstage every change (space on the head)")];
+				: [
+						quietButton(
+							t("tui.apps.git.sidebar.unstageAll"),
+							"unstage-all",
+							"Unstage every change (space on the head)",
+						),
+					];
 		const head = row(
 			[
 				row(
@@ -1154,10 +1165,15 @@ export class Sidebar {
 					aiInput
 						? node("input", {
 								...inputProps(aiInput),
-								placeholder: "What should we stage?",
+								placeholder: t("tui.apps.git.sidebar.whatShouldWeStage"),
 								role: "omp.app.git.field.on",
 							})
-						: fieldText(this.aiInput.getValue(), "What should we stage?", "edit-ai", on(target)),
+						: fieldText(
+								this.aiInput.getValue(),
+								t("tui.apps.git.sidebar.whatShouldWeStage2"),
+								"edit-ai",
+								on(target),
+							),
 					"ai",
 				),
 			);
@@ -1253,12 +1269,12 @@ export class Sidebar {
 		const canCommit =
 			hasChanges && !this.generating && (summary.trim().length > 0 || description.trim().length === 0);
 		const label = this.generating
-			? "Generating message…"
+			? t("tui.apps.git.sidebar.generatingMessage")
 			: summary.trim().length === 0 && description.trim().length === 0
-				? "Generate message"
+				? t("tui.apps.git.sidebar.generateMessage")
 				: this.#model.staged.length > 0
 					? "Commit"
-					: "Stage all & commit";
+					: t("tui.apps.git.sidebar.stageAllCommit");
 		// The panels' button (omp-panels.css `omp.btn`): accent while the keyboard is on it, muted when it can't run.
 		const commitTone = !canCommit ? "muted" : on({ kind: "commit-button" }) ? "accent" : undefined;
 		return col(
@@ -1273,7 +1289,7 @@ export class Sidebar {
 								align: "center",
 								role: `omp.app.git.toggle${this.amend ? ".set" : ""}${on({ kind: "amend" }) ? ".on" : ""}`,
 								actions: { click: "amend" },
-								title: "Amend the previous commit",
+								title: t("tui.apps.git.sidebar.amendThePreviousCommit"),
 							}),
 							row(compact([this.generating && node("spinner", { style: "dots" }), text(label)]), {
 								gap: "xs",
@@ -1283,8 +1299,8 @@ export class Sidebar {
 								actions: canCommit ? { click: "commit" } : undefined,
 								title:
 									this.#model.staged.length > 0
-										? "Commit the staged changes"
-										: "Stage everything, then commit",
+										? t("tui.apps.git.sidebar.commitTheStagedChanges")
+										: t("tui.apps.git.sidebar.stageEverythingThenCommit"),
 							}),
 						],
 						{ justify: "between", align: "center", role: "omp.app.git.foot" },
@@ -1300,7 +1316,12 @@ export class Sidebar {
 	#describeHead(selectedKey: string | undefined): NativeChild[] {
 		const head = this.#model.headCommit;
 		if (!head) {
-			return [keyed(text([span("No commits yet", "muted")], { role: "omp.app.git.empty" }), "empty")];
+			return [
+				keyed(
+					text([span(t("tui.apps.git.sidebar.noCommitsYet"), "muted")], { role: "omp.app.git.empty" }),
+					"empty",
+				),
+			];
 		}
 		const when = head.authorDate ? new Date(head.authorDate) : null;
 		const initials = head.authorName
@@ -1343,7 +1364,7 @@ export class Sidebar {
 		);
 		const out: NativeChild[] = [keyed(commit, "head")];
 		if (!head.filesLoaded) {
-			out.push(keyed(text([span("Loading changed files…", "muted")]), "loading"));
+			out.push(keyed(text([span(t("tui.apps.git.sidebar.loadingChangedFiles"), "muted")]), "loading"));
 			return out;
 		}
 		const additions = head.files.reduce((sum, file) => sum + (file.additions ?? 0), 0);
@@ -1564,7 +1585,7 @@ export class Sidebar {
 		const bar = isSelected(target) ? theme.fg("accent", "▎") : theme.fg("borderMuted", "▏");
 		const line =
 			this.aiInput.getValue().length === 0 && !this.aiInput.focused
-				? theme.fg("dim", "What should we stage?")
+				? theme.fg("dim", t("tui.apps.git.sidebar.whatShouldWeStage3"))
 				: (this.aiInput.render(width - 4)[0] ?? "");
 		return { text: ` ${bar}${line}`, target };
 	}
@@ -1584,7 +1605,7 @@ export class Sidebar {
 		const summaryTarget: Target = { kind: "summary" };
 		const summaryLen = this.summary.getValue().length;
 		const counter = theme.fg(summaryLen > SUMMARY_LIMIT ? "warning" : "dim", String(SUMMARY_LIMIT - summaryLen));
-		const summaryLabel = theme.fg("muted", "Commit summary");
+		const summaryLabel = theme.fg("muted", t("tui.apps.git.sidebar.commitSummary"));
 		rows.push({
 			text: ` ${summaryLabel}${" ".repeat(Math.max(1, width - 2 - visibleWidth(summaryLabel) - visibleWidth(counter)))}${counter}`,
 		});

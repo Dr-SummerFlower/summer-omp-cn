@@ -2,6 +2,7 @@ import type { VcsGitRepo } from "@oh-my-pi/pi-natives";
 import * as vcs from "@oh-my-pi/pi-natives/vcs";
 import type { ExtensionAPI } from "../extensibility/extensions";
 import { normalizePathSpec } from "./helpers";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const AUTORESEARCH_BRANCH_PREFIX = "autoresearch/";
 const BRANCH_NAME_MAX_LENGTH = 48;
@@ -55,8 +56,7 @@ export async function ensureAutoresearchBranch(
 			ok: true,
 			branchName: null,
 			created: false,
-			warning:
-				"Not in a git repository — autoresearch will run without branch isolation, baseline reset, or auto-commits.",
+			warning: t("tui.ca.autoresearch.git.notInAGitRepositoryAutoresearch"),
 		};
 	}
 

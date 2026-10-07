@@ -1,6 +1,7 @@
 import type { AssistantMessage, ToolCall } from "@oh-my-pi/pi-ai";
 import type { VcsNumstatEntry } from "@oh-my-pi/pi-natives";
 import type { ChangelogCategory, ConventionalAnalysis, ConventionalDetail } from "./types";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export function extractToolCall(message: AssistantMessage, name: string): ToolCall | undefined {
 	return message.content.find(content => content.type === "toolCall" && content.name === name) as ToolCall | undefined;
@@ -21,7 +22,7 @@ export function parseJsonPayload(text: string): unknown {
 	}
 	const match = trimmed.match(/\{[\s\S]*\}/);
 	if (!match) {
-		throw new Error("No JSON payload found in response");
+		throw new Error(t("tui.ca.commit.utils.noJsonPayloadFoundInResponse"));
 	}
 	return JSON.parse(match[0]) as unknown;
 }

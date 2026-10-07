@@ -1,3 +1,4 @@
+import { t } from "@oh-my-pi/pi-i18n";
 import { type SgrMouseEvent } from "../../mouse";
 import { TERMINAL } from "../../terminal-capabilities";
 import { type SelectItem, SelectList } from "../../components/select-list";
@@ -12,7 +13,7 @@ import type { SetupScene, SetupSceneController, SetupSceneHost } from "./types";
 const GLYPH_PRESETS = ["nerd", "unicode", "ascii"] as const satisfies readonly SymbolPreset[];
 
 const GLYPH_LABELS: Readonly<Record<SymbolPreset, string>> = {
-	nerd: "Nerd Font",
+	nerd: t("tui.setup.scenes.glyph.nerdFont"),
 	unicode: "Unicode",
 	ascii: "ASCII",
 };
@@ -31,8 +32,8 @@ const GLYPH_ITEMS: readonly SelectItem[] = GLYPH_PRESETS.map((preset, index) => 
 }));
 
 class GlyphSceneController implements SetupSceneController {
-	title = "Choose glyph mode";
-	subtitle = "Pick the row that renders cleanly in your terminal.";
+	title = t("tui.setup.glyph.title");
+	subtitle = t("tui.setup.glyph.subtitle");
 	#selectList: SelectList;
 	#previewRequest = 0;
 	#committing = false;
@@ -85,7 +86,7 @@ class GlyphSceneController implements SetupSceneController {
 		if (!this.#step) {
 			this.#step = new WizardStep({
 				kind: "choice",
-				intro: new Text(theme.fg("muted", "If a row shows boxes, tofu, or misaligned icons, pick another."), 0, 0),
+				intro: new Text(theme.fg("muted", t("tui.setup.glyph.intro")), 0, 0),
 				content: this.#selectList,
 				minContentLines: GLYPH_ITEMS.length,
 				fitContent: () => {
@@ -100,10 +101,10 @@ class GlyphSceneController implements SetupSceneController {
 	/** Hint line over the preset list; the list (sample glyphs as item detail) describes itself. */
 	describe(): NativeNode {
 		return this.#native.get([this.#selectList], () =>
-			col(
-				[text([span("If a row shows boxes, tofu, or misaligned icons, pick another.", "muted")]), this.#selectList],
-				{ gap: "sm", role: "omp.setup.glyph" },
-			),
+			col([text([span(t("tui.setup.glyph.intro"), "muted")]), this.#selectList], {
+				gap: "sm",
+				role: "omp.setup.glyph",
+			}),
 		);
 	}
 
@@ -135,7 +136,10 @@ class GlyphSceneController implements SetupSceneController {
  */
 export const glyphSetupScene: SetupScene = {
 	id: "glyph-mode",
-	title: "Choose glyph mode",
+	// Lazy so the wizard renders the title in the language active at mount time.
+	get title(): string {
+		return t("tui.setup.glyph.title");
+	},
 	minVersion: 1,
 	shouldRun: () => !TERMINAL.glyphProtocol,
 	mount: host => new GlyphSceneController(host),

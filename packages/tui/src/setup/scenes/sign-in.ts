@@ -1,3 +1,4 @@
+import { t } from "@oh-my-pi/pi-i18n";
 import type { AuthStorage } from "@oh-my-pi/pi-ai";
 import { PASTE_CODE_LOGIN_PROVIDERS } from "@oh-my-pi/pi-ai";
 import type { OAuthPrompt, OAuthProvider } from "@oh-my-pi/pi-ai/oauth/types";
@@ -20,11 +21,11 @@ import { Memo } from "../../native/memo";
 import type { SetupScene, SetupSceneController, SetupSceneHost, StyledLine } from "./types";
 
 function loginUrlLink(url: string): string {
-	return `\x1b]8;;${url}\x07Open login URL\x1b]8;;\x07`;
+	return `\x1b]8;;${url}\x07${t("tui.setup.signIn.openLoginUrl")}\x1b]8;;\x07`;
 }
 
 function loginCopyHint(): string {
-	return theme.fg("dim", `(clipboard copy attempted; ${formatKeyHint("alt+c")} retries)`);
+	return theme.fg("dim", t("tui.setup.signIn.copyRetries", { key: formatKeyHint("alt+c") }));
 }
 
 class CopyablePromptInput implements Component, Focusable {
@@ -84,9 +85,9 @@ interface PromptState {
  * providers and then continue with Esc.
  */
 export class SignInScene implements SetupSceneController {
-	readonly title = "Sign in to your providers";
+	readonly title = t("tui.setup.signIn.title");
 	get subtitle(): string {
-		return `Sign in to one or more providers. Press ${editorKey("tui.select.cancel")} when you're done.`;
+		return t("tui.setup.signIn.subtitle", { cancel: editorKey("tui.select.cancel") });
 	}
 
 	#authStorage: AuthStorage;
@@ -154,23 +155,28 @@ export class SignInScene implements SetupSceneController {
 		let intro: Container | undefined;
 		if (this.#loggingInProvider === undefined && (maxLines === undefined || maxLines >= 17 + 2)) {
 			intro = new Container();
-			intro.addChild(
-				new Text(theme.fg("muted", "Pick a provider to sign in — you can connect more than one."), 0, 0),
-			);
+			intro.addChild(new Text(theme.fg("muted", t("tui.setup.signIn.intro")), 0, 0));
 			intro.addChild(new Spacer(1));
 		}
 		const tail = new Container();
 		const urlLines = this.#authUrl ? wrapTextWithAnsi(theme.fg("dim", this.#authUrl), width) : [];
 		if (this.#authUrl) {
 			tail.addChild(
-				new Text(theme.fg("accent", `Browser login: ${loginUrlLink(this.#authUrl)} ${loginCopyHint()}`), 0, 0),
+				new Text(
+					theme.fg(
+						"accent",
+						`${t("tui.setup.signIn.browserLoginLabel")} ${loginUrlLink(this.#authUrl)} ${loginCopyHint()}`,
+					),
+					0,
+					0,
+				),
 			);
 			// Keep one URL row above the prompt; repeat the complete wrapped URL
 			// below so the input remains visible in the wizard's short viewport.
 			if (urlLines[0]) tail.addChild(new Text(urlLines[0], 0, 0));
 			if (this.#authLaunchUrl) {
 				tail.addChild(
-					new Text(theme.fg("dim", `Local shortcut (this machine only): ${this.#authLaunchUrl}`), 0, 0),
+					new Text(theme.fg("dim", `${t("tui.setup.signIn.localShortcutLabel")} ${this.#authLaunchUrl}`), 0, 0),
 				);
 			}
 		}
@@ -203,7 +209,9 @@ export class SignInScene implements SetupSceneController {
 		}
 		if (this.#loggingInProvider) {
 			this.#step.setKind("async");
-			this.#step.setHeading(new Text(theme.bold(`Signing in to ${this.#loggingInProvider}`), 0, 0));
+			this.#step.setHeading(
+				new Text(theme.bold(t("tui.setup.signIn.signingIn", { provider: this.#loggingInProvider })), 0, 0),
+			);
 			this.#step.setIntro(undefined);
 			this.#step.setContent(tail);
 			this.#step.setStatus(undefined);
@@ -238,9 +246,9 @@ export class SignInScene implements SetupSceneController {
 						"text",
 						{
 							spans: [
-								span("Browser login: ", "accent"),
-								span("Open login URL", "accent link", { href: authUrl }),
-								span(` (clipboard copy attempted; ${copyKey} retries)`, "dim"),
+								span(`${t("tui.setup.signIn.browserLoginLabel")} `, "accent"),
+								span(t("tui.setup.signIn.openLoginUrl"), "accent link", { href: authUrl }),
+								span(` ${t("tui.setup.signIn.copyRetries", { key: copyKey })}`, "dim"),
 							],
 						},
 						undefined,
@@ -259,7 +267,7 @@ export class SignInScene implements SetupSceneController {
 							"text",
 							{
 								spans: [
-									span("Local shortcut (this machine only): ", "dim"),
+									span(`${t("tui.setup.signIn.localShortcutLabel")} `, "dim"),
 									span(launchUrl, "dim link", { href: launchUrl }),
 								],
 								wrap: "char",
@@ -286,7 +294,7 @@ export class SignInScene implements SetupSceneController {
 						node(
 							"row",
 							{ gap: "sm", align: "center" },
-							[node("spinner", {}), text([span(`Signing in to ${provider}`, "strong")])],
+							[node("spinner", {}), text([span(t("tui.setup.signIn.signingIn", { provider }), "strong")])],
 							"heading",
 						),
 						...tail,
@@ -296,12 +304,7 @@ export class SignInScene implements SetupSceneController {
 			}
 			return col(
 				[
-					node(
-						"text",
-						{ spans: [span("Pick a provider to sign in — you can connect more than one.", "muted")] },
-						undefined,
-						"intro",
-					),
+					node("text", { spans: [span(t("tui.setup.signIn.intro"), "muted")] }, undefined, "intro"),
 					this.#selector,
 					...tail,
 				],
@@ -327,7 +330,7 @@ export class SignInScene implements SetupSceneController {
 		const useManualInput = PASTE_CODE_LOGIN_PROVIDERS.has(providerId);
 		this.#selector.stopValidation();
 		this.#loggingInProvider = providerId;
-		this.#statusLines = [{ text: "Starting OAuth flow…", color: "dim" }];
+		this.#statusLines = [{ text: t("tui.setup.signIn.startingOAuth"), color: "dim" }];
 		this.#authUrl = undefined;
 		this.#authLaunchUrl = undefined;
 		this.#loginAbort = new AbortController();
@@ -354,7 +357,7 @@ export class SignInScene implements SetupSceneController {
 						statusLines.push({ text: info.instructions, color: "warning" });
 					}
 					if (useManualInput) {
-						statusLines.push({ text: "Paste the returned code or redirect URL when prompted.", color: "dim" });
+						statusLines.push({ text: t("tui.setup.signIn.pasteCodeHint"), color: "dim" });
 					}
 					this.#statusLines = statusLines;
 					void this.#copyAuthUrl();
@@ -366,16 +369,18 @@ export class SignInScene implements SetupSceneController {
 					this.#statusLines = [...this.#statusLines, { text: message, color: "dim" }];
 					this.#host.requestRender();
 				},
-				onManualCodeInput: signal =>
-					this.#showPrompt({ message: "Paste the authorization code (or full redirect URL):" }, signal),
+				onManualCodeInput: signal => this.#showPrompt({ message: t("tui.setup.signIn.pasteAuthCode") }, signal),
 			});
 			// Provider-scoped online refresh so the just-persisted credential re-runs
 			// discovery instead of reusing a fresh authoritative cache row (#5780).
 			await this.#host.ctx.refreshProvider(providerId);
 			if (this.#disposed) return;
 			this.#statusLines = [
-				{ text: `${theme.status.success} Signed in to ${providerId}`, color: "success" },
-				{ text: `Credentials saved to ${getAgentDbPath()}`, color: "dim" },
+				{
+					text: t("tui.setup.signIn.signedIn", { icon: theme.status.success, provider: providerId }),
+					color: "success",
+				},
+				{ text: t("tui.setup.signIn.credentialsSaved", { path: getAgentDbPath() }), color: "dim" },
 			];
 			this.#authUrl = undefined;
 			this.#authLaunchUrl = undefined;
@@ -388,15 +393,15 @@ export class SignInScene implements SetupSceneController {
 		} catch (error) {
 			if (this.#disposed) return;
 			if (this.#loginAbort?.signal.aborted) {
-				this.#statusLines = [{ text: "Login cancelled.", color: "dim" }];
+				this.#statusLines = [{ text: t("tui.setup.signIn.cancelled"), color: "dim" }];
 				this.#authUrl = undefined;
 				this.#authLaunchUrl = undefined;
 			} else {
 				const message = error instanceof Error ? error.message : String(error);
 				this.#statusLines = [
-					{ text: `Login failed: ${message}`, color: "error" },
+					{ text: t("tui.setup.signIn.failed", { message }), color: "error" },
 					{
-						text: `Choose another provider or press ${editorKey("tui.select.cancel")} to continue.`,
+						text: t("tui.setup.signIn.chooseAnother", { cancel: editorKey("tui.select.cancel") }),
 						color: "dim",
 					},
 				];
@@ -424,7 +429,9 @@ export class SignInScene implements SetupSceneController {
 	#showPrompt(prompt: OAuthPrompt, signal?: AbortSignal): Promise<string> {
 		this.#resolvePrompt("");
 		if (signal?.aborted) {
-			return Promise.reject(signal.reason instanceof Error ? signal.reason : new Error("Login input cancelled"));
+			return Promise.reject(
+				signal.reason instanceof Error ? signal.reason : new Error(t("tui.setup.signIn.inputCancelled")),
+			);
 		}
 		const input = new Input();
 		input.mask = prompt.secret === true;
@@ -438,7 +445,9 @@ export class SignInScene implements SetupSceneController {
 		if (signal) {
 			const onAbort = () => {
 				if (this.#promptReject !== pending.reject) return;
-				this.#rejectPrompt(signal.reason instanceof Error ? signal.reason : new Error("Login input cancelled"));
+				this.#rejectPrompt(
+					signal.reason instanceof Error ? signal.reason : new Error(t("tui.setup.signIn.inputCancelled")),
+				);
 			};
 			signal.addEventListener("abort", onAbort, { once: true });
 			this.#promptAbortCleanup = () => signal.removeEventListener("abort", onAbort);
@@ -483,7 +492,10 @@ export class SignInScene implements SetupSceneController {
 /** Onboarding scene for provider sign-in. */
 export const providersSetupScene: SetupScene = {
 	id: "providers",
-	title: "Sign in to your providers",
+	// Lazy so the wizard renders the title in the language active at mount time.
+	get title(): string {
+		return t("tui.setup.signIn.title");
+	},
 	minVersion: 1,
 	mount: host => new SignInScene(host),
 };

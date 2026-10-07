@@ -1,4 +1,5 @@
 import { type CredentialDisabledEvent, getOAuthProviders } from "@oh-my-pi/pi-ai";
+import { t } from "@oh-my-pi/pi-i18n";
 import { sanitizeText } from "@oh-my-pi/pi-utils";
 
 /** `notice` source of an automatic credential disable; print mode writes these to stderr. */
@@ -20,6 +21,8 @@ export function formatCredentialDisabledNotice(event: CredentialDisabledEvent): 
 	const account = sanitizeText(event.email ?? event.accountId ?? "")
 		.replace(/\s+/g, " ")
 		.trim();
-	const subject = account ? `${login.name} account ${account}` : `A ${login.name} account`;
-	return `${subject} was signed out automatically. Run /login to sign in again.`;
+	const subject = account
+		? t("tui.session.credentialSubjectWithAccount", { provider: login.name, account })
+		: t("tui.session.credentialSubjectAnonymous", { provider: login.name });
+	return t("tui.session.credentialSignedOut", { subject });
 }

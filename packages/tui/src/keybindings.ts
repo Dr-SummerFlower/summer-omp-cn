@@ -1,4 +1,5 @@
 import { type KeyId, parseKey } from "./keys";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /**
  * Global keybinding registry.
@@ -56,88 +57,182 @@ export type KeybindingDefinitions = Record<string, KeybindingDefinition>;
 export type KeybindingsConfig = Record<string, KeyId | KeyId[] | undefined>;
 
 export const TUI_KEYBINDINGS = {
-	"tui.editor.cursorUp": { defaultKeys: "up", description: "Move cursor up" },
-	"tui.editor.cursorDown": { defaultKeys: "down", description: "Move cursor down" },
+	"tui.editor.cursorUp": {
+		defaultKeys: "up",
+		get description() {
+			return t("tui.keybindings.moveCursorUp");
+		},
+	},
+	"tui.editor.cursorDown": {
+		defaultKeys: "down",
+		get description() {
+			return t("tui.keybindings.moveCursorDown");
+		},
+	},
 	"tui.editor.cursorLeft": {
 		defaultKeys: ["left", "ctrl+b"],
-		description: "Move cursor left",
+		get description() {
+			return t("tui.keybindings.moveCursorLeft");
+		},
 	},
 	"tui.editor.cursorRight": {
 		defaultKeys: ["right", "ctrl+f"],
-		description: "Move cursor right",
+		get description() {
+			return t("tui.keybindings.moveCursorRight");
+		},
 	},
 	"tui.editor.cursorWordLeft": {
 		defaultKeys: ["alt+left", "ctrl+left", "alt+b"],
-		description: "Move cursor word left",
+		get description() {
+			return t("tui.keybindings.moveCursorWordLeft");
+		},
 	},
 	"tui.editor.cursorWordRight": {
 		defaultKeys: ["alt+right", "ctrl+right", "alt+f"],
-		description: "Move cursor word right",
+		get description() {
+			return t("tui.keybindings.moveCursorWordRight");
+		},
 	},
 	"tui.editor.cursorLineStart": {
 		defaultKeys: ["home", "ctrl+a"],
-		description: "Move to line start",
+		get description() {
+			return t("tui.keybindings.moveToLineStart");
+		},
 	},
 	"tui.editor.cursorLineEnd": {
 		defaultKeys: ["end", "ctrl+e"],
-		description: "Move to line end",
+		get description() {
+			return t("tui.keybindings.moveToLineEnd");
+		},
 	},
 	"tui.editor.jumpForward": {
 		defaultKeys: "ctrl+]",
-		description: "Jump forward to character",
+		get description() {
+			return t("tui.keybindings.jumpForwardToCharacter");
+		},
 	},
 	"tui.editor.jumpBackward": {
 		defaultKeys: "ctrl+alt+]",
-		description: "Jump backward to character",
+		get description() {
+			return t("tui.keybindings.jumpBackwardToCharacter");
+		},
 	},
-	"tui.editor.pageUp": { defaultKeys: "pageUp", description: "Page up" },
-	"tui.editor.pageDown": { defaultKeys: "pageDown", description: "Page down" },
+	"tui.editor.pageUp": {
+		defaultKeys: "pageUp",
+		get description() {
+			return t("tui.keybindings.pageUp");
+		},
+	},
+	"tui.editor.pageDown": { defaultKeys: "pageDown", description: t("tui.keybindings.pageDown") },
 	"tui.editor.deleteCharBackward": {
 		defaultKeys: "backspace",
-		description: "Delete character backward",
+		get description() {
+			return t("tui.keybindings.deleteCharacterBackward");
+		},
 	},
 	"tui.editor.deleteCharForward": {
 		defaultKeys: ["delete", "ctrl+d"],
-		description: "Delete character forward",
+		get description() {
+			return t("tui.keybindings.deleteCharacterForward");
+		},
 	},
 	"tui.editor.deleteWordBackward": {
 		defaultKeys: ["ctrl+w", "alt+backspace", "ctrl+backspace", "super+alt+backspace"],
-		description: "Delete word backward",
+		get description() {
+			return t("tui.keybindings.deleteWordBackward");
+		},
 	},
 	"tui.editor.deleteWordForward": {
 		defaultKeys: ["alt+delete", "alt+d", "super+alt+delete", "super+alt+d"],
-		description: "Delete word forward",
+		get description() {
+			return t("tui.keybindings.deleteWordForward");
+		},
 	},
 	"tui.editor.deleteToLineStart": {
 		defaultKeys: "ctrl+u",
-		description: "Delete to line start",
+		get description() {
+			return t("tui.keybindings.deleteToLineStart");
+		},
 	},
 	"tui.editor.deleteToLineEnd": {
 		defaultKeys: "ctrl+k",
-		description: "Delete to line end",
+		get description() {
+			return t("tui.keybindings.deleteToLineEnd");
+		},
 	},
 	"tui.editor.yank": { defaultKeys: "ctrl+y", description: "Yank" },
-	"tui.editor.yankPop": { defaultKeys: "alt+y", description: "Yank pop" },
+	"tui.editor.yankPop": {
+		defaultKeys: "alt+y",
+		get description() {
+			return t("tui.keybindings.yankPop");
+		},
+	},
 	"tui.editor.undo": { defaultKeys: ["ctrl+-", "ctrl+_"], description: "Undo" },
 	"tui.editor.spellingSuggestions": {
 		defaultKeys: "ctrl+.",
-		description: "Show spelling replacements",
+		get description() {
+			return t("tui.keybindings.showSpellingReplacements");
+		},
 	},
-	"tui.input.newLine": { defaultKeys: ["shift+enter", "ctrl+j"], description: "Insert newline" },
-	"tui.input.submit": { defaultKeys: "enter", description: "Submit input" },
-	"tui.input.tab": { defaultKeys: "tab", description: "Tab / autocomplete" },
-	"tui.input.copy": { defaultKeys: "ctrl+c", description: "Copy selection" },
-	"tui.select.up": { defaultKeys: "up", description: "Move selection up" },
-	"tui.select.down": { defaultKeys: "down", description: "Move selection down" },
-	"tui.select.pageUp": { defaultKeys: "pageUp", description: "Selection page up" },
+	"tui.input.newLine": {
+		defaultKeys: ["shift+enter", "ctrl+j"],
+		get description() {
+			return t("tui.keybindings.insertNewline");
+		},
+	},
+	"tui.input.submit": {
+		defaultKeys: "enter",
+		get description() {
+			return t("tui.keybindings.submitInput");
+		},
+	},
+	"tui.input.tab": {
+		defaultKeys: "tab",
+		get description() {
+			return t("tui.keybindings.tabAutocomplete");
+		},
+	},
+	"tui.input.copy": {
+		defaultKeys: "ctrl+c",
+		get description() {
+			return t("tui.keybindings.copySelection");
+		},
+	},
+	"tui.select.up": {
+		defaultKeys: "up",
+		get description() {
+			return t("tui.keybindings.moveSelectionUp");
+		},
+	},
+	"tui.select.down": {
+		defaultKeys: "down",
+		get description() {
+			return t("tui.keybindings.moveSelectionDown");
+		},
+	},
+	"tui.select.pageUp": {
+		defaultKeys: "pageUp",
+		get description() {
+			return t("tui.keybindings.selectionPageUp");
+		},
+	},
 	"tui.select.pageDown": {
 		defaultKeys: "pageDown",
-		description: "Selection page down",
+		get description() {
+			return t("tui.keybindings.selectionPageDown");
+		},
 	},
-	"tui.select.confirm": { defaultKeys: "enter", description: "Confirm selection" },
+	"tui.select.confirm": {
+		defaultKeys: "enter",
+		get description() {
+			return t("tui.keybindings.confirmSelection");
+		},
+	},
 	"tui.select.cancel": {
 		defaultKeys: ["escape", "ctrl+c"],
-		description: "Cancel selection",
+		get description() {
+			return t("tui.keybindings.cancelSelection");
+		},
 	},
 } as const satisfies KeybindingDefinitions;
 

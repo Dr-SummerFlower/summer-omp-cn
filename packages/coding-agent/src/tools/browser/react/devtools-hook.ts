@@ -1,6 +1,7 @@
 import { untilAborted } from "@oh-my-pi/pi-utils";
 import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";
 import type { Page } from "puppeteer-core";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Result returned after enabling React introspection and reloading the page. */
 export interface ReactEnableResult {
@@ -9,7 +10,9 @@ export interface ReactEnableResult {
 }
 
 /** Error message shared by React helpers when their required hook is absent. */
-export const REACT_HOOK_REQUIRED_MESSAGE = "React DevTools hook not installed — call tab.reactEnable() first";
+export const REACT_HOOK_REQUIRED_MESSAGE = t(
+	"tui.ca.tools.browser.react.devtoolsHook.reactDevtoolsHookNotInstalledCall",
+);
 
 /** Result shape every page-side React helper returns before `requireReactHookResult` unwraps it. */
 export interface ReactPageEnvelope<T> {

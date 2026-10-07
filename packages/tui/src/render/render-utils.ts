@@ -11,6 +11,7 @@ import { ThinkingLevel } from "@oh-my-pi/pi-agent-core";
 import type { Ellipsis } from "@oh-my-pi/pi-natives";
 import { expandWindowsLongPath, getWindowsShortPath } from "@oh-my-pi/pi-natives/path";
 import { pluralize, sanitizeText } from "@oh-my-pi/pi-utils";
+import { t } from "@oh-my-pi/pi-i18n";
 import { formatKeyHint, type KeyId } from "../app-keybindings";
 import { getKeybindings } from "../keybindings";
 import type { Theme } from "../theme/theme";
@@ -264,7 +265,50 @@ export function getDomain(url: string): string {
 // Formatting Utilities
 // =============================================================================
 
-export { formatAge, formatBytes, formatCount, formatDuration, formatNumber, pluralize } from "@oh-my-pi/pi-utils";
+export { formatAge, formatBytes, formatDuration, formatNumber, pluralize } from "@oh-my-pi/pi-utils";
+
+/**
+ * Count-label vocabulary: the English noun a call site passes → its `{{count}}`
+ * key pair (`One`/`Many`). Picking the variant stays in TS so the catalog never
+ * carries plural rules; unknown nouns fall through to `pluralize()` untranslated.
+ */
+const COUNT_NOUN_KEYS: Record<string, readonly [one: string, many: string]> = {
+	file: ["tui.toolCard.count.fileOne", "tui.toolCard.count.fileMany"],
+	match: ["tui.toolCard.count.matchOne", "tui.toolCard.count.matchMany"],
+	hit: ["tui.toolCard.count.hitOne", "tui.toolCard.count.hitMany"],
+	item: ["tui.toolCard.count.itemOne", "tui.toolCard.count.itemMany"],
+	agent: ["tui.toolCard.count.agentOne", "tui.toolCard.count.agentMany"],
+	line: ["tui.toolCard.count.lineOne", "tui.toolCard.count.lineMany"],
+	reference: ["tui.toolCard.count.referenceOne", "tui.toolCard.count.referenceMany"],
+	source: ["tui.toolCard.count.sourceOne", "tui.toolCard.count.sourceMany"],
+	replacement: ["tui.toolCard.count.replacementOne", "tui.toolCard.count.replacementMany"],
+	"server failure": ["tui.toolCard.count.serverFailureOne", "tui.toolCard.count.serverFailureMany"],
+	"more file": ["tui.toolCard.count.moreFileOne", "tui.toolCard.count.moreFileMany"],
+	"more hit": ["tui.toolCard.count.moreHitOne", "tui.toolCard.count.moreHitMany"],
+	"more line": ["tui.toolCard.count.moreLineOne", "tui.toolCard.count.moreLineMany"],
+};
+
+/** `… N more <noun>` frame keys, keyed by the same English noun argument. */
+const MORE_NOUN_KEYS: Record<string, readonly [one: string, many: string]> = {
+	line: ["tui.toolCard.more.lineOne", "tui.toolCard.more.lineMany"],
+	file: ["tui.toolCard.more.fileOne", "tui.toolCard.more.fileMany"],
+	match: ["tui.toolCard.more.matchOne", "tui.toolCard.more.matchMany"],
+	item: ["tui.toolCard.more.itemOne", "tui.toolCard.more.itemMany"],
+	agent: ["tui.toolCard.more.agentOne", "tui.toolCard.more.agentMany"],
+	change: ["tui.toolCard.more.changeOne", "tui.toolCard.more.changeMany"],
+	finding: ["tui.toolCard.more.findingOne", "tui.toolCard.more.findingMany"],
+	yield: ["tui.toolCard.more.yieldOne", "tui.toolCard.more.yieldMany"],
+	todo: ["tui.toolCard.more.todoOne", "tui.toolCard.more.todoMany"],
+	warning: ["tui.toolCard.more.warningOne", "tui.toolCard.more.warningMany"],
+};
+
+/** `N <noun>` with the noun pluralized by `count` (localized when the noun is known). */
+export function formatCount(label: string, count: number): string {
+	const safeCount = Number.isFinite(count) ? count : 0;
+	const keys = COUNT_NOUN_KEYS[label];
+	if (!keys) return `${safeCount} ${pluralize(label, safeCount)}`;
+	return t(safeCount === 1 ? keys[0] : keys[1], { count: safeCount });
+}
 
 // =============================================================================
 // Theme Helper Utilities
@@ -306,7 +350,7 @@ export function formatStatusIcon(status: ToolUIStatus, theme: Theme, spinnerFram
 export function formatExpandHint(theme: Theme, expanded?: boolean, hasMore?: boolean): string {
 	if (expanded) return "";
 	if (hasMore === false) return "";
-	return theme.fg("dim", wrapBrackets(`${expandKeyHint()}: Expand`, theme));
+	return theme.fg("dim", wrapBrackets(t("tui.toolCard.hint.expand", { key: expandKeyHint() }), theme));
 }
 
 /**
@@ -324,7 +368,9 @@ export function formatBadge(label: string, color: ToolUIColor, theme: Theme): st
  */
 export function formatMoreItems(remaining: number, itemType: string): string {
 	const safeRemaining = Number.isFinite(remaining) ? remaining : 0;
-	return `… ${safeRemaining} more ${pluralize(itemType, safeRemaining)}`;
+	const keys = MORE_NOUN_KEYS[itemType];
+	if (!keys) return `… ${safeRemaining} more ${pluralize(itemType, safeRemaining)}`;
+	return t(safeRemaining === 1 ? keys[0] : keys[1], { count: safeRemaining });
 }
 
 /**
@@ -369,7 +415,9 @@ export function capPreviewLines(
 	const visible = max <= 1 ? [] : lines.slice(lines.length - (max - 1));
 	const hidden = lines.length - visible.length;
 	const hint = options.expandHint === false ? "" : formatExpandHint(theme, false, true);
-	const marker = `… ${hidden} earlier ${pluralize("line", hidden)}${hint ? ` ${hint}` : ""}`;
+	const marker =
+		t(hidden === 1 ? "tui.toolCard.earlierLineOne" : "tui.toolCard.earlierLineMany", { count: hidden }) +
+		(hint ? ` ${hint}` : "");
 	return [`${options.prefix ?? ""}${theme.fg("dim", marker)}`, ...visible];
 }
 
@@ -380,7 +428,7 @@ export function formatMeta(meta: string[], theme: Theme): string {
 
 function sanitizeErrorText(message: string | undefined): string {
 	const clean = (message ?? "").replace(/^Error:\s*/, "").trim();
-	return clean ? replaceTabs(truncateToWidth(clean, TRUNCATE_LENGTHS.LINE)) : "Unknown error";
+	return clean ? replaceTabs(truncateToWidth(clean, TRUNCATE_LENGTHS.LINE)) : t("tui.toolCard.error.unknown");
 }
 
 /**
@@ -389,7 +437,7 @@ function sanitizeErrorText(message: string | undefined): string {
  * segment (mirroring terminal rendering), and expands tabs — so raw
  * subprocess or fetched output (e.g. Windows ssh emitting CRLF, tab-indented
  * web content) can't corrupt the framed block layout with cursor-moving
- * control characters or tab-stop width mismatches.
+ * control sequences.
  */
 export function sanitizeDisplayLines(text: string): string[] {
 	return text.split(/\r?\n/).map(line => {
@@ -400,7 +448,7 @@ export function sanitizeDisplayLines(text: string): string[] {
 
 /** Render a sanitized error message with its status icon. */
 export function formatErrorMessage(message: string | undefined, theme: Theme): string {
-	return `${theme.styledSymbol("status.error", "error")} ${theme.fg("error", `Error: ${sanitizeErrorText(message)}`)}`;
+	return `${theme.styledSymbol("status.error", "error")} ${theme.fg("error", `${t("common.feedback.errorPrefix")} ${sanitizeErrorText(message)}`)}`;
 }
 
 /**
@@ -981,7 +1029,7 @@ export function sanitizeDisplayWarnings(warnings: readonly string[]): string[] {
 		.slice(0, PREVIEW_LIMITS.COLLAPSED_ITEMS)
 		.map(warning => truncateToWidth(sanitizeDisplayWarning(warning), TRUNCATE_LENGTHS.LONG));
 	const hidden = warnings.length - visible.length;
-	if (hidden > 0) visible.push(`… ${hidden} more ${pluralize("warning", hidden)}`);
+	if (hidden > 0) visible.push(formatMoreItems(hidden, "warning"));
 	return visible;
 }
 
@@ -1027,7 +1075,10 @@ export function formatParseErrors(errors: string[], total?: number): string[] {
 	if (deduped.length === 0) return [];
 	const fullCount = total ?? deduped.length;
 	const capped = deduped.slice(0, PARSE_ERRORS_LIMIT);
-	const header = fullCount > capped.length ? `Parse issues (${capped.length} / ${fullCount}):` : "Parse issues:";
+	const header =
+		fullCount > capped.length
+			? t("tui.toolCard.parseIssues.capped", { shown: capped.length, total: fullCount })
+			: t("tui.toolCard.parseIssues.header");
 	return [header, ...capped.map(err => `- ${err}`)];
 }
 
@@ -1155,7 +1206,7 @@ export function appendParseErrorsBulletList(
 		lines.push(theme.fg("warning", `  - ${err}`));
 	}
 	if (fullCount > capped.length) {
-		lines.push(theme.fg("dim", `  … ${fullCount - capped.length} more`));
+		lines.push(theme.fg("dim", `  ${t("tui.toolCard.more.plain", { count: fullCount - capped.length })}`));
 	}
 }
 
@@ -1166,8 +1217,10 @@ export function appendParseErrorsBulletList(
 export function formatParseErrorsCountLabel(parseErrors: readonly string[], total?: number): string {
 	const fullCount = total ?? parseErrors.length;
 	return fullCount > PARSE_ERRORS_LIMIT
-		? `${PARSE_ERRORS_LIMIT} / ${fullCount} parse issues`
-		: `${fullCount} parse issue${fullCount !== 1 ? "s" : ""}`;
+		? t("tui.toolCard.count.parseIssueCapped", { shown: PARSE_ERRORS_LIMIT, total: fullCount })
+		: t(fullCount === 1 ? "tui.toolCard.count.parseIssueOne" : "tui.toolCard.count.parseIssueMany", {
+				count: fullCount,
+			});
 }
 
 /**

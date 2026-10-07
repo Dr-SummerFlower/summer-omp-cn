@@ -10,6 +10,7 @@ import MODEL_PRIO from "../priority.json" with { type: "json" };
 import compressDescriptionPrompt from "../prompts/skills/compress-description.md" with { type: "text" };
 import { Semaphore } from "../task/parallel";
 import type { Skill } from "./skills";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const MAX_PREVIEW_CHARS = 100;
 const MAX_COMPRESSED_CHARS = 160;
@@ -40,7 +41,7 @@ export function createSkillDescriptionCompressor(
 			configured ??
 			(preferred ? { model: preferred, thinkingLevel: undefined } : undefined) ??
 			resolveRoleSelection(["tiny"], settings, available);
-		if (!selected) throw new Error("No smol or tiny model available");
+		if (!selected) throw new Error(t("tui.ca.extensibility.skillDescriptions.noSmolOrTinyModelAvailable"));
 		const { model } = selected;
 		const apiKey = await registry.getApiKey(model, sessionId);
 		if (!apiKey) throw new Error(`No credential for ${model.provider}/${model.id}`);
@@ -187,7 +188,8 @@ export class SkillDescriptionCatalog {
 						description: skill.description,
 					});
 					const result = validCompression(await this.#compress!(skill.name, skill.description, request));
-					if (!result) throw new Error("Invalid single-line skill description (max 12 words, 160 chars)");
+					if (!result)
+						throw new Error(t("tui.ca.extensibility.skillDescriptions.invalidSingleLineSkillDescriptionMax"));
 					const db = openDb(this.#dbPath);
 					if (!db) return;
 					try {

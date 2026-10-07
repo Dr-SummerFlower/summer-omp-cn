@@ -4,17 +4,18 @@ import { Args, CliUsageError, Command, Flags } from "@oh-my-pi/pi-utils/cli";
 import { playHelp as commandHelp } from "../cli/command-help";
 import { playRecording } from "../stream/player";
 import { latestRecording, parseRecording, type Recording, recordingsDir } from "../stream/recording";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export default class Play extends Command {
 	static description = commandHelp.description;
 
 	static args = {
-		file: Args.string({ description: "Recording to play (default: the newest /record capture)" }),
+		file: Args.string({ description: t("cli.play.recordingToPlayDefaultTheNewest") }),
 	};
 
 	static flags = {
-		speed: Flags.string({ char: "s", description: "Playback speed multiplier (default: 1)" }),
-		"idle-limit": Flags.string({ char: "i", description: "Cap pauses between frames to this many seconds" }),
+		speed: Flags.string({ char: "s", description: t("cli.play.playbackSpeedMultiplierDefault1") }),
+		"idle-limit": Flags.string({ char: "i", description: t("cli.play.capPausesBetweenFramesToThis") }),
 	};
 
 	static examples = ["omp play", "omp play /tmp/omp-recordings/2026-09-22T10-00-00-1a2b3c4d.ompcast -s 2 -i 1"];

@@ -21,6 +21,7 @@ import { card, type CardToolResult, firstText, safe } from "./result-card";
 import { code, compact, span, text } from "../native/describe";
 import { plainText } from "../native/spans";
 import { errorView, toolHead } from "./native-view";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Summary of a `cfg://` read, attached to read tool details. */
 export interface CfgReadDetails {
@@ -71,7 +72,8 @@ export function renderCfgRead(
 			theme,
 		);
 		if (!result) return [header];
-		if (result.isError) return [header, formatErrorDetail(firstText(result) || "Settings read failed.", theme)];
+		if (result.isError)
+			return [header, formatErrorDetail(firstText(result) || t("tui.tools.cfgRender.settingsReadFailed"), theme)];
 		const body = firstText(result).trimEnd().split("\n");
 		const shown = cappedHeadLines(body, expanded ? body.length : PREVIEW_LIMITS.COLLAPSED_ITEMS);
 		const lines = [header, ...highlightCode(safe(shown.lines.join("\n")), "yaml", theme).map(line => `  ${line}`)];
@@ -166,7 +168,8 @@ export function renderCfgWrite(
 		if (details?.outcome === "declined") badges.push(formatBadge("declined", "warning", theme));
 		if (details?.outcome === "unchanged") badges.push(formatBadge("unchanged", "muted", theme));
 		const header = `${renderStatusLine({ icon, title: "Config", description: details?.path ?? target?.segments.join(".") }, theme)} ${badges.join(" ")}`;
-		if (result?.isError) return [header, formatErrorDetail(firstText(result) || "Settings write failed.", theme)];
+		if (result?.isError)
+			return [header, formatErrorDetail(firstText(result) || t("tui.tools.cfgRender.settingsWriteFailed"), theme)];
 		const arrow = theme.fg("dim", "→");
 		const next = theme.fg("toolOutput", details?.value ?? content?.trim() ?? "…");
 		const lines = [

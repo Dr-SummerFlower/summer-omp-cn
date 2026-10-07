@@ -13,42 +13,42 @@ import {
 	parseGallerySurfaces,
 	runGalleryCommand,
 } from "../cli/gallery-cli";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export default class Gallery extends Command {
 	static description = commandHelp.description;
 	static flags = {
 		surface: Flags.string({
-			description: "Render only tool, composer, or segment surfaces (repeatable; default: all)",
+			description: t("cli.gallery.renderOnlyToolComposerOrSegment"),
 			options: [...GALLERY_SURFACE_TOKENS],
 			multiple: true,
 		}),
-		tool: Flags.string({ char: "t", description: "Render a single tool by name" }),
-		composer: Flags.string({ description: "Render a single composer shape by name" }),
-		segment: Flags.string({ description: "Render a single status-line segment by name" }),
+		tool: Flags.string({ char: "t", description: t("cli.gallery.renderASingleToolByName") }),
+		composer: Flags.string({ description: t("cli.gallery.renderASingleComposerShapeBy") }),
+		segment: Flags.string({ description: t("cli.gallery.renderASingleStatusLineSegment") }),
 		state: Flags.string({
 			char: "s",
-			description: "Render only the given lifecycle state(s)",
+			description: t("cli.gallery.renderOnlyTheGivenLifecycleState"),
 			options: GALLERY_STATE_TOKENS,
 			multiple: true,
 		}),
-		width: Flags.integer({ char: "w", description: "Render width in columns" }),
+		width: Flags.integer({ char: "w", description: t("cli.gallery.renderWidthInColumns") }),
 		expanded: Flags.boolean({
 			char: "e",
-			description: "Render the expanded variant of each renderer",
+			description: t("cli.gallery.renderTheExpandedVariantOfEach"),
 			default: false,
 		}),
-		plain: Flags.boolean({ description: "Strip ANSI styling from the output", default: false }),
+		plain: Flags.boolean({ description: t("cli.gallery.stripAnsiStylingFromTheOutput"), default: false }),
 		screenshot: Flags.boolean({
-			description:
-				"Capture the rendered output as PNG screenshot(s) via VHS instead of printing ANSI (requires vhs)",
+			description: t("cli.gallery.captureTheRenderedOutputAsPng"),
 			default: false,
 		}),
 		out: Flags.string({
 			char: "o",
-			description: "Screenshot output path (with --screenshot); suffixed per image when split across multiple",
+			description: t("cli.gallery.screenshotOutputPathWithScreenshotSuffixed"),
 		}),
-		font: Flags.string({ description: "Screenshot font family (default: JetBrainsMono Nerd Font)" }),
-		"font-size": Flags.integer({ description: "Screenshot font size in points (default: 18)" }),
+		font: Flags.string({ description: t("cli.gallery.screenshotFontFamilyDefaultJetbrainsmonoNerd") }),
+		"font-size": Flags.integer({ description: t("cli.gallery.screenshotFontSizeInPointsDefault") }),
 	};
 
 	async run(): Promise<void> {

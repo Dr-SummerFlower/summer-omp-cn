@@ -7,14 +7,15 @@ import { StencilCredential } from "../stencil/credential";
 import { resolveStreamUrls, runStreamConsole, type StreamUrls } from "../stream/streamer";
 
 import { cfgStreamServerUrl } from "../stream/settings";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export default class Stream extends Command {
 	static description = commandHelp.description;
 
 	static flags = {
-		title: Flags.string({ description: "Stream title (defaults to the current directory name)" }),
-		server: Flags.string({ description: "Stream server base URL (overrides stream.serverUrl)" }),
-		"no-tui": Flags.boolean({ description: "Use the line-oriented console instead of the interactive TUI" }),
+		title: Flags.string({ description: t("cli.stream.streamTitleDefaultsToTheCurrent") }),
+		server: Flags.string({ description: t("cli.clip.streamServerBaseUrlOverridesStream") }),
+		"no-tui": Flags.boolean({ description: t("cli.stream.useTheLineOrientedConsoleInstead") }),
 	};
 
 	static examples = [

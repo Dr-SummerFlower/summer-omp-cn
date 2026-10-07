@@ -14,11 +14,26 @@
  * keeps falling through to the existing prompt-action menu.
  */
 import type { AutocompleteItem } from "../index";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Candidate kinds, in default display order. */
 const GITHUB_REF_KINDS = [
-	{ qualifier: "pr", scheme: "pr", label: "PR", description: "GitHub pull request" },
-	{ qualifier: "issue", scheme: "issue", label: "Issue", description: "GitHub issue" },
+	{
+		qualifier: "pr",
+		scheme: "pr",
+		label: "PR",
+		get description() {
+			return t("tui.prompt.githubRefAutocomplete.githubPullRequest");
+		},
+	},
+	{
+		qualifier: "issue",
+		scheme: "issue",
+		label: "Issue",
+		get description() {
+			return t("tui.prompt.githubRefAutocomplete.githubIssue");
+		},
+	},
 ] as const;
 
 export interface GithubRefContext {

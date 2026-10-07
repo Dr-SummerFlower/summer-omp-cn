@@ -19,6 +19,7 @@ import type {
 	WorkspaceEdit,
 } from "./types";
 import { detectLanguageId, EquivalentUriMap, fileToUri, uriToFile } from "./utils";
+import { t } from "@oh-my-pi/pi-i18n";
 
 // =============================================================================
 // Client State
@@ -518,7 +519,7 @@ async function startMessageReader(client: LspClient): Promise<void> {
 			if (clients.get(client.name) === client) {
 				clients.delete(client.name);
 			}
-			const teardownErr = new Error("LSP reader stopped; client torn down");
+			const teardownErr = new Error(t("tui.ca.lsp.client.lspReaderStoppedClientTornDown"));
 			for (const pending of client.pendingRequests.values()) {
 				pending.reject(teardownErr);
 			}
@@ -566,7 +567,7 @@ async function handleApplyEditRequest(client: LspClient, message: LspJsonRpcRequ
 		await sendResponse(
 			client,
 			message.id,
-			{ applied: false, failureReason: "No edit provided" },
+			{ applied: false, failureReason: t("tui.ca.lsp.client.noEditProvided") },
 			"workspace/applyEdit",
 		);
 		return;
@@ -974,8 +975,7 @@ export function shutdownStaleClients(
 		const failed = stale.filter((_client, index) => results[index] !== true);
 		if (failed.length > 0) {
 			throw new Error(
-				"Failed to stop LSP server(s) with superseded configuration: " +
-					failed.map(client => client.config.command).join(", "),
+				t("tui.ca.lsp.client.failedToStopLspServerS") + failed.map(client => client.config.command).join(", "),
 			);
 		}
 		return stale.map(client => client.config.command);
@@ -1168,7 +1168,7 @@ export async function getOrCreateClient(
 			)) as { capabilities?: unknown };
 
 			if (!initResult) {
-				throw new Error("Failed to initialize LSP: no response");
+				throw new Error(t("tui.ca.lsp.client.failedToInitializeLspNoResponse"));
 			}
 
 			client.serverCapabilities = initResult.capabilities as LspClient["serverCapabilities"];
@@ -1696,7 +1696,7 @@ export async function shutdownClientInstance(client: LspClient): Promise<boolean
 	if (clients.get(client.name) === client) clients.delete(client.name);
 	maybeStopIdleChecker();
 
-	const err = new Error("LSP client shutdown");
+	const err = new Error(t("tui.ca.lsp.client.lspClientShutdown"));
 	for (const pending of Array.from(client.pendingRequests.values())) {
 		pending.reject(err);
 	}

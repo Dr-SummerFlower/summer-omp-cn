@@ -40,6 +40,7 @@ import { isManagedMCPOAuthCredentialId, mcpOAuthServerUrlFromCredentialId } from
 import { resolveAuthBrokerConfig } from "../session/auth-broker-config";
 import { pickIndex, pickOAuthProvider, runTerminalOAuthLogin } from "./oauth-terminal";
 import { generateToken, readTokenFile, writeTokenFile } from "./token-file";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export type AuthBrokerAction = "serve" | "token" | "login" | "logout" | "status" | "import" | "migrate" | "list";
 
@@ -216,7 +217,9 @@ async function runLocalLogin(rl: readline.Interface, provider: string): Promise<
 	await storage.credentials.reload();
 	try {
 		await runTerminalOAuthLogin(rl, storage, provider);
-		process.stdout.write(`\nCredentials saved to ${getAgentDbPath()}\n`);
+		process.stdout.write(
+			t("cli.authBroker.ncredentialsSavedToGetagentdbpathN", { getAgentDbPath: getAgentDbPath() }),
+		);
 	} finally {
 		store.close();
 	}
@@ -264,7 +267,7 @@ async function runLogout(flags: AuthBrokerCommandArgs["flags"]): Promise<void> {
 		if (!providerArg) {
 			const stored = store.listProviders();
 			if (stored.length === 0) {
-				process.stdout.write("No credentials stored.\n");
+				process.stdout.write(t("cli.authBroker.noCredentialsStored"));
 				return;
 			}
 			const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
@@ -275,7 +278,7 @@ async function runLogout(flags: AuthBrokerCommandArgs["flags"]): Promise<void> {
 			}
 		}
 		await store.deleteAuthCredentials(providerArg, "logged out by user");
-		process.stdout.write(`Logged out of ${providerArg}\n`);
+		process.stdout.write(t("cli.authBroker.loggedOutOfProviderargN", { providerArg: providerArg }));
 	} finally {
 		store.close();
 	}
@@ -287,7 +290,7 @@ async function runList(flags: AuthBrokerCommandArgs["flags"]): Promise<void> {
 		process.stdout.write(`${JSON.stringify(providers.map(p => ({ id: p.id, name: p.name })))}\n`);
 		return;
 	}
-	process.stdout.write("Available providers:\n\n");
+	process.stdout.write(t("cli.authBroker.availableProviders"));
 	for (const p of providers) {
 		process.stdout.write(`  ${p.id.padEnd(20)} ${p.name}\n`);
 	}
@@ -470,13 +473,16 @@ async function runImport(flags: AuthBrokerCommandArgs["flags"]): Promise<void> {
 	}
 
 	if (entries.length === 0) {
-		if (!flags.json) process.stdout.write(`No importable credentials in ${resolvedTarget}.\n`);
+		if (!flags.json)
+			process.stdout.write(
+				t("cli.authBroker.noImportableCredentialsInResolvedtargetN", { resolvedTarget: resolvedTarget }),
+			);
 		return;
 	}
 
 	if (flags.dryRun === true) {
 		if (!flags.json) {
-			process.stdout.write(`Dry run — would import ${entries.length} credential(s):\n`);
+			process.stdout.write(t("cli.authBroker.dryRunWouldImportEntriesLength", { "entries.length": entries.length }));
 			for (const entry of entries) process.stdout.write(`  ${describeImportEntry(entry)}\n`);
 		}
 		return;
@@ -714,13 +720,13 @@ async function runMigrate(flags: AuthBrokerCommandArgs["flags"]): Promise<void> 
 	}
 
 	if (plan.length === 0) {
-		if (!flags.json) process.stdout.write("Nothing to migrate.\n");
+		if (!flags.json) process.stdout.write(t("cli.authBroker.nothingToMigrate"));
 		return;
 	}
 
 	if (flags.dryRun === true) {
 		if (!flags.json) {
-			process.stdout.write(`Dry run — would upload ${plan.length} credential(s):\n`);
+			process.stdout.write(t("cli.authBroker.dryRunWouldUploadPlanLength", { "plan.length": plan.length }));
 			for (const entry of plan) {
 				process.stdout.write(`  [${entry.source}] ${entry.provider} ${entry.identity}\n`);
 			}

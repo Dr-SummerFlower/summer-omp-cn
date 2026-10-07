@@ -46,6 +46,7 @@ import type {
 	SchemeSpec,
 	UrlCompletion,
 } from "./types";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Registry lookup for a `history://<id>` URL, bound to the caller's root. */
 interface RefLookup {
@@ -497,7 +498,7 @@ export class HistoryProtocolHandler implements ProtocolHandler {
 		for (const id of disk.keys()) {
 			if (seen.has(id)) continue;
 			seen.add(id);
-			completions.push({ value: id, description: "on disk" });
+			completions.push({ value: id, description: t("tui.ca.internalUrls.historyProtocol.onDisk") });
 		}
 		return completions;
 	}

@@ -2,31 +2,34 @@ import { runPauseScreen } from "@oh-my-pi/pi-tui/overlays/pause-screen";
 import { clearSubmittedText } from "./helpers/draft";
 import { shutdownHandlerTui } from "./builtin-lifecycle";
 import { commandConsumed, errorMessage, usage } from "./helpers/parse";
+import { t } from "@oh-my-pi/pi-i18n";
 import type { SlashCommandSpec } from "./types";
 
 export const BUILTIN_CONTROL_SLASH_COMMANDS: ReadonlyArray<SlashCommandSpec> = [
 	{
 		name: "force",
 		icon: "hammer",
-		description: "Force next turn to use a specific tool",
+		get description() {
+			return t("slash.force.description");
+		},
 		aliases: ["force:"],
 		inlineHint: "<tool-name> [prompt]",
 		allowArgs: true,
 		getTuiAutocompleteDescription: runtime => {
 			const count = runtime.ctx.session.getActiveToolNames().length;
-			return count === 0 ? "Force: no active tools" : `Force: ${count} active tools`;
+			return count === 0 ? t("slash.force.autocomplete.none") : t("slash.force.autocomplete.count", { count });
 		},
 		handle: async (command, runtime) => {
 			const spaceIdx = command.args.indexOf(" ");
 			const toolName = spaceIdx === -1 ? command.args : command.args.slice(0, spaceIdx);
 			const prompt = spaceIdx === -1 ? "" : command.args.slice(spaceIdx + 1).trim();
-			if (!toolName) return usage("Usage: /force:<tool-name> [prompt]", runtime);
+			if (!toolName) return usage(t("slash.force.usage"), runtime);
 			try {
 				runtime.session.setForcedToolChoice(toolName);
 			} catch (err) {
 				return usage(errorMessage(err), runtime);
 			}
-			await runtime.output(`Next turn forced to use ${toolName}.`);
+			await runtime.output(t("slash.force.status.forced", { tool: toolName }));
 			return prompt ? { prompt } : commandConsumed();
 		},
 		handleTui: (command, runtime) => {
@@ -35,14 +38,14 @@ export const BUILTIN_CONTROL_SLASH_COMMANDS: ReadonlyArray<SlashCommandSpec> = [
 			const prompt = spaceIdx === -1 ? "" : command.args.slice(spaceIdx + 1).trim();
 
 			if (!toolName) {
-				runtime.ctx.showError("Usage: /force:<tool-name> [prompt]");
+				runtime.ctx.showError(t("slash.force.usage"));
 				clearSubmittedText(runtime);
 				return;
 			}
 
 			try {
 				runtime.ctx.session.setForcedToolChoice(toolName);
-				runtime.ctx.showStatus(`Next turn forced to use ${toolName}.`);
+				runtime.ctx.showStatus(t("slash.force.status.forced", { tool: toolName }));
 			} catch (error) {
 				runtime.ctx.showError(errorMessage(error));
 				clearSubmittedText(runtime);
@@ -58,7 +61,9 @@ export const BUILTIN_CONTROL_SLASH_COMMANDS: ReadonlyArray<SlashCommandSpec> = [
 	{
 		name: "live",
 		icon: "voice",
-		description: "Start Codex-backed realtime voice mode",
+		get description() {
+			return t("slash.live.description");
+		},
 		handleTui: async (_command, runtime) => {
 			clearSubmittedText(runtime);
 			await runtime.ctx.handleLiveCommand();
@@ -67,7 +72,9 @@ export const BUILTIN_CONTROL_SLASH_COMMANDS: ReadonlyArray<SlashCommandSpec> = [
 	{
 		name: "record",
 		icon: "export",
-		description: "Start or stop recording this screen to a replayable file (omp play)",
+		get description() {
+			return t("slash.record.description");
+		},
 		handleTui: async (_command, runtime) => {
 			clearSubmittedText(runtime);
 			await runtime.ctx.toggleRecording();
@@ -76,7 +83,9 @@ export const BUILTIN_CONTROL_SLASH_COMMANDS: ReadonlyArray<SlashCommandSpec> = [
 	{
 		name: "pause",
 		icon: "pause",
-		description: "Freeze all agents (main, subagents, advisor) until resumed",
+		get description() {
+			return t("slash.pause.description");
+		},
 		handleTui: async (_command, runtime) => {
 			clearSubmittedText(runtime);
 			await runPauseScreen(runtime.ctx);
@@ -86,7 +95,9 @@ export const BUILTIN_CONTROL_SLASH_COMMANDS: ReadonlyArray<SlashCommandSpec> = [
 		name: "quit",
 		aliases: ["q"],
 		icon: "power",
-		description: "Quit the application",
+		get description() {
+			return t("slash.quit.description");
+		},
 		handleTui: shutdownHandlerTui,
 	},
 ];

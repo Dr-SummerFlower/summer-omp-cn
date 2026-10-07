@@ -60,6 +60,7 @@ import type {
 import * as AIError from "@oh-my-pi/pi-ai/error";
 import { preferredDialect } from "@oh-my-pi/pi-catalog/identity";
 import { modelsAreEqual } from "@oh-my-pi/pi-catalog/models";
+import { t } from "@oh-my-pi/pi-i18n";
 import { isRecord, logger, prompt, Snowflake, stringifyJson } from "@oh-my-pi/pi-utils";
 import * as snapcompact from "@oh-my-pi/snapcompact";
 import { writeArtifact } from "./artifacts";
@@ -257,30 +258,29 @@ function hasExplicitMediaRejectionEvidence(errorMessage: string | undefined): bo
  * already attempted both elide and image-drop automatically.
  */
 function compactionDeadEndWarning(remedies: string): string {
-	return (
-		"Compaction freed too little context to make progress — pausing automatic maintenance to avoid a compaction loop. " +
-		`The most recent turn alone is too large to reduce further; ${remedies} or switch to a larger-context model.`
-	);
+	return t("tui.compaction.deadEndWarning", { remedies });
 }
 
 /** Honest-skip notice for a payload-shaped HTTP 413 where compaction was correctly withheld (#9235). */
 function payloadRejectionNotice(storedTokens: number, contextWindow: number): string {
-	const remedies =
-		"Token compaction cannot shrink bytes or image budgets; reduce or remove archived image frames (e.g. switch compaction.methodOrder away from snapcompact) or raise the server/proxy body limit.";
+	const remedies = t("tui.compaction.payloadRejection.remedies");
 	if (contextWindow <= 0) {
-		return `The provider rejected the request size or media budget (HTTP 413), and this model has no known context window to compare against — this is NOT a token-context problem. ${remedies}`;
+		return t("tui.compaction.payloadRejection.unknownWindow", { remedies });
 	}
 	const headroom = Math.max(0, Math.floor(contextWindow - storedTokens));
-	return `The provider rejected the request size or media budget (HTTP 413), but ~${headroom.toLocaleString("en-US")} tokens of headroom remain locally — this is NOT a token-context problem. ${remedies}`;
+	return t("tui.compaction.payloadRejection.headroom", {
+		headroom: headroom.toLocaleString("en-US"),
+		remedies,
+	});
 }
 
 /** Dead-end notice when provider-reported usage proves context overflow but no recovery exists (#9235). */
 function usageOverflowDeadEndNotice(reportedInputTokens: number, contextWindow: number): string {
 	const windowLabel = contextWindow > 0 ? contextWindow.toLocaleString("en-US") : "unknown";
-	return (
-		`The provider reports ~${reportedInputTokens.toLocaleString("en-US")} input tokens against a ${windowLabel}-token context window — this IS a token-context problem, but automatic compaction is unavailable to shrink it. ` +
-		"Enable a compaction method (compaction.enabled with a configured methodOrder), reduce the conversation's token usage, or switch to a larger-context model."
-	);
+	return t("tui.compaction.usageOverflowDeadEnd", {
+		reportedTokens: reportedInputTokens.toLocaleString("en-US"),
+		window: windowLabel,
+	});
 }
 
 /** Creates one provider-scoped compaction lifecycle descriptor. */
@@ -884,7 +884,7 @@ export class SessionMaintenance {
 		try {
 			reservedArtifact = await this.#host.sessionManager.allocateArtifactPath("shake");
 		} catch {
-			if (opts.requireArtifact) throw new Error("shake could not save a recovery artifact");
+			if (opts.requireArtifact) throw new Error(t("tui.compaction.error.shakeArtifact"));
 		}
 		assertCurrent();
 		let artifactId = reservedArtifact.id;
@@ -907,7 +907,7 @@ export class SessionMaintenance {
 			try {
 				await writeArtifact(reservedArtifact.path, this.#shakeArtifactText(regions));
 			} catch {
-				if (opts.requireArtifact) throw new Error("shake could not save a recovery artifact");
+				if (opts.requireArtifact) throw new Error(t("tui.compaction.error.shakeArtifact"));
 				artifactId = undefined;
 				({ replacements, replacementTokenCounts, savings } = calculateReplacementState(artifactId));
 			}
@@ -915,7 +915,7 @@ export class SessionMaintenance {
 			artifactId = await this.#saveShakeArtifact(regions);
 			assertCurrent();
 			if (opts.requireArtifact && !artifactId) {
-				throw new Error("shake could not save a recovery artifact");
+				throw new Error(t("tui.compaction.error.shakeArtifact"));
 			}
 			({ replacements, replacementTokenCounts, savings } = calculateReplacementState(artifactId));
 			if (opts.toolResultsOnly && savings < config.minSavings) {
@@ -1005,7 +1005,7 @@ export class SessionMaintenance {
 			return isCurrent() && result.toolResultsDropped + result.blocksDropped > 0;
 		} catch (error) {
 			if (!(error instanceof CompactionCancelledError)) {
-				this.#host.emitNotice("warning", "Could not safely reduce this request before retrying it.", "compaction");
+				this.#host.emitNotice("warning", t("tui.compaction.notice.reduceFailed"), "compaction");
 			}
 			return false;
 		}
@@ -1055,7 +1055,7 @@ export class SessionMaintenance {
 	): Promise<CompactionResult> {
 		const ownsCompactionController = retryController === undefined;
 		if (this.#compactionAbortController && this.#compactionAbortController !== retryController) {
-			throw new Error("Compaction already in progress");
+			throw new Error(t("tui.compaction.error.alreadyInProgress"));
 		}
 		// Resolve the `/compact <mode>` subcommand up front so input validation
 		// runs before we disconnect/abort the active agent operation below.
@@ -1069,7 +1069,7 @@ export class SessionMaintenance {
 		// wires it up so we don't silently drop the directive on the snapcompact
 		// fallback (issue #4359).
 		if (compactMode?.rejectsFocus && (customInstructions || options?.internalGuidance)) {
-			throw new Error(`/compact ${compactMode.name} does not take focus instructions.`);
+			throw new Error(t("tui.compaction.error.focusNotAllowed", { mode: compactMode.name }));
 		}
 		let methods: CompactionMethod[] = [];
 		let selectedMethodIndex = -1;
@@ -1129,7 +1129,7 @@ export class SessionMaintenance {
 			}
 			const activeModel = this.#model;
 			if (!activeModel) {
-				throw new Error("No model selected");
+				throw new Error(t("tui.compaction.error.noModel"));
 			}
 			if (
 				this.#usesExperimentalContextManagement() &&
@@ -1178,7 +1178,7 @@ export class SessionMaintenance {
 				}
 			}
 			if (!selectedMethod) {
-				throw new Error("No configured compaction method can run manually.");
+				throw new Error(t("tui.compaction.error.noManualMethod"));
 			}
 
 			const effectiveSettings = resolveMethodSettings(compactionSettings, selectedMethod);
@@ -1193,7 +1193,7 @@ export class SessionMaintenance {
 			if (requireProviderRemote && compactionCandidates.length === 0) {
 				this.#host.emitNotice(
 					"warning",
-					`remote compaction is unavailable for ${activeModel.id}; trying the next preferred method`,
+					t("tui.compaction.notice.remoteUnavailable", { model: activeModel.id }),
 					"compaction",
 				);
 				// The nested call runs on this controller, so it never owns the resume;
@@ -1212,9 +1212,9 @@ export class SessionMaintenance {
 				// Check why we can't compact
 				const lastEntry = pathEntries[pathEntries.length - 1];
 				if (lastEntry?.type === "compaction") {
-					throw new ManualCompactionNoOpError("Already compacted");
+					throw new ManualCompactionNoOpError(t("tui.compaction.error.alreadyCompacted"));
 				}
-				throw new ManualCompactionNoOpError("Nothing to compact (session too small)");
+				throw new ManualCompactionNoOpError(t("tui.compaction.error.nothingToCompactSmall"));
 			}
 
 			let hookCompaction: CompactionResult | undefined;
@@ -1257,10 +1257,10 @@ export class SessionMaintenance {
 			if (wantsSnapcompact && !this.#model.input.includes("image")) {
 				this.#host.emitNotice(
 					"warning",
-					`snapcompact needs a vision-capable model (${this.#model.id} is text-only)`,
+					t("tui.compaction.notice.snapcompactNeedsVision", { model: this.#model.id }),
 					"compaction",
 				);
-				throw new Error(`snapcompact cannot run locally: ${this.#model.id} is text-only.`);
+				throw new Error(t("tui.compaction.error.snapcompactTextOnly", { model: this.#model.id }));
 			} else if (snapcompactReady) {
 				const text = snapcompact.serializeConversation(
 					convertToLlm(preparation.messagesToSummarize.concat(preparation.turnPrefixMessages)),
@@ -1277,12 +1277,10 @@ export class SessionMaintenance {
 					const percent = (renderScan.unrenderableRatio * 100).toFixed(1);
 					this.#host.emitNotice(
 						"warning",
-						`snapcompact disabled: unsupported characters for selected snapcompact font (${percent}%).`,
+						t("tui.compaction.notice.snapcompactFontUnsupported", { percent }),
 						"compaction",
 					);
-					throw new Error(
-						`snapcompact cannot render this conversation locally: unsupported characters for selected snapcompact font (${percent}%).`,
-					);
+					throw new Error(t("tui.compaction.error.snapcompactFont", { percent }));
 				}
 			}
 
@@ -1304,12 +1302,8 @@ export class SessionMaintenance {
 					logger.warn("Snapcompact skipped: kept history alone exceeds the context budget", {
 						model: this.#model?.id,
 					});
-					this.#host.emitNotice(
-						"warning",
-						"snapcompact: kept history alone exceeds the context budget.",
-						"compaction",
-					);
-					throw new Error("snapcompact cannot run locally: kept history alone exceeds the context budget.");
+					this.#host.emitNotice("warning", t("tui.compaction.notice.snapcompactKeptHistory"), "compaction");
+					throw new Error(t("tui.compaction.error.snapcompactKeptHistory"));
 				} else {
 					const shape = snapcompactShape;
 					if (!shape) {
@@ -1329,14 +1323,8 @@ export class SessionMaintenance {
 							framePayloadBytes,
 							budget: snapcompact.FRAME_DATA_BYTES_BUDGET,
 						});
-						this.#host.emitNotice(
-							"warning",
-							"snapcompact produced too much standing image payload.",
-							"compaction",
-						);
-						throw new Error(
-							"snapcompact cannot run locally: standing image payload exceeds the per-request budget.",
-						);
+						this.#host.emitNotice("warning", t("tui.compaction.notice.snapcompactImagePayload"), "compaction");
+						throw new Error(t("tui.compaction.error.snapcompactImagePayload"));
 					}
 					const ctxWindow = this.#model?.contextWindow ?? 0;
 					const budget =
@@ -1360,19 +1348,15 @@ export class SessionMaintenance {
 							projected: projectedForReduction,
 							reductionBaseline,
 						});
-						this.#host.emitNotice("warning", "snapcompact would not reduce context.", "compaction");
-						throw new Error("snapcompact would not reduce context locally.");
+						this.#host.emitNotice("warning", t("tui.compaction.notice.snapcompactNoReduction"), "compaction");
+						throw new Error(t("tui.compaction.error.snapcompactNoReduction"));
 					}
 					if (projected > budget) {
 						logger.warn("Snapcompact still overflows the window after frame-budget sizing", {
 							model: this.#model?.id,
 						});
-						this.#host.emitNotice(
-							"warning",
-							"snapcompact could not bring the context under the limit.",
-							"compaction",
-						);
-						throw new Error("snapcompact could not bring the context under the limit locally.");
+						this.#host.emitNotice("warning", t("tui.compaction.notice.snapcompactOverLimit"), "compaction");
+						throw new Error(t("tui.compaction.error.snapcompactOverLimit"));
 					}
 				}
 			}
@@ -1490,7 +1474,7 @@ export class SessionMaintenance {
 			) {
 				this.#host.emitNotice(
 					"warning",
-					`${methods[selectedMethodIndex]} compaction failed; trying the next preferred method`,
+					t("tui.compaction.notice.methodFailed", { method: methods[selectedMethodIndex] }),
 					"compaction",
 				);
 				return await this.compact(
@@ -1551,8 +1535,7 @@ export class SessionMaintenance {
 		const entries = this.#host.sessionManager.getBranch();
 		const settings = cfgCompaction.get(this.#host.settings);
 		const preparation = prepareCompaction(entries, settings, model, this.#tokenizer);
-		if (!preparation)
-			throw new ManualCompactionNoOpError("Nothing to compact (session too small or already rolled over)");
+		if (!preparation) throw new ManualCompactionNoOpError(t("tui.compaction.error.nothingToCompactRolled"));
 
 		const sourceLeafId = entries.at(-1)?.id;
 		const sourceSessionId = this.#host.sessionId();
@@ -1803,7 +1786,7 @@ export class SessionMaintenance {
 				detachPostCommit,
 			);
 			if (!safeToContinue) {
-				const warning = compactionDeadEndWarning("clear large tool output");
+				const warning = compactionDeadEndWarning(t("tui.compaction.remedy.clearToolOutput"));
 				const entry = getLatestCompactionEntry(this.#host.sessionManager.getBranch());
 				if (entry) {
 					entry.warning = warning;
@@ -1988,10 +1971,10 @@ export class SessionMaintenance {
 		if (this.isCompacting) throw new Error("Compaction already in progress");
 		this.cancelSpeculation();
 		const model = this.#model;
-		if (!model) throw new Error("No model selected for handoff");
+		if (!model) throw new Error(t("tui.compaction.error.handoffNoModel"));
 		const entries = this.#host.sessionManager.getBranch();
 		const messageCount = entries.filter(e => e.type === "message").length;
-		if (messageCount < 2) throw new Error("Nothing to hand off (no messages yet)");
+		if (messageCount < 2) throw new Error(t("tui.compaction.error.handoffNoMessages"));
 		const compactionSettings = cfgCompaction.get(this.#host.settings);
 		const preparation = prepareCompaction(
 			entries,
@@ -1999,7 +1982,7 @@ export class SessionMaintenance {
 			model,
 			this.#tokenizer,
 		);
-		if (!preparation) throw new Error("Nothing to hand off (already compacted)");
+		if (!preparation) throw new Error(t("tui.compaction.error.handoffAlreadyCompacted"));
 		const result = await this.#host.generateHandoffDocument(customInstructions, options);
 		if (!result) return undefined;
 		const { summary, details } = handoffSummaryFromDocument(result.document, preparation);
@@ -3049,7 +3032,11 @@ export class SessionMaintenance {
 				});
 				this.#host.emitNotice(
 					"warning",
-					`Response hit the ${assistantMessage.provider}/${assistantMessage.model} output limit (${assistantMessage.usage.output} tokens) and was truncated.`,
+					t("tui.compaction.notice.outputLimit", {
+						provider: assistantMessage.provider,
+						model: assistantMessage.model,
+						tokens: assistantMessage.usage.output,
+					}),
 					"compaction",
 				);
 				return COMPACTION_CHECK_NONE;
@@ -3096,7 +3083,11 @@ export class SessionMaintenance {
 					// journal entry and revives the discarded length turn. Persist the branch
 					// marker/rewrite before blocking further continuation.
 					if (droppedEntryId) await this.#host.sessionManager.discardEntryDurably(droppedEntryId);
-					const finalError = `Length-stop recovery gave up after ${attempts} consecutive \`length\` responses from ${assistantMessage.provider}/${assistantMessage.model} with no text or tool call. Try switching models or raising the model's max output tokens.`;
+					const finalError = t("tui.compaction.notice.lengthStopGaveUp", {
+						attempts,
+						provider: assistantMessage.provider,
+						model: assistantMessage.model,
+					});
 					logger.warn("response.incomplete recovery cap reached; halting retries", {
 						model: `${assistantMessage.provider}/${assistantMessage.model}`,
 						attempts,
@@ -3373,13 +3364,10 @@ export class SessionMaintenance {
 	#buildCompactionAuthError(): Error {
 		const currentModel = this.#model;
 		if (!currentModel) {
-			return new Error(
-				"Compaction requires a model with usable credentials, but no authenticated compaction model is available.",
-			);
+			return new Error(t("tui.compaction.error.authNoModel"));
 		}
 		return new Error(
-			`Compaction requires usable credentials for ${currentModel.provider}/${currentModel.id}. ` +
-				`Configure ${currentModel.provider} credentials or assign an authenticated fallback role such as modelRoles.smol.`,
+			t("tui.compaction.error.authForModel", { provider: currentModel.provider, model: currentModel.id }),
 		);
 	}
 
@@ -3625,7 +3613,7 @@ export class SessionMaintenance {
 
 	#deadEndRemedies(defaultRemedies: string, implicatedFrames: number): string {
 		if (implicatedFrames <= 0) return defaultRemedies;
-		return `reduce archived image frames (${implicatedFrames} held) — providers often bill vision media separately from tokens; ${defaultRemedies}`;
+		return t("tui.compaction.remedy.imageFrames", { frames: implicatedFrames, remedies: defaultRemedies });
 	}
 
 	/**
@@ -3887,13 +3875,13 @@ export class SessionMaintenance {
 		if (frameRescue !== undefined && options.hasProgress()) return true;
 		let elided = 0;
 		let elidedTokens = 0;
-		let elideSink = "placeholders";
+		let elideSink = t("tui.compaction.elideSink.placeholders");
 		if (!options.skipElide) {
 			try {
 				const result = await this.#host.shake("elide", { config: RESCUE_SHAKE_CONFIG, signal });
 				elided = result.toolResultsDropped + result.blocksDropped;
 				elidedTokens = result.tokensFreed;
-				if (result.artifactId) elideSink = "an artifact";
+				if (result.artifactId) elideSink = t("tui.compaction.elideSink.artifact");
 				if (elided > 0) {
 					// The elide pass rewrote history; re-anchor the in-flight snapshot
 					// so the caller's headroom/retry-fit re-test measures the shaken
@@ -3908,7 +3896,9 @@ export class SessionMaintenance {
 			if (elided > 0 && options.hasProgress()) {
 				this.#host.emitNotice(
 					"info",
-					`Compaction dead-end recovery: ${this.#describeElideRescue(elided, elidedTokens, elideSink)} so maintenance could make progress.`,
+					t("tui.compaction.deadEndRecovery.elide", {
+						rescue: this.#describeElideRescue(elided, elidedTokens, elideSink),
+					}),
 					"compaction",
 				);
 				return true;
@@ -3925,10 +3915,16 @@ export class SessionMaintenance {
 			});
 		}
 		if (imagesDropped > 0 && options.hasProgress()) {
-			const elidedPart = elided > 0 ? `${this.#describeElideRescue(elided, elidedTokens, elideSink)} and ` : "";
+			const plural = imagesDropped === 1 ? "" : "s";
 			this.#host.emitNotice(
 				"info",
-				`Compaction dead-end recovery: ${elidedPart}dropped ${imagesDropped} attached image${imagesDropped === 1 ? "" : "s"} so maintenance could make progress.`,
+				elided > 0
+					? t("tui.compaction.deadEndRecovery.imageDropWithElide", {
+							rescue: this.#describeElideRescue(elided, elidedTokens, elideSink),
+							count: imagesDropped,
+							plural,
+						})
+					: t("tui.compaction.deadEndRecovery.imageDrop", { count: imagesDropped, plural }),
 				"compaction",
 			);
 			return true;
@@ -3938,7 +3934,12 @@ export class SessionMaintenance {
 
 	/** Notice fragment for a dead-end elide tier: what was freed and where it went. */
 	#describeElideRescue(elided: number, tokensFreed: number, sink: string): string {
-		return `elided ${elided} heavy block${elided === 1 ? "" : "s"} (~${tokensFreed.toLocaleString()} tokens) to ${sink}`;
+		return t("tui.compaction.elideRescue", {
+			count: elided,
+			plural: elided === 1 ? "" : "s",
+			tokens: tokensFreed.toLocaleString(),
+			sink,
+		});
 	}
 
 	/**
@@ -4130,7 +4131,10 @@ export class SessionMaintenance {
 		}
 		this.#host.emitNotice(
 			"info",
-			`Compaction dead-end recovery: rebuilt the trailing snapcompact archive at a smaller frame budget (${archive.frames.length} → ${rebuilt.frames.length} frames) so maintenance could make progress.`,
+			t("tui.compaction.deadEndRecovery.framesRebuilt", {
+				from: archive.frames.length,
+				to: rebuilt.frames.length,
+			}),
 			"compaction",
 		);
 		return result;
@@ -4483,7 +4487,7 @@ export class SessionMaintenance {
 							: 0;
 					const deadEndWarning = noProgressDeadEnd
 						? compactionDeadEndWarning(
-								this.#deadEndRemedies("shrink it (e.g. clear large tool output)", implicatedFrames),
+								this.#deadEndRemedies(t("tui.compaction.remedy.shrinkToolOutput"), implicatedFrames),
 							)
 						: undefined;
 					// A rescue that appended a rebuilt archive without creating
@@ -4622,7 +4626,7 @@ export class SessionMaintenance {
 							result: undefined,
 							aborted: false,
 							willRetry: false,
-							errorMessage: "Auto-handoff returned no document; trying the next preferred compaction method.",
+							errorMessage: t("tui.compaction.auto.handoffNoDocument"),
 						},
 						options.detachPostCommit === true,
 					);
@@ -4673,15 +4677,14 @@ export class SessionMaintenance {
 						model: this.#model?.id,
 						unrenderableRatio: renderScan.unrenderableRatio,
 					});
-					snapcompactBlocker = `snapcompact disabled: unsupported characters for selected snapcompact font (${percent}%); trying the next preferred compaction method.`;
+					snapcompactBlocker = t("tui.compaction.blocker.fontUnsupported", { percent });
 				} else {
 					const maxFrames = this.#computeSnapcompactMaxFrames(preparation, effectiveSettings);
 					if (maxFrames < 1) {
 						logger.warn("Snapcompact skipped: kept history alone exceeds the context budget", {
 							model: this.#model?.id,
 						});
-						snapcompactBlocker =
-							"snapcompact: kept history alone exceeds the context budget; trying the next preferred compaction method.";
+						snapcompactBlocker = t("tui.compaction.blocker.keptHistory");
 					} else {
 						snapcompactResult = await snapcompact.compact(preparation, {
 							convertToLlm,
@@ -4697,8 +4700,7 @@ export class SessionMaintenance {
 								framePayloadBytes,
 								budget: snapcompact.FRAME_DATA_BYTES_BUDGET,
 							});
-							snapcompactBlocker =
-								"snapcompact produced too much standing image payload; trying the next preferred compaction method.";
+							snapcompactBlocker = t("tui.compaction.blocker.imagePayload");
 							snapcompactResult = undefined;
 						}
 						if (snapcompactResult) {
@@ -4734,8 +4736,7 @@ export class SessionMaintenance {
 									projected: projectedForReduction,
 									reductionBaseline: preparedReductionBaseline,
 								});
-								snapcompactBlocker =
-									"snapcompact would not reduce context; trying the next preferred compaction method.";
+								snapcompactBlocker = t("tui.compaction.blocker.noReduction");
 								snapcompactResult = undefined;
 							} else if (projected > budget) {
 								logger.warn("Snapcompact still overflows the window after frame-budget sizing", {
@@ -4743,8 +4744,7 @@ export class SessionMaintenance {
 									projected,
 									budget,
 								});
-								snapcompactBlocker =
-									"snapcompact could not bring the context under the limit; trying the next preferred compaction method.";
+								snapcompactBlocker = t("tui.compaction.blocker.overLimit");
 								snapcompactResult = undefined;
 							}
 						}
@@ -4965,7 +4965,7 @@ export class SessionMaintenance {
 					if (lastError) {
 						throw lastError;
 					}
-					throw new Error("Compaction failed: no available model");
+					throw new Error(t("tui.compaction.error.noAvailableModel"));
 				}
 
 				summary = compactResult.summary;
@@ -5014,13 +5014,13 @@ export class SessionMaintenance {
 				);
 				return COMPACTION_CHECK_NONE;
 			}
-			const errorMessage = error instanceof Error ? error.message : "compaction failed";
+			const errorMessage = error instanceof Error ? error.message : t("tui.compaction.auto.genericFailure");
 			const contextErrorMessage =
 				reason === "overflow"
-					? `Context overflow recovery failed: ${errorMessage}`
+					? t("tui.compaction.auto.overflowFailed", { reason: errorMessage })
 					: reason === "incomplete"
-						? `Incomplete response recovery failed: ${errorMessage}`
-						: `Auto-compaction failed: ${errorMessage}`;
+						? t("tui.compaction.auto.incompleteFailed", { reason: errorMessage })
+						: t("tui.compaction.auto.compactionFailed", { reason: errorMessage });
 			if (!compactionCommitted && methodIndex + 1 < methods.length) {
 				logger.warn("Automatic compaction method failed; trying next preference", {
 					method,
@@ -5033,7 +5033,7 @@ export class SessionMaintenance {
 						result: undefined,
 						aborted: false,
 						willRetry: false,
-						errorMessage: `${contextErrorMessage}; trying the next preferred compaction method.`,
+						errorMessage: t("tui.compaction.auto.tryNext", { message: contextErrorMessage }),
 					},
 					options.detachPostCommit === true,
 				);
@@ -5206,7 +5206,9 @@ export class SessionMaintenance {
 			}
 		}
 
-		const deadEndWarning = noProgressDeadEnd ? compactionDeadEndWarning("clear large tool output") : undefined;
+		const deadEndWarning = noProgressDeadEnd
+			? compactionDeadEndWarning(t("tui.compaction.remedy.clearToolOutput"))
+			: undefined;
 		if (deadEndWarning) {
 			// Stamp the divider: the compaction bar badges the dead-end and
 			// carries the full warning in its ctrl+o detail, so the pause
@@ -5327,8 +5329,8 @@ export class SessionMaintenance {
 			const shouldFallBack = reason !== "idle" && ((reason === "overflow" && !reclaimed) || stillOverThreshold);
 			if (shouldFallBack) {
 				const errorMessage = reclaimed
-					? `Auto-shake reclaimed ~${result.tokensFreed} tokens but context is still above the threshold; trying the next preferred compaction method.`
-					: "Auto-shake found nothing eligible to drop; trying the next preferred compaction method.";
+					? t("tui.compaction.auto.shakeStillOver", { tokens: result.tokensFreed })
+					: t("tui.compaction.auto.shakeNothing");
 				await this.#emitLifecycleEvent(
 					{
 						type: "auto_compaction_end",

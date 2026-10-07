@@ -169,6 +169,7 @@ import { cfgTaskAgentIdleTtlMs } from "./task/settings";
 import { cfgLspEnabled } from "./lsp/settings";
 import { cfgSkillsIncludeSkills } from "./extensibility/settings";
 import { cfgWorkspaceAdditionalDirectories } from "./session/context-settings";
+import { t } from "@oh-my-pi/pi-i18n";
 
 type RunAcpMode = (createSession: AcpSessionFactory) => Promise<never>;
 type RunPrintMode = (session: AgentSession, options: PrintModeOptions) => Promise<number>;
@@ -451,7 +452,7 @@ export async function submitInteractiveInput(
 			try {
 				forwarded = await session.prompt(input.text, { images: input.images, streamingBehavior });
 			} catch (error: unknown) {
-				mode.showError(error instanceof Error ? error.message : "Unknown error occurred");
+				mode.showError(error instanceof Error ? error.message : t("tui.ca.main.unknownErrorOccurred"));
 			}
 			// Dispatch consumed the body locally (void custom command) or rejected
 			// instead of starting a turn: when it is the armed loop body, park the
@@ -1707,7 +1708,7 @@ export async function runRootCommand(
 				const { exportFromFile } = await import("./export/html");
 				result = await exportFromFile(parsedArgs.export, outputPath);
 			} catch (error: unknown) {
-				const message = error instanceof Error ? error.message : "Failed to export session";
+				const message = error instanceof Error ? error.message : t("tui.ca.main.failedToExportSession");
 				process.stderr.write(`${chalk.red(`Error: ${message}`)}\n`);
 				process.exit(1);
 			}

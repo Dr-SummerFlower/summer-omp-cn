@@ -1,4 +1,5 @@
 /** Schema-independent display definitions for the settings overlay. */
+import { t } from "@oh-my-pi/pi-i18n";
 import type { SymbolKey } from "../theme/symbols";
 
 export type SettingTab =
@@ -30,42 +31,128 @@ export const SETTING_TABS: SettingTab[] = [
 	"providers",
 ];
 
-/** Tab display metadata - icon is a symbol key from theme.ts (tab.*) */
+/**
+ * Tab display metadata - icon is a symbol key from theme.ts (tab.*).
+ * Labels are getters: this module loads before the UI language is initialized,
+ * so translating eagerly would freeze the language.
+ */
 export const TAB_METADATA: Record<SettingTab, TabMetadata> = {
-	appearance: { label: "Appearance", icon: "tab.appearance" },
-	model: { label: "Model", icon: "tab.model" },
-	interaction: { label: "Interaction", icon: "tab.interaction" },
-	context: { label: "Context", icon: "tab.context" },
-	memory: { label: "Memory", icon: "tab.memory" },
-	files: { label: "Files", icon: "tab.files" },
-	shell: { label: "Shell", icon: "tab.shell" },
-	tools: { label: "Tools", icon: "tab.tools" },
-	tasks: { label: "Tasks", icon: "tab.tasks" },
-	providers: { label: "Providers", icon: "tab.providers" },
+	appearance: {
+		get label() {
+			return t("tui.settings.tabLabel.appearance");
+		},
+		icon: "tab.appearance",
+	},
+	model: {
+		get label() {
+			return t("tui.settings.tabLabel.model");
+		},
+		icon: "tab.model",
+	},
+	interaction: {
+		get label() {
+			return t("tui.settings.tabLabel.interaction");
+		},
+		icon: "tab.interaction",
+	},
+	context: {
+		get label() {
+			return t("tui.settings.tabLabel.context");
+		},
+		icon: "tab.context",
+	},
+	memory: {
+		get label() {
+			return t("tui.settings.tabLabel.memory");
+		},
+		icon: "tab.memory",
+	},
+	files: {
+		get label() {
+			return t("tui.settings.tabLabel.files");
+		},
+		icon: "tab.files",
+	},
+	shell: {
+		get label() {
+			return t("tui.settings.tabLabel.shell");
+		},
+		icon: "tab.shell",
+	},
+	tools: {
+		get label() {
+			return t("tui.settings.tabLabel.tools");
+		},
+		icon: "tab.tools",
+	},
+	tasks: {
+		get label() {
+			return t("tui.settings.tabLabel.tasks");
+		},
+		icon: "tab.tasks",
+	},
+	providers: {
+		get label() {
+			return t("tui.settings.tabLabel.providers");
+		},
+		icon: "tab.providers",
+	},
 };
 
 /** One-sentence lead per tab, under the page title of the native settings page. */
 export const TAB_LEADS: Record<SettingTab, string> = {
-	appearance: "Theme, composer, status line and how the transcript renders.",
-	model: "Thinking, sampling, the system prompt, retries and the helper models.",
-	interaction: "Input, approvals, notifications, speech and what happens at startup.",
-	context: "What the model sees, and when and how the conversation compacts.",
-	memory: "What omp remembers across sessions and where it keeps it.",
-	files: "How files are read, summarized and edited, and the language servers.",
-	shell: "The bash tool and the eval runtimes.",
-	tools: "Which tools the model has, their limits and the external integrations.",
-	tasks: "Modes, subagents, isolation and custom commands.",
-	providers: "Services, provider protocols, timeouts and privacy.",
+	get appearance() {
+		return t("tui.settings.tabLead.appearance");
+	},
+	get model() {
+		return t("tui.settings.tabLead.model");
+	},
+	get interaction() {
+		return t("tui.settings.tabLead.interaction");
+	},
+	get context() {
+		return t("tui.settings.tabLead.context");
+	},
+	get memory() {
+		return t("tui.settings.tabLead.memory");
+	},
+	get files() {
+		return t("tui.settings.tabLead.files");
+	},
+	get shell() {
+		return t("tui.settings.tabLead.shell");
+	},
+	get tools() {
+		return t("tui.settings.tabLead.tools");
+	},
+	get tasks() {
+		return t("tui.settings.tabLead.tasks");
+	},
+	get providers() {
+		return t("tui.settings.tabLead.providers");
+	},
 };
 
 /**
  * Ordered section groups per tab. Settings declare their section via `ui.group`;
  * the settings UI renders groups in this order with a heading row between them.
  * Ungrouped settings render first, before any section heading.
+ *
+ * These names are the *matching keys*: host settings carry the same English
+ * `ui.group`, and ordering compares against them verbatim. They must stay
+ * untranslated — use `groupLabel()` for display.
  */
 export const TAB_GROUPS: Record<SettingTab, readonly string[]> = {
-	appearance: ["Theme", "Composer", "Status Line", "Display", "Images"],
-	model: ["Thinking", "Sampling", "Prompt", "Retry & Fallback", "Advisor", "Prewalk", "Vision"],
+	appearance: ["Theme", "Composer", t("tui.overlays.settingsDefs.statusLine"), "Display", "Images"],
+	model: [
+		"Thinking",
+		"Sampling",
+		"Prompt",
+		t("tui.overlays.settingsDefs.retryFallback"),
+		"Advisor",
+		"Prewalk",
+		"Vision",
+	],
 	interaction: [
 		"Input",
 		"Approvals",
@@ -73,33 +160,107 @@ export const TAB_GROUPS: Record<SettingTab, readonly string[]> = {
 		"Speech",
 		"Collab",
 		"Stream",
-		"Magic Keywords",
-		"Startup & Updates",
+		t("tui.overlays.settingsDefs.magicKeywords"),
+		t("tui.overlays.settingsDefs.startupUpdates"),
 		"Power",
 		"Agent",
 		"Git",
 		"Skills",
 	],
-	context: ["General", "Compaction", "Rules (TTSR)", "Experimental"],
-	memory: ["General", "Auto-Learn", "Mnemopi", "Hindsight", "Sharpshooter"],
-	files: ["Editing", "Reading", "Read Summaries", "LSP"],
-	shell: ["Bash", "Eval & Runtimes"],
+	context: ["General", "Compaction", t("tui.overlays.settingsDefs.rulesTtsr"), "Experimental"],
+	memory: ["General", t("tui.overlays.settingsDefs.autoLearn"), "Mnemopi", "Hindsight", "Sharpshooter"],
+	files: ["Editing", "Reading", t("tui.overlays.settingsDefs.readSummaries"), "LSP"],
+	shell: ["Bash", t("tui.overlays.settingsDefs.evalRuntimes")],
 	tools: [
-		"Available Tools",
+		t("tui.overlays.settingsDefs.availableTools"),
 		"Todos",
-		"Grep & Browser",
+		t("tui.overlays.settingsDefs.grepBrowser"),
 		"Computer",
 		"IDA Pro",
 		"GitHub",
-		"Output Limits",
+		t("tui.overlays.settingsDefs.outputLimits"),
 		"Execution",
-		"Discovery & MCP",
+		t("tui.overlays.settingsDefs.discoveryMcp"),
 		"Extensions",
 		"Developer",
 	],
-	tasks: ["Modes", "Subagents", "Isolation", "Commands & Skills"],
-	providers: ["Services", "Fireworks", "Tiny Model", "Protocol", "Timeouts", "Privacy"],
+	tasks: ["Modes", "Subagents", "Isolation", t("tui.overlays.settingsDefs.commandsSkills")],
+	providers: ["Services", "Fireworks", t("tui.overlays.settingsDefs.tinyModel"), "Protocol", "Timeouts", "Privacy"],
 };
+
+/**
+ * Display labels for section groups, keyed by the English names declared in
+ * `TAB_GROUPS`. Lazily evaluated for the same reason as `TAB_METADATA`.
+ */
+const GROUP_LABELS: Record<string, () => string> = {
+	Theme: () => t("tui.settings.group.theme"),
+	Composer: () => t("tui.settings.group.composer"),
+	"Status Line": () => t("tui.settings.group.statusLine"),
+	Display: () => t("tui.settings.group.display"),
+	Images: () => t("tui.settings.group.images"),
+	Thinking: () => t("tui.settings.group.thinking"),
+	Sampling: () => t("tui.settings.group.sampling"),
+	Prompt: () => t("tui.settings.group.prompt"),
+	"Retry & Fallback": () => t("tui.settings.group.retryFallback"),
+	Advisor: () => t("tui.settings.group.advisor"),
+	Prewalk: () => t("tui.settings.group.prewalk"),
+	Vision: () => t("tui.settings.group.vision"),
+	Input: () => t("tui.settings.group.input"),
+	Approvals: () => t("tui.settings.group.approvals"),
+	Notifications: () => t("tui.settings.group.notifications"),
+	Speech: () => t("tui.settings.group.speech"),
+	Collab: () => t("tui.settings.group.collab"),
+	Stream: () => t("tui.settings.group.stream"),
+	"Magic Keywords": () => t("tui.settings.group.magicKeywords"),
+	"Startup & Updates": () => t("tui.settings.group.startupUpdates"),
+	Power: () => t("tui.settings.group.power"),
+	Agent: () => t("tui.settings.group.agent"),
+	Git: () => t("tui.settings.group.git"),
+	Skills: () => t("tui.settings.group.skills"),
+	General: () => t("tui.settings.group.general"),
+	Compaction: () => t("tui.settings.group.compaction"),
+	"Rules (TTSR)": () => t("tui.settings.group.rulesTtsr"),
+	Experimental: () => t("tui.settings.group.experimental"),
+	"Auto-Learn": () => t("tui.settings.group.autoLearn"),
+	Mnemopi: () => t("tui.settings.group.mnemopi"),
+	Hindsight: () => t("tui.settings.group.hindsight"),
+	Sharpshooter: () => t("tui.settings.group.sharpshooter"),
+	Editing: () => t("tui.settings.group.editing"),
+	Reading: () => t("tui.settings.group.reading"),
+	"Read Summaries": () => t("tui.settings.group.readSummaries"),
+	LSP: () => t("tui.settings.group.lsp"),
+	Bash: () => t("tui.settings.group.bash"),
+	"Eval & Runtimes": () => t("tui.settings.group.evalRuntimes"),
+	"Available Tools": () => t("tui.settings.group.availableTools"),
+	Todos: () => t("tui.settings.group.todos"),
+	"Grep & Browser": () => t("tui.settings.group.grepBrowser"),
+	Computer: () => t("tui.settings.group.computer"),
+	"IDA Pro": () => t("tui.settings.group.idaPro"),
+	GitHub: () => t("tui.settings.group.github"),
+	"Output Limits": () => t("tui.settings.group.outputLimits"),
+	Execution: () => t("tui.settings.group.execution"),
+	"Discovery & MCP": () => t("tui.settings.group.discoveryMcp"),
+	Extensions: () => t("tui.settings.group.extensions"),
+	Developer: () => t("tui.settings.group.developer"),
+	Modes: () => t("tui.settings.group.modes"),
+	Subagents: () => t("tui.settings.group.subagents"),
+	Isolation: () => t("tui.settings.group.isolation"),
+	"Commands & Skills": () => t("tui.settings.group.commandsSkills"),
+	Services: () => t("tui.settings.group.services"),
+	Fireworks: () => t("tui.settings.group.fireworks"),
+	"Tiny Model": () => t("tui.settings.group.tinyModel"),
+	Protocol: () => t("tui.settings.group.protocol"),
+	Timeouts: () => t("tui.settings.group.timeouts"),
+	Privacy: () => t("tui.settings.group.privacy"),
+};
+
+/**
+ * Display label for a section group. A group the host declares but `TAB_GROUPS`
+ * does not list renders as declared.
+ */
+export function groupLabel(group: string): string {
+	return GROUP_LABELS[group]?.() ?? group;
+}
 
 /** Submenu choice metadata. */
 export type SubmenuOption<V extends string = string> = {

@@ -4,6 +4,7 @@
  */
 import { combine, register, type SettingValueOf } from "../config/registry";
 import { DEFAULT_SKILLS_URL } from "@oh-my-pi/pi-wire/skillshare";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const EMPTY_STRING_ARRAY: string[] = [];
 
@@ -156,7 +157,6 @@ export const cfgExtensionHandlersToolCallTimeoutMs = register({
 		tab: "tools",
 		group: "Extensions",
 		label: "Tool Call Handler Timeout (ms)",
-		description:
-			"Positive finite active-work timeout for extension tool_call handlers; invalid values use 30000ms, and time awaiting OMP-owned dialogs does not count",
+		description: t("tui.ca.extensibility.settings.positiveFiniteActiveWorkTimeoutFor"),
 	},
 });

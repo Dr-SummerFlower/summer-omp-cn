@@ -22,6 +22,7 @@ import reviewPrompt from "./prompts/review.md" with { type: "text" };
 import { CompressProtocol } from "./protocol";
 import { createCompressSession } from "./session";
 import type { CompressDraft, CompressFileResult, CompressResult, CompressStatus } from "./types";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const DEFAULT_MAX_ROUNDS = 3;
 const DEFAULT_CONCURRENCY = 4;
@@ -184,7 +185,7 @@ async function compressFile(input: {
 		agentId: `Compress${input.index + 1}-${nonce}`,
 	});
 	const onAbort = (): void => {
-		void session.abort({ reason: "Compress interrupted" });
+		void session.abort({ reason: t("tui.ca.compress.index.compressInterrupted") });
 	};
 	input.signal?.addEventListener("abort", onAbort, { once: true });
 

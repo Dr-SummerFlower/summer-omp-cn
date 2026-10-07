@@ -24,6 +24,7 @@ import type { WordCompletionMethod } from "./word-completion";
 import { type AnimationFrame, TranscriptContainer } from "../chrome/transcript-container";
 import { type LspServerInfo, type RecentSession, WelcomeComponent } from "./welcome";
 import { ensureThemeSync, getEditorTheme, theme } from "../theme/theme";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const DOUBLE_INTERRUPT_MS = 500;
 
@@ -924,7 +925,7 @@ export class Composer implements TerminalFrameProvider, NativeSurfaceProvider {
 	/** Transfer terminal ownership to InteractiveMode without stopping the composer. */
 	transfer(): void {
 		if (!this.#started || this.#stopped || this.#transferred) {
-			throw new Error("Composer is not available for transfer");
+			throw new Error(t("tui.prompt.composer.composerIsNotAvailableForTransfer"));
 		}
 		this.#transferred = true;
 	}

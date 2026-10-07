@@ -11,6 +11,7 @@ import type { ToolSession } from ".";
 import { cfgAutolearnEnabled } from "../autolearn/settings";
 import { cfgMemoryBackend } from "../memory-backend/settings";
 import { isGlobalMemoryScopeAvailable } from "../mnemopi/settings";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const learnSkillSchema = type({
 	action: "'create' | 'update'",
@@ -80,13 +81,13 @@ export class LearnTool implements AgentTool<LearnSchema> {
 		// 1) Persist or queue the lesson to long-term memory (mirrors MemoryRetainTool).
 		const backend = cfgMemoryBackend.get(this.session.settings);
 		if (params.scope === "global" && backend !== "mnemopi") {
-			throw new Error("Global memory scope is only available with the Mnemopi backend.");
+			throw new Error(t("tui.ca.tools.learn.globalMemoryScopeIsOnlyAvailable"));
 		}
-		let memoryMessage = "Lesson stored";
+		let memoryMessage = t("tui.ca.tools.learn.lessonStored");
 		if (backend === "mnemopi") {
 			const state = this.session.getMnemopiSessionState?.();
 			if (!state) {
-				throw new Error("Mnemopi backend is not initialised for this session.");
+				throw new Error(t("tui.ca.tools.learn.mnemopiBackendIsNotInitialisedFor"));
 			}
 			// Resolve the target before writing, so an unsupported scoping mode is not reported as a storage failure.
 			const target = params.scope === "global" ? state.getGlobalRetainTarget() : undefined;
@@ -123,15 +124,15 @@ export class LearnTool implements AgentTool<LearnSchema> {
 				{ content: params.memory, context: params.context, source: "coding-agent-learn", importance: 0.8 },
 			);
 			if (!result || result.stored === 0) {
-				throw new Error("Lesson was empty after sanitization; nothing stored.");
+				throw new Error(t("tui.ca.tools.learn.lessonWasEmptyAfterSanitizationNothing"));
 			}
 		} else {
 			const state = this.session.getHindsightSessionState?.();
 			if (!state) {
-				throw new Error("Hindsight backend is not initialised for this session.");
+				throw new Error(t("tui.ca.tools.learn.hindsightBackendIsNotInitialisedFor"));
 			}
 			state.enqueueRetain(params.memory, params.context);
-			memoryMessage = "Lesson queued for retention";
+			memoryMessage = t("tui.ca.tools.learn.lessonQueuedForRetention");
 		}
 
 		// 2) Optionally mint/enhance a managed skill. A failure here is surfaced

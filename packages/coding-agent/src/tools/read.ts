@@ -168,6 +168,7 @@ import {
 	cfgReadSummarizeProse,
 } from "./settings";
 import { cfgImagesAutoResize } from "../modes/settings";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Largest profile (`*.sample.txt`, `*.cpuprofile`) converted to a bottleneck summary; bigger files read as plain text. */
 const MAX_PROFILE_SUMMARY_BYTES = 32 * 1024 * 1024;
@@ -625,8 +626,7 @@ async function resolveFileTailSelector(
 	return resolveTailSelector(parsed, totalLines);
 }
 
-const IMAGE_QUESTION_SELECTOR_ERROR =
-	"The ?q= selector only supports images (raster files, .svg:img, file-backed image URLs, PDF page screenshots).";
+const IMAGE_QUESTION_SELECTOR_ERROR = t("tui.ca.tools.read.theQSelectorOnlySupportsImages");
 
 /** A routed URL located to a local file, read through the filesystem pipeline under the URL's identity. */
 interface LocatedRead {
@@ -898,13 +898,13 @@ export class ReadTool implements AgentTool<typeof readSchema, ReadToolDetails> {
 		signal: AbortSignal,
 	): Promise<SpeculativePhysicalOutcome> {
 		if (context.effect.kind !== "local_read" || context.effect.resources.length !== 1) {
-			throw new Error("Invalid speculative read operation");
+			throw new Error(t("tui.ca.tools.read.invalidSpeculativeReadOperation"));
 		}
 		const execution = { discarded: false };
 		this.#speculativeReadExecutions.set(context.toolCall.id, execution);
 		const target = await resolveSpeculativeReadTarget(this.session.cwd, context.effect.resources[0].path);
 		if (!target.ok) {
-			throw new Error("Speculative read target is unavailable");
+			throw new Error(t("tui.ca.tools.read.speculativeReadTargetIsUnavailable"));
 		}
 		const absolutePath = target.resolved;
 		let snapshotDigest: string | undefined;
@@ -943,7 +943,7 @@ export class ReadTool implements AgentTool<typeof readSchema, ReadToolDetails> {
 					snapshotDigest = digestSnapshotText(normalizedText);
 				},
 				() => {
-					throw new Error("Conflict-aware reads require authoritative execution");
+					throw new Error(t("tui.ca.tools.read.conflictAwareReadsRequireAuthoritativeExecution"));
 				},
 				path.resolve(this.session.cwd, requestedPath),
 			);
@@ -956,7 +956,7 @@ export class ReadTool implements AgentTool<typeof readSchema, ReadToolDetails> {
 					path: (context.args as ReadParams).path,
 				});
 			}
-			if (!snapshotDigest) throw new Error("Speculative read did not consume one stable buffered snapshot");
+			if (!snapshotDigest) throw new Error(t("tui.ca.tools.read.speculativeReadDidNotConsumeOne"));
 			return {
 				kind: "result",
 				result,
@@ -1260,7 +1260,7 @@ export class ReadTool implements AgentTool<typeof readSchema, ReadToolDetails> {
 			const outputMime = imageMetadata?.mimeType ?? mimeType;
 			const imageQuestionPath = questionPath ?? formatPathRelativeToCwd(absolutePath, this.session.cwd);
 			const metadataLines = [
-				"Image metadata:",
+				t("tui.ca.tools.read.imageMetadata"),
 				`- MIME: ${outputMime}`,
 				`- Bytes: ${fileSize} (${formatBytes(fileSize)})`,
 				imageMetadata?.width !== undefined && imageMetadata.height !== undefined
@@ -1299,7 +1299,7 @@ export class ReadTool implements AgentTool<typeof readSchema, ReadToolDetails> {
 			if (!imageInput) {
 				throw new ToolError(
 					imageKind === "svg"
-						? "The ':img' selector only supports .svg and .svgz files."
+						? t("tui.ca.tools.read.theImgSelectorOnlySupportsSvg")
 						: `Read image file [${mimeType}] failed: unsupported image format.`,
 				);
 			}
@@ -1559,7 +1559,7 @@ export class ReadTool implements AgentTool<typeof readSchema, ReadToolDetails> {
 				return buildInMemorySelectorResult(this.session, entry.output, urlSel, {
 					details: { ...entry.details },
 					sourceUrl: entry.details.finalUrl,
-					entityLabel: "URL output",
+					entityLabel: t("tui.ca.tools.read.urlOutput"),
 					immutable: true,
 				});
 			}
@@ -2165,7 +2165,7 @@ export class ReadTool implements AgentTool<typeof readSchema, ReadToolDetails> {
 					if (requestedStart >= totalFileLines) {
 						const suggestion =
 							totalFileLines === 0
-								? "The file is empty."
+								? t("tui.ca.tools.read.theFileIsEmpty")
 								: `Use ${selectorBase}:1 to read from the start, or ${selectorBase}:${totalFileLines} to read the last line.`;
 						return toolResult<ReadToolDetails>({ resolvedPath: renderAbsolutePath, suffixResolution })
 							.text(
@@ -2630,7 +2630,7 @@ export class ReadTool implements AgentTool<typeof readSchema, ReadToolDetails> {
 			if (start >= allLines.length) {
 				const suggestion =
 					allLines.length === 0
-						? "The listing is empty."
+						? t("tui.ca.tools.read.theListingIsEmpty")
 						: `Use :1 to read from the start, or :${allLines.length} to read the last line.`;
 				return toolResult(details)
 					.text(`Line ${start + 1} is beyond end of listing (${allLines.length} lines total). ${suggestion}`)

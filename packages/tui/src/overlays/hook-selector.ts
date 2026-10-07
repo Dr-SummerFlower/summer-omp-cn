@@ -38,6 +38,7 @@ import type { DescribeContext, NativeChild, NativeNode, NativeUiEvent } from "..
 import { actionHint, hintsRow, overlayCard } from "../native/overlay";
 import { plainText } from "../native/spans";
 import { CLOSE_ACTION, dockedPicker, PICKER_KEY, pickerAction, pickerEvent, pickerQuery } from "../native/picker";
+import { t } from "@oh-my-pi/pi-i18n";
 import type { TspPickerItem } from "@oh-my-pi/pi-wire";
 
 /** One segment of a {@link HookSelectorSlider} — a label and an optional
@@ -290,7 +291,7 @@ export class HookSelectorComponent extends OverlayPanel {
 			this.#countdown = new CountdownTimer(
 				opts.timeout,
 				opts.tui,
-				s => (this.title = `${this.#baseTitle} (${s}s)`),
+				s => (this.title = t("tui.hook.selector.title.countdown", { title: this.#baseTitle, seconds: s })),
 				() => {
 					opts?.onTimeout?.();
 					// Auto-select current option on timeout (typically the first/recommended option)
@@ -314,7 +315,11 @@ export class HookSelectorComponent extends OverlayPanel {
 		this.addChild(new Spacer(1));
 		const controlsHint =
 			opts?.helpText ??
-			`${editorKeys("tui.select.up", "tui.select.down")} navigate  ${formatKeyHint("enter")} select  ${editorKey("tui.select.cancel")} cancel`;
+			t("tui.hook.selector.hint.controls", {
+				nav: editorKeys("tui.select.up", "tui.select.down"),
+				enter: formatKeyHint("enter"),
+				cancel: editorKey("tui.select.cancel"),
+			});
 		this.addChild(new Text(theme.fg("dim", controlsHint), 0, 0));
 		this.addChild(new Spacer(1));
 
@@ -718,7 +723,7 @@ export class HookSelectorComponent extends OverlayPanel {
 			selected: selected ?? null,
 			...(checkbox ? { current: [...this.#checkedIndices].map(String) } : {}),
 			total: this.#options.length,
-			empty: "No matching options",
+			empty: t("tui.overlays.hookSelector.noMatchingOptions"),
 			actions: [pickerAction("confirm", "Select", "enter", { primary: true }), CLOSE_ACTION],
 		});
 		this.#pickerMemo = { items, selected, query, cursor, node: result };
@@ -771,7 +776,7 @@ export class HookSelectorComponent extends OverlayPanel {
 				{
 					selected: selectedItem && !this.#menu.isDisabled(selectedItem) ? (selected ?? null) : null,
 					filter: query.trim() || undefined,
-					empty: "No matching options",
+					empty: t("tui.overlays.hookSelector.noMatchingOptions2"),
 					max: { lines: this.#maxVisible },
 				},
 				rows,
@@ -780,7 +785,12 @@ export class HookSelectorComponent extends OverlayPanel {
 		);
 		if (query) {
 			children.push(
-				node("text", { spans: [span("Search: ", "dim"), span(query)], wrap: "none" }, undefined, "search"),
+				node(
+					"text",
+					{ spans: [span(t("tui.overlays.hookSelector.search"), "dim"), span(query)], wrap: "none" },
+					undefined,
+					"search",
+				),
 			);
 		}
 		children.push(fixed.hints);

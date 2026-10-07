@@ -21,6 +21,7 @@ import type { IrcDeliveryReceipt } from "./irc";
 import type { DaemonSnapshot } from "./daemon";
 import { styleTerminalRow } from "./terminal-output";
 import { card, type CardToolResult as ToolResult, firstText, safe } from "./result-card";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export interface ProcReadDetails {
 	jobs?: JobSnapshot[];
@@ -90,7 +91,10 @@ export function renderAgentWrite(
 			theme,
 		);
 		if (result?.isError && receipts.length === 0)
-			return [header, formatErrorDetail(firstText(result) || "Message delivery failed.", theme)];
+			return [
+				header,
+				formatErrorDetail(firstText(result) || t("tui.tools.procRender.messageDeliveryFailed"), theme),
+			];
 		const lines = [header, ...preview(body, expanded, theme)];
 		if (result && receipts.length === 0)
 			lines.push(theme.fg("muted", firstText(result) || "No live peers to broadcast to."));
@@ -166,7 +170,11 @@ export function renderProcWrite(
 			},
 			theme,
 		);
-		if (result?.isError) return [header, formatErrorDetail(firstText(result) || "Process operation failed.", theme)];
+		if (result?.isError)
+			return [
+				header,
+				formatErrorDetail(firstText(result) || t("tui.tools.procRender.processOperationFailed"), theme),
+			];
 		const lines = [header];
 		if (content && action === "stdin") lines.push(...preview(content, expanded, theme));
 		if (details && "op" in details && details.op === "cancel") {
@@ -200,7 +208,7 @@ export function renderProcRead(
 	theme: Theme,
 ): Component {
 	return card((_width, expanded) => {
-		const title = id ? `Proc ${safe(id)}` : "Proc jobs & services";
+		const title = id ? `Proc ${safe(id)}` : t("tui.tools.procRender.procJobsServices");
 		const daemon = details?.daemon;
 		const header = renderStatusLine(
 			{
@@ -210,7 +218,8 @@ export function renderProcRead(
 			},
 			theme,
 		);
-		if (result?.isError) return [header, formatErrorDetail(firstText(result) || "Process read failed.", theme)];
+		if (result?.isError)
+			return [header, formatErrorDetail(firstText(result) || t("tui.tools.procRender.processReadFailed"), theme)];
 		if (!result) return [header];
 		if (details?.job)
 			return [
@@ -268,7 +277,7 @@ export function renderProcRead(
 				},
 				theme,
 			),
-			...(items.length ? [] : [theme.fg("dim", "No background jobs or services.")]),
+			...(items.length ? [] : [theme.fg("dim", t("tui.tools.procRender.noBackgroundJobsOrServices"))]),
 		];
 	}, options);
 }
@@ -424,7 +433,7 @@ export function describeProcRead(
 	details: ProcReadDetails | undefined,
 ): NativeToolView {
 	const daemon = details?.daemon;
-	const title = id ? "Proc" : "Proc jobs & services";
+	const title = id ? "Proc" : t("tui.tools.procRender.procJobsServices2");
 	const head = toolHead(title, id ? span(safe(id), "accent") : undefined, daemon ? daemonMetaText(daemon) : undefined);
 	if (result?.isError) {
 		return { head, tone: "error", body: [errorText(firstText(result) || "Process read failed.")] };
@@ -485,6 +494,12 @@ export function describeProcRead(
 	if (agents.length) counts.push(`${agents.length} agents`);
 	return {
 		head: toolHead(title, id ? span(safe(id), "accent") : undefined, counts.join(" · ")),
-		body: [node("list", { empty: "No background jobs or services.", role: "omp.tool.proc.table" }, items)],
+		body: [
+			node(
+				"list",
+				{ empty: t("tui.tools.procRender.noBackgroundJobsOrServices"), role: "omp.tool.proc.table" },
+				items,
+			),
+		],
 	};
 }

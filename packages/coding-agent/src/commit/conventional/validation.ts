@@ -3,6 +3,7 @@ import type { ConventionalCommit } from "../types";
 import { COMMIT_TYPE_ORDER, isCommitType } from "./commit-types";
 import type { ConventionalGenerationConfig } from "./config";
 import validationResource from "./resources/validation_data.json" with { type: "json" };
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Severity attached to a conventional commit validation issue. */
 export type ValidationSeverity = "error" | "warning";
@@ -169,7 +170,14 @@ function addIssue(
 function validateScope(scope: string | null, projectNames: readonly string[], report: ValidationReport): void {
 	if (scope === null) return;
 	if (!scope) {
-		addIssue(report, "error", "scope", "empty_scope", "Scope cannot be empty string; omit it instead", scope);
+		addIssue(
+			report,
+			"error",
+			"scope",
+			"empty_scope",
+			t("tui.ca.commit.conventional.validation.scopeCannotBeEmptyStringOmit"),
+			scope,
+		);
 		return;
 	}
 	const normalized = scope.toLowerCase().replaceAll("-", "").replaceAll("_", "");
@@ -192,7 +200,14 @@ function validateSummary(
 ): void {
 	const summary = message.summary;
 	if (!summary.trim()) {
-		addIssue(report, "error", "summary", "empty_summary", "Summary cannot be empty", summary);
+		addIssue(
+			report,
+			"error",
+			"summary",
+			"empty_summary",
+			t("tui.ca.commit.conventional.validation.summaryCannotBeEmpty"),
+			summary,
+		);
 		return;
 	}
 	if (summary.trimEnd().endsWith(".")) {
@@ -201,7 +216,7 @@ function validateSummary(
 			"error",
 			"summary",
 			"trailing_period",
-			"Summary must NOT end with a period (conventional commits style)",
+			t("tui.ca.commit.conventional.validation.summaryMustNotEndWithA"),
 			summary,
 		);
 	}
@@ -243,7 +258,13 @@ function validateSummary(
 function validateSummaryContent(summary: string, commitType: string, stat: string, report: ValidationReport): void {
 	const firstWord = summary.split(/\s+/, 1)[0] ?? "";
 	if (!firstWord) {
-		addIssue(report, "error", "summary", "summary_missing_word", "Summary must contain at least one word");
+		addIssue(
+			report,
+			"error",
+			"summary",
+			"summary_missing_word",
+			t("tui.ca.commit.conventional.validation.summaryMustContainAtLeastOne"),
+		);
 		return;
 	}
 	if (!isPastTenseFirstWord(firstWord)) {
@@ -369,15 +390,27 @@ function typeScopeConsistency(
 				"warning",
 				"type",
 				"docs_without_docs",
-				"Commit type 'docs' but no documentation files changed",
+				t("tui.ca.commit.conventional.validation.commitTypeDocsButNoDocumentation"),
 			);
 	} else if (commitType === "test") {
 		if (!lowerPaths.some(file => file.includes("/test") || file.includes("_test.") || file.includes(".test."))) {
-			addIssue(report, "warning", "type", "test_without_tests", "Commit type 'test' but no test files changed");
+			addIssue(
+				report,
+				"warning",
+				"type",
+				"test_without_tests",
+				t("tui.ca.commit.conventional.validation.commitTypeTestButNoTest"),
+			);
 		}
 	} else if (commitType === "style") {
 		if (paths.some(file => CODE_EXTENSIONS.has(path.posix.extname(file).replace(/^\./, "").toLowerCase()))) {
-			addIssue(report, "warning", "type", "style_with_code", "Commit type 'style' but code files changed");
+			addIssue(
+				report,
+				"warning",
+				"type",
+				"style_with_code",
+				t("tui.ca.commit.conventional.validation.commitTypeStyleButCodeFiles"),
+			);
 		}
 	} else if (commitType === "ci") {
 		if (
@@ -385,7 +418,13 @@ function typeScopeConsistency(
 				file => file.includes(".github/workflows") || file.includes(".gitlab-ci") || file.includes("jenkinsfile"),
 			)
 		) {
-			addIssue(report, "warning", "type", "ci_without_ci", "Commit type 'ci' but no CI configuration files changed");
+			addIssue(
+				report,
+				"warning",
+				"type",
+				"ci_without_ci",
+				t("tui.ca.commit.conventional.validation.commitTypeCiButNoCi"),
+			);
 		}
 	} else if (commitType === "build") {
 		if (
@@ -397,7 +436,13 @@ function typeScopeConsistency(
 					file.includes("build."),
 			)
 		) {
-			addIssue(report, "warning", "type", "build_without_build", "Commit type 'build' but no build files changed");
+			addIssue(
+				report,
+				"warning",
+				"type",
+				"build_without_build",
+				t("tui.ca.commit.conventional.validation.commitTypeBuildButNoBuild"),
+			);
 		}
 	} else if (commitType === "refactor") {
 		if (
@@ -410,7 +455,7 @@ function typeScopeConsistency(
 				"warning",
 				"type",
 				"refactor_with_new_files",
-				"Commit type 'refactor' but new files were created; verify no new capabilities were added",
+				t("tui.ca.commit.conventional.validation.commitTypeRefactorButNewFiles"),
 			);
 		}
 	} else if (commitType === "perf") {
@@ -425,7 +470,7 @@ function typeScopeConsistency(
 				"warning",
 				"type",
 				"perf_without_evidence",
-				"Commit type 'perf' but no performance files or optimization keywords were found",
+				t("tui.ca.commit.conventional.validation.commitTypePerfButNoPerformance"),
 			);
 		}
 	}

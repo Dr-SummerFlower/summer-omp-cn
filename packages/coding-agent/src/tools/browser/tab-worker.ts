@@ -217,6 +217,7 @@ import type {
 	WorkerInbound,
 	WorkerInitPayload,
 } from "./tab-protocol";
+import { t } from "@oh-my-pi/pi-i18n";
 
 declare module "puppeteer-core" {
 	interface Frame {
@@ -922,11 +923,11 @@ function createRunPageScope(page: Page, restoreInterception: () => Promise<void>
 				await withTimeout(
 					restoreInterception(),
 					REQUEST_INTERCEPTION_CLEANUP_TIMEOUT_MS,
-					"Timed out restoring browser request interception",
+					t("tui.ca.tools.browser.tabWorker.timedOutRestoringBrowserRequestInterception"),
 				);
 			} catch (error) {
 				throw new RequestInterceptionCleanupError(
-					"Failed to restore browser request interception after browser.run",
+					t("tui.ca.tools.browser.tabWorker.failedToRestoreBrowserRequestInterception"),
 					{
 						error: error instanceof Error ? error.message : String(error),
 					},
@@ -1198,7 +1199,7 @@ export class WorkerCore {
 	#recordFloatingRejection(active: ActiveRun, reason: unknown): void {
 		if (postmortem.isExpectedCleanupError(reason)) return;
 		if (this.#active !== active) {
-			this.#log("warn", "Unhandled rejection after browser run ended", {
+			this.#log("warn", t("tui.ca.tools.browser.tabWorker.unhandledRejectionAfterBrowserRunEnded"), {
 				runId: active.id,
 				error: reason instanceof Error ? reason.message : String(reason),
 			});
@@ -1227,7 +1228,7 @@ export class WorkerCore {
 			reported = rejections.slice(1);
 		}
 		for (const reason of reported) {
-			this.#log("warn", "Additional unhandled browser-run rejection", {
+			this.#log("warn", t("tui.ca.tools.browser.tabWorker.additionalUnhandledBrowserRunRejection"), {
 				error: reason instanceof Error ? reason.message : String(reason),
 			});
 		}
@@ -1402,7 +1403,7 @@ export class WorkerCore {
 			await session.send("Page.stopLoading").catch(() => undefined);
 			await session.send("Fetch.disable").catch(() => undefined);
 		} catch (error) {
-			this.#log("debug", "Recovery CDP session failed; proceeding with attach", {
+			this.#log("debug", t("tui.ca.tools.browser.tabWorker.recoveryCdpSessionFailedProceedingWith"), {
 				error: error instanceof Error ? error.message : String(error),
 			});
 		} finally {
@@ -1436,7 +1437,7 @@ export class WorkerCore {
 		void this.#requireDialogs()
 			.setPolicy(policy)
 			.catch(error =>
-				this.#log("debug", "Dialog auto-handler failed", {
+				this.#log("debug", t("tui.ca.tools.browser.tabWorker.dialogAutoHandlerFailed"), {
 					policy,
 					error: error instanceof Error ? error.message : String(error),
 				}),
@@ -1447,7 +1448,7 @@ export class WorkerCore {
 		try {
 			this.#transport.send({ type: "ready", info: await this.#currentReadyInfo() });
 		} catch (error) {
-			this.#log("debug", "Failed to refresh tab info", {
+			this.#log("debug", t("tui.ca.tools.browser.tabWorker.failedToRefreshTabInfo"), {
 				error: error instanceof Error ? error.message : String(error),
 			});
 		}
@@ -2887,7 +2888,7 @@ export class WorkerCore {
 		this.#clearElementCache();
 		const page = this.#page;
 		await this.#recording.close().catch(error => {
-			this.#log("warn", "Failed to finalize active browser recording during tab close", {
+			this.#log("warn", t("tui.ca.tools.browser.tabWorker.failedToFinalizeActiveBrowserRecording"), {
 				error: error instanceof Error ? error.message : String(error),
 			});
 		});

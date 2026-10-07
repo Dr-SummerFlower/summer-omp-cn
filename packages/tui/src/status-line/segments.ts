@@ -29,6 +29,7 @@ import { node, span } from "../native/describe";
 import { thinkingLevelToken } from "../theme/theme-class";
 import type { StatusLineSession } from "./host";
 import type { RenderedSegment, SegmentContext, SegmentView, StatusLineSegment, StatusLineSegmentId } from "./types";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export type { SegmentContext } from "./types";
 
@@ -536,7 +537,7 @@ const modeSegment: StatusLineSegment = {
 		const plan = ctx.planMode;
 		if (plan && (plan.enabled || plan.paused)) {
 			return plan.paused
-				? segView([span("Plan (paused)", "warning")], "plan", "warning")
+				? segView([span(t("tui.statusLine.segments.planPaused"), "warning")], "plan", "warning")
 				: segView([span("Plan", accentToken(ctx, "accent"))], "plan");
 		}
 		if (ctx.prewalk?.enabled) return segView([span("Prewalk", accentToken(ctx, "accent"))], "prewalk");

@@ -24,6 +24,7 @@
  * every file underneath it.
  */
 
+import { t } from "@oh-my-pi/pi-i18n";
 import type { TspSpan } from "@oh-my-pi/pi-wire";
 import { formatKeyHint, formatKeyHints } from "../../app-keybindings";
 import { SplitPane } from "../../components/layout/split-pane";
@@ -93,13 +94,15 @@ type StatusTone = "success" | "warning" | "error" | "accent" | "dim";
 /** Columns below which the native layout stacks the changes under the diff. */
 const NARROW_COLS = 100;
 
-/** The views of the native segmented control, in omp's `1`–`4` order. */
-const VIEW_TABS: readonly { id: ViewMode; label: string }[] = [
-	{ id: "file", label: "File" },
-	{ id: "split", label: "Split" },
-	{ id: "inline", label: "Inline" },
-	{ id: "hunk", label: "Hunks" },
-];
+/** The views of the native segmented control, in omp's `1`–`4` order; labels resolve per call. */
+function viewTabs(): readonly { id: ViewMode; label: string }[] {
+	return [
+		{ id: "file", label: t("tui.gitTui.view.file") },
+		{ id: "split", label: t("tui.gitTui.view.split") },
+		{ id: "inline", label: t("tui.gitTui.view.inline") },
+		{ id: "hunk", label: t("tui.gitTui.view.hunks") },
+	];
+}
 
 interface UiHit {
 	from: number;
@@ -296,7 +299,10 @@ class GitTuiComponent implements Component {
 		this.#pane.patchTarget = this.#patchTargetFor(file);
 		const seq = ++this.#loadSeq;
 		if (!file) {
-			this.#pane.emptyMessage = this.#model.clean && !this.#model.headCommit ? "No commits yet" : "No changes";
+			this.#pane.emptyMessage =
+				this.#model.clean && !this.#model.headCommit
+					? t("tui.gitTui.empty.noCommits")
+					: t("tui.gitTui.empty.noChanges");
 			this.#pane.setDocument(null, "empty");
 			this.#ui.requestRender();
 			return;
@@ -369,7 +375,10 @@ class GitTuiComponent implements Component {
 				this.#pendingDiscard = key;
 				this.#setStatus(
 					"warning",
-					`Discard changes to ${action.selection.label}? Press ${formatKeyHint("delete")} again to confirm`,
+					t("tui.gitTui.confirm.discardTarget", {
+						name: action.selection.label,
+						key: formatKeyHint("delete"),
+					}),
 				);
 				return;
 			}
@@ -381,23 +390,30 @@ class GitTuiComponent implements Component {
 			switch (action.type) {
 				case "discard":
 					await this.#model.discard(action.selection.files);
-					this.#setStatus("success", `Discarded ${action.selection.label}`);
+					this.#setStatus("success", t("tui.gitTui.status.discarded", { name: action.selection.label }));
 					break;
 				case "stage":
 					await this.#model.stage(action.selection?.files);
-					this.#setStatus("success", action.selection ? `Staged ${action.selection.label}` : "Staged all changes");
+					this.#setStatus(
+						"success",
+						action.selection
+							? t("tui.gitTui.status.staged", { name: action.selection.label })
+							: t("tui.gitTui.status.stagedAll"),
+					);
 					break;
 				case "unstage":
 					await this.#model.unstage(action.selection?.files);
 					this.#setStatus(
 						"success",
-						action.selection ? `Unstaged ${action.selection.label}` : "Unstaged all changes",
+						action.selection
+							? t("tui.gitTui.status.unstaged", { name: action.selection.label })
+							: t("tui.gitTui.status.unstagedAll"),
 					);
 					break;
 				case "stage-ai": {
 					const abort = new AbortController();
 					this.#aiStageAbort = abort;
-					this.#setStatus("accent", `Filtering changes: ${action.prompt}`);
+					this.#setStatus("accent", t("tui.gitTui.status.filtering", { prompt: action.prompt }));
 					try {
 						const outcome = await this.#host.aiStage({
 							cwd: this.#model.cwd,
@@ -409,16 +425,31 @@ class GitTuiComponent implements Component {
 							},
 						});
 						if (outcome.stagedHunks === 0 && outcome.wholeFiles === 0) {
-							this.#setStatus("warning", `No changes matched "${action.prompt}"`);
+							this.#setStatus("warning", t("tui.gitTui.status.noMatches", { prompt: action.prompt }));
 						} else {
 							const parts: string[] = [];
-							if (outcome.stagedHunks > 0) parts.push(`${outcome.stagedHunks} of ${outcome.totalHunks} hunks`);
+							if (outcome.stagedHunks > 0) {
+								parts.push(
+									t("tui.gitTui.count.hunks", {
+										staged: outcome.stagedHunks,
+										total: outcome.totalHunks,
+									}),
+								);
+							}
 							if (outcome.wholeFiles > 0) {
-								parts.push(`${outcome.wholeFiles} whole file${outcome.wholeFiles === 1 ? "" : "s"}`);
+								parts.push(
+									outcome.wholeFiles === 1
+										? t("tui.gitTui.count.wholeFileOne", { count: outcome.wholeFiles })
+										: t("tui.gitTui.count.wholeFileMany", { count: outcome.wholeFiles }),
+								);
 							}
 							this.#setStatus(
 								"success",
-								`Staged ${parts.join(" + ")} (${outcome.matchedFiles}/${outcome.totalFiles} files matched)`,
+								t("tui.gitTui.status.stagedCounts", {
+									counts: parts.join(" + "),
+									matched: outcome.matchedFiles,
+									total: outcome.totalFiles,
+								}),
 							);
 						}
 					} finally {
@@ -430,7 +461,7 @@ class GitTuiComponent implements Component {
 					const abort = new AbortController();
 					this.#generationAbort = abort;
 					this.#sidebar.setGenerating(true);
-					this.#setStatus("accent", "Generating commit message…");
+					this.#setStatus("accent", t("tui.gitTui.status.generating"));
 					try {
 						const generated = await this.#host.generateCommitMessage({
 							cwd: this.#model.cwd,
@@ -442,13 +473,16 @@ class GitTuiComponent implements Component {
 						});
 						this.#sidebar.setGeneratedCommit(generated.commit);
 						if (generated.validationError) {
-							this.#setStatus("warning", `Generated message needs review: ${generated.validationError}`);
+							this.#setStatus(
+								"warning",
+								t("tui.gitTui.status.generateReview", { error: generated.validationError }),
+							);
 						} else {
 							this.#setStatus(
 								"success",
 								generated.stagedAll
-									? "Staged all changes and generated commit message"
-									: "Generated commit message",
+									? t("tui.gitTui.status.generatedStagedAll")
+									: t("tui.gitTui.status.generated"),
 							);
 						}
 					} finally {
@@ -461,7 +495,10 @@ class GitTuiComponent implements Component {
 					if (action.stageAll) await this.#model.stage();
 					await this.#model.commit(action.message, { amend: action.amend });
 					this.#sidebar.clearForm();
-					this.#setStatus("success", action.amend ? "Amended commit" : "Created commit");
+					this.#setStatus(
+						"success",
+						action.amend ? t("tui.gitTui.status.amended") : t("tui.gitTui.status.created"),
+					);
 					break;
 				}
 			}
@@ -477,7 +514,7 @@ class GitTuiComponent implements Component {
 		if (!hunk.patch) return;
 		if (action === "discard" && this.#pendingDiscard !== hunk.patch) {
 			this.#pendingDiscard = hunk.patch;
-			this.#setStatus("warning", `Discard hunk? Press ${formatKeyHint("x")} (or click) again to confirm`);
+			this.#setStatus("warning", t("tui.gitTui.confirm.discardHunk", { key: formatKeyHint("x") }));
 			return;
 		}
 		this.#pendingDiscard = null;
@@ -489,7 +526,11 @@ class GitTuiComponent implements Component {
 			else await this.#model.applyPatch(hunk.patch, { reverse: true });
 			this.#setStatus(
 				"success",
-				action === "stage" ? "Staged hunk" : action === "unstage" ? "Unstaged hunk" : "Discarded hunk",
+				action === "stage"
+					? t("tui.gitTui.status.stagedHunk")
+					: action === "unstage"
+						? t("tui.gitTui.status.unstagedHunk")
+						: t("tui.gitTui.status.discardedHunk"),
 			);
 			await this.#refresh(true);
 		} catch (error) {
@@ -506,12 +547,12 @@ class GitTuiComponent implements Component {
 		const intent = action === "stage" ? "apply" : "revert";
 		const patch = buildLineSelectionPatch(doc, span.from, span.to, intent);
 		if (!patch) {
-			this.#setStatus("warning", "Selection contains no changes");
+			this.#setStatus("warning", t("tui.gitTui.status.selectionEmpty"));
 			return;
 		}
 		if (action === "discard" && this.#pendingDiscard !== patch) {
 			this.#pendingDiscard = patch;
-			this.#setStatus("warning", `Discard selected lines? Press ${formatKeyHint("x")} again to confirm`);
+			this.#setStatus("warning", t("tui.gitTui.confirm.discardLines", { key: formatKeyHint("x") }));
 			return;
 		}
 		this.#pendingDiscard = null;
@@ -525,10 +566,10 @@ class GitTuiComponent implements Component {
 			this.#setStatus(
 				"success",
 				action === "stage"
-					? "Staged selection"
+					? t("tui.gitTui.status.stagedSelection")
 					: action === "unstage"
-						? "Unstaged selection"
-						: "Discarded selection",
+						? t("tui.gitTui.status.unstagedSelection")
+						: t("tui.gitTui.status.discardedSelection"),
 			);
 			await this.#refresh(true);
 		} catch (error) {
@@ -588,10 +629,10 @@ class GitTuiComponent implements Component {
 		this.#setStatus(
 			"dim",
 			this.#whitespace === "off"
-				? "Showing all changes"
+				? t("tui.gitTui.whitespace.all")
 				: this.#whitespace === "whitespace"
-					? "Ignoring whitespace-only line changes"
-					: "Ignoring formatting and import-only changes",
+					? t("tui.gitTui.whitespace.ignoreWs")
+					: t("tui.gitTui.whitespace.ignoreFormat"),
 		);
 		this.#rebuildDocument();
 	}
@@ -769,18 +810,26 @@ class GitTuiComponent implements Component {
 			const doc = this.#pane.doc;
 			if (doc) row.add(`  ${theme.fg("success", `+${doc.additions}`)} ${theme.fg("error", `−${doc.deletions}`)}`);
 		} else {
-			row.add(theme.fg("dim", "no file selected"));
+			row.add(theme.fg("dim", t("tui.gitTui.header.noFileSelected")));
 		}
 
 		const right = new HitRow();
 		const asset = this.#contents?.kind === "asset" ? this.#contents : null;
 		const contentKind =
-			asset && (asset.old.kind === "image" || asset.new.kind === "image") ? "Media" : asset ? "Binary" : "UTF-8";
+			asset && (asset.old.kind === "image" || asset.new.kind === "image")
+				? t("tui.gitTui.header.kindMedia")
+				: asset
+					? t("tui.gitTui.header.kindBinary")
+					: t("tui.gitTui.header.kindUtf8");
 		right.add(theme.fg("dim", contentKind)).add("  ");
 		if (file?.area === "unstaged")
-			right.button(pill(" Stage File ", theme.getColorHex("toolDiffAdded")), () => this.#stageCurrentFile());
+			right.button(pill(` ${t("tui.gitTui.button.stageFile")} `, theme.getColorHex("toolDiffAdded")), () =>
+				this.#stageCurrentFile(),
+			);
 		else if (file?.area === "staged")
-			right.button(pill(" Unstage File ", theme.getColorHex("warning")), () => this.#stageCurrentFile());
+			right.button(pill(` ${t("tui.gitTui.button.unstageFile")} `, theme.getColorHex("warning")), () =>
+				this.#stageCurrentFile(),
+			);
 		right.add(" ").button(softPill(` ${glyphs.close} `), () => this.#done.resolve());
 
 		// The empty middle carries the key hints (or a fresh status message).
@@ -790,8 +839,29 @@ class GitTuiComponent implements Component {
 			theme.fg(
 				"dim",
 				this.#focus === "diff"
-					? `${formatKeyHints(["alt+down", "alt+up"])} hunk · ${formatKeyHints(["]", "["])} file · ${formatKeyHints(["shift+up", "shift+down"])} select · ${formatKeyHints(["s", "u"])} stage · ${formatKeyHints(["x", "delete"])} discard · ${formatKeyHint("v")} view · ${formatKeyHint("c")} commit · ${formatKeyHint("?")} keys · ${formatKeyHint("q")} quit`
-					: `${formatKeyHints(["up", "down"])} move · ${formatKeyHints(["left", "right"])} fold · ${formatKeyHint("space")} stage · ${formatKeyHint("delete")} discard · ${formatKeyHint("enter")} open · ${formatKeyHints(["alt+down", "alt+up"])} hunk · ${formatKeyHint("c")} commit · ${formatKeyHint("t")} tree · ${formatKeyHint("?")} keys · ${formatKeyHint("q")} quit`,
+					? [
+							`${formatKeyHints(["alt+down", "alt+up"])} ${t("tui.gitTui.hint.hunk")}`,
+							`${formatKeyHints(["]", "["])} ${t("tui.gitTui.hint.file")}`,
+							`${formatKeyHints(["shift+up", "shift+down"])} ${t("tui.gitTui.hint.select")}`,
+							`${formatKeyHints(["s", "u"])} ${t("tui.gitTui.hint.stage")}`,
+							`${formatKeyHints(["x", "delete"])} ${t("tui.gitTui.hint.discard")}`,
+							`${formatKeyHint("v")} ${t("tui.gitTui.hint.view")}`,
+							`${formatKeyHint("c")} ${t("tui.gitTui.hint.commit")}`,
+							`${formatKeyHint("?")} ${t("tui.gitTui.hint.keys")}`,
+							`${formatKeyHint("q")} ${t("tui.gitTui.hint.quit")}`,
+						].join(" · ")
+					: [
+							`${formatKeyHints(["up", "down"])} ${t("tui.gitTui.hint.move")}`,
+							`${formatKeyHints(["left", "right"])} ${t("tui.gitTui.hint.fold")}`,
+							`${formatKeyHint("space")} ${t("tui.gitTui.hint.stage")}`,
+							`${formatKeyHint("delete")} ${t("tui.gitTui.hint.discard")}`,
+							`${formatKeyHint("enter")} ${t("tui.gitTui.hint.open")}`,
+							`${formatKeyHints(["alt+down", "alt+up"])} ${t("tui.gitTui.hint.hunk")}`,
+							`${formatKeyHint("c")} ${t("tui.gitTui.hint.commit")}`,
+							`${formatKeyHint("t")} ${t("tui.gitTui.hint.tree")}`,
+							`${formatKeyHint("?")} ${t("tui.gitTui.hint.keys")}`,
+							`${formatKeyHint("q")} ${t("tui.gitTui.hint.quit")}`,
+						].join(" · "),
 			);
 		const free = width - row.width - right.width - 1;
 		const middleText = free > visibleWidth(middle) + 4 ? middle : truncateToWidth(middle, Math.max(0, free - 4));
@@ -816,12 +886,18 @@ class GitTuiComponent implements Component {
 		row.add(" ");
 		const scope =
 			file?.area === "staged"
-				? tintChip(" Staged ", theme.getColorHex("success"))
+				? tintChip(` ${t("tui.gitTui.chip.staged")} `, theme.getColorHex("success"))
 				: file?.area === "unstaged"
-					? tintChip(file.kind === "untracked" ? " Untracked " : " Unstaged ", theme.getColorHex("warning"))
+					? tintChip(
+							` ${file.kind === "untracked" ? t("tui.gitTui.chip.untracked") : t("tui.gitTui.chip.unstaged")} `,
+							theme.getColorHex("warning"),
+						)
 					: file
-						? tintChip(` ${this.#model.headCommit?.shortSha ?? "commit"} `, theme.getColorHex("accent"))
-						: theme.fg("dim", ` ${this.#model.branch ?? "detached"} `);
+						? tintChip(
+								` ${this.#model.headCommit?.shortSha ?? t("tui.gitTui.chip.commit")} `,
+								theme.getColorHex("accent"),
+							)
+						: theme.fg("dim", ` ${this.#model.branch ?? t("tui.gitTui.chip.detached")} `);
 		row.add(scope);
 
 		// Hunk nav + one segmented view control ⟨file│split│inline│hunk⟩,
@@ -952,7 +1028,7 @@ class GitTuiComponent implements Component {
 	/** Pointer actions: the toolbar's buttons and segmented control, else the changes sheet's. */
 	handleNativeEvent(event: NativeUiEvent): void {
 		if ((event.type === "select" || event.type === "activate") && event.key.endsWith("views")) {
-			const view = VIEW_TABS.find(tab => tab.id === event.item);
+			const view = viewTabs().find(tab => tab.id === event.item);
 			if (view) this.#setMode(view.id);
 			return;
 		}
@@ -1005,13 +1081,19 @@ class GitTuiComponent implements Component {
 			}
 			const scope =
 				file.area === "staged"
-					? { text: "Staged", tone: "success" as const }
+					? { text: t("tui.gitTui.chip.staged"), tone: "success" as const }
 					: file.area === "unstaged"
-						? { text: file.kind === "untracked" ? "Untracked" : "Unstaged", tone: "warning" as const }
-						: { text: this.#model.headCommit?.shortSha ?? "commit", tone: "accent" as const };
+						? {
+								text:
+									file.kind === "untracked" ? t("tui.gitTui.chip.untracked") : t("tui.gitTui.chip.unstaged"),
+								tone: "warning" as const,
+							}
+						: { text: this.#model.headCommit?.shortSha ?? t("tui.gitTui.chip.commit"), tone: "accent" as const };
 			left.push(node("badge", { text: scope.text, tone: scope.tone }));
 		} else {
-			left.push(text([span(this.#model.branch ?? "detached", "muted")], { role: "omp.app.git.path" }));
+			left.push(
+				text([span(this.#model.branch ?? t("tui.gitTui.chip.detached"), "muted")], { role: "omp.app.git.path" }),
+			);
 		}
 		const iconButton = (name: string, act: string, title: string, on?: boolean): NativeNode =>
 			node(
@@ -1023,15 +1105,15 @@ class GitTuiComponent implements Component {
 		const right: NativeNode[] = [
 			row(
 				[
-					iconButton("chev-up", "prev-hunk", `Previous change (${formatKeyHint("alt+up")})`),
-					iconButton("chev", "next-hunk", `Next change (${formatKeyHint("alt+down")})`),
+					iconButton("chev-up", "prev-hunk", t("tui.gitTui.tooltip.prevChange", { key: formatKeyHint("alt+up") })),
+					iconButton("chev", "next-hunk", t("tui.gitTui.tooltip.nextChange", { key: formatKeyHint("alt+down") })),
 				],
 				{ gap: "none", align: "center" },
 			),
 			node(
 				"tabs",
 				{
-					items: VIEW_TABS.map(tab => ({ id: tab.id, label: tab.label })),
+					items: viewTabs().map(tab => ({ id: tab.id, label: tab.label })),
 					active: this.#pane.mode,
 					role: "omp.app.seg",
 				},
@@ -1100,7 +1182,7 @@ class GitTuiComponent implements Component {
 			return keyed(
 				col(
 					[
-						text([span("Binary or media file", "strong")]),
+						text([span(t("tui.apps.git.gitTui.binaryOrMediaFile"), "strong")]),
 						node("kv", {
 							items: [
 								{ k: "before", v: assetText(contents.old) },
@@ -1130,7 +1212,9 @@ class GitTuiComponent implements Component {
 					text([span(this.#pane.emptyMessage, "strong")]),
 					text([
 						span(
-							this.#model.clean ? "The working tree is clean." : "Pick a file on the right to see its changes.",
+							this.#model.clean
+								? t("tui.apps.git.gitTui.theWorkingTreeIsClean")
+								: "Pick a file on the right to see its changes.",
 							"muted",
 						),
 					]),

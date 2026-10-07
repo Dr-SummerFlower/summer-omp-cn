@@ -25,6 +25,7 @@ import { normalizeToolEventInput, resolveToolEventInput } from "../tool-event-in
 import { applyToolProxy } from "../tool-proxy";
 import type { ExtensionRunner } from "./runner";
 import type { RegisteredTool, ToolCallEventResult } from "./types";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /**
  * Second `renderCall` argument that satisfies both the omp and the upstream-pi
@@ -273,7 +274,8 @@ export class ExtensionToolWrapper<TParameters extends TSchema = TSchema, TDetail
 				)) as ToolCallEventResult | undefined;
 
 				if (callResult?.block) {
-					const reason = callResult.reason || "Tool execution was blocked by an extension";
+					const reason =
+						callResult.reason || t("tui.ca.extensibility.extensions.wrapper.toolExecutionWasBlockedByAn");
 					throw new Error(reason);
 				}
 				if (isNonBlankContext(callResult?.additionalContext)) {
@@ -301,7 +303,9 @@ export class ExtensionToolWrapper<TParameters extends TSchema = TSchema, TDetail
 				context,
 			);
 			if (preflight?.block) {
-				throw new Error(preflight.reason || "Tool execution was blocked by a preflight rule");
+				throw new Error(
+					preflight.reason || t("tui.ca.extensibility.extensions.wrapper.toolExecutionWasBlockedByA"),
+				);
 			}
 		}
 
@@ -413,7 +417,7 @@ export class ExtensionToolWrapper<TParameters extends TSchema = TSchema, TDetail
 			if (pendingSafetyChecks.length > 0) {
 				if (!context) {
 					cancelPreflight();
-					throw new Error("Provider safety approval context is unavailable");
+					throw new Error(t("tui.ca.extensibility.extensions.wrapper.providerSafetyApprovalContextIsUnavailable"));
 				}
 				context.providerSafetyApproved = true;
 			}

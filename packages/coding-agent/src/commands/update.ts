@@ -8,15 +8,20 @@ import * as pluginCli from "../cli/plugin-cli";
 import * as updateCli from "../cli/update-cli";
 import { CliUsageError } from "../cli/usage-error";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export default class Update extends Command {
 	static description = commandHelp.description;
 	static flags = {
-		force: Flags.boolean({ char: "f", description: "Force update", default: false }),
-		check: Flags.boolean({ char: "c", description: "Check for updates without installing", default: false }),
-		plugins: Flags.boolean({ char: "l", description: "Update installed plugins", default: false }),
-		canary: Flags.boolean({ description: "Switch to the canary channel and update", default: false }),
-		stable: Flags.boolean({ description: "Switch back to the stable channel", default: false }),
+		force: Flags.boolean({ char: "f", description: t("cli.update.forceUpdate"), default: false }),
+		check: Flags.boolean({
+			char: "c",
+			description: t("cli.update.checkForUpdatesWithoutInstalling"),
+			default: false,
+		}),
+		plugins: Flags.boolean({ char: "l", description: t("cli.update.updateInstalledPlugins"), default: false }),
+		canary: Flags.boolean({ description: t("cli.update.switchToTheCanaryChannelAnd"), default: false }),
+		stable: Flags.boolean({ description: t("cli.update.switchBackToTheStableChannel"), default: false }),
 	};
 
 	static examples = [

@@ -7,6 +7,7 @@
 import * as AIError from "@oh-my-pi/pi-ai/error";
 import type { FetchImpl } from "@oh-my-pi/pi-ai/types";
 import { withTimeoutSignal } from "../utils/fetch-timeout";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Per-request abort deadline for each OAuth discovery metadata fetch. */
 const DISCOVERY_FETCH_TIMEOUT_MS = 10_000;
@@ -270,7 +271,7 @@ export function analyzeAuthError(error: Error, serverUrl?: string): AuthDetectio
 			authServerUrl,
 			resourceMetadataUrl,
 			scopes: mergedScopes,
-			message: "Server requires OAuth authentication. Launching authorization flow...",
+			message: t("tui.ca.mcp.oauthDiscovery.serverRequiresOauthAuthenticationLaunchingAuthor"),
 		};
 	}
 
@@ -301,7 +302,7 @@ export function analyzeAuthError(error: Error, serverUrl?: string): AuthDetectio
 			authServerUrl,
 			resourceMetadataUrl,
 			scopes: challengeScopes,
-			message: "Server requires API key authentication.",
+			message: t("tui.ca.mcp.oauthDiscovery.serverRequiresApiKeyAuthentication"),
 		};
 	}
 
@@ -312,7 +313,7 @@ export function analyzeAuthError(error: Error, serverUrl?: string): AuthDetectio
 		authServerUrl,
 		resourceMetadataUrl,
 		scopes: challengeScopes,
-		message: "Server requires authentication but type could not be determined.",
+		message: t("tui.ca.mcp.oauthDiscovery.serverRequiresAuthenticationButTypeCould"),
 	};
 }
 

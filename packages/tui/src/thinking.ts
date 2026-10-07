@@ -5,6 +5,7 @@ import { Effort, THINKING_EFFORTS } from "@oh-my-pi/pi-catalog/effort";
 import { clampThinkingLevelForModel, getSupportedEfforts } from "@oh-my-pi/pi-catalog/model-thinking";
 import { modelsAreEqual } from "@oh-my-pi/pi-catalog/models";
 import type { Model } from "@oh-my-pi/pi-catalog/types";
+import { t } from "@oh-my-pi/pi-i18n";
 /** Thinking selectors accepted by CLI inputs, in display order. */
 export const CLI_THINKING_LEVELS: readonly string[] = ["off", ...THINKING_EFFORTS, "auto"];
 
@@ -21,30 +22,58 @@ const THINKING_LEVEL_METADATA: Record<ThinkingLevel, ThinkingLevelMetadata> = {
 	[ThinkingLevel.Inherit]: {
 		value: ThinkingLevel.Inherit,
 		label: "inherit",
-		description: "Inherit session default",
+		get description() {
+			return t("tui.thinking.inheritSessionDefault");
+		},
 	},
-	[ThinkingLevel.Off]: { value: ThinkingLevel.Off, label: "off", description: "No reasoning" },
+	[ThinkingLevel.Off]: {
+		value: ThinkingLevel.Off,
+		label: "off",
+		get description() {
+			return t("tui.thinking.noReasoning");
+		},
+	},
 	[ThinkingLevel.Minimal]: {
 		value: ThinkingLevel.Minimal,
 		label: "min",
-		description: "Very brief reasoning (~1k tokens)",
+		get description() {
+			return t("tui.thinking.veryBriefReasoning1kTokens");
+		},
 	},
-	[ThinkingLevel.Low]: { value: ThinkingLevel.Low, label: "low", description: "Light reasoning (~2k tokens)" },
+	[ThinkingLevel.Low]: {
+		value: ThinkingLevel.Low,
+		label: "low",
+		get description() {
+			return t("tui.thinking.lightReasoning2kTokens");
+		},
+	},
 	[ThinkingLevel.Medium]: {
 		value: ThinkingLevel.Medium,
 		label: "medium",
-		description: "Moderate reasoning (~8k tokens)",
+		get description() {
+			return t("tui.thinking.moderateReasoning8kTokens");
+		},
 	},
-	[ThinkingLevel.High]: { value: ThinkingLevel.High, label: "high", description: "Deep reasoning (~16k tokens)" },
+	[ThinkingLevel.High]: {
+		value: ThinkingLevel.High,
+		label: "high",
+		get description() {
+			return t("tui.thinking.deepReasoning16kTokens");
+		},
+	},
 	[ThinkingLevel.XHigh]: {
 		value: ThinkingLevel.XHigh,
 		label: "xhigh",
-		description: "Extended reasoning (~32k tokens)",
+		get description() {
+			return t("tui.thinking.extendedReasoning32kTokens");
+		},
 	},
 	[ThinkingLevel.Max]: {
 		value: ThinkingLevel.Max,
 		label: "max",
-		description: "Maximum reasoning the model supports",
+		get description() {
+			return t("tui.thinking.maximumReasoningTheModelSupports");
+		},
 	},
 };
 
@@ -196,7 +225,9 @@ export interface ConfiguredThinkingLevelMetadata {
 const AUTO_THINKING_METADATA: ConfiguredThinkingLevelMetadata = {
 	value: AUTO_THINKING,
 	label: "auto",
-	description: "Auto-detect per prompt",
+	get description() {
+		return t("tui.thinking.autoDetectPerPrompt");
+	},
 };
 
 /**
@@ -307,7 +338,7 @@ export function resolveTaskEffortLevel(
 	const maxIndex = THINKING_EFFORTS.indexOf(maxEffort);
 	const ceiling = supported.findLast(candidate => THINKING_EFFORTS.indexOf(candidate) <= maxIndex);
 	if (ceiling === undefined) {
-		const modelName = model ? `${model.provider}/${model.id}` : "Selected model";
+		const modelName = model ? `${model.provider}/${model.id}` : t("tui.thinking.selectedModel");
 		throw new RangeError(`${modelName} has no supported thinking effort at or below task.maxEffort=${maxEffort}`);
 	}
 	return THINKING_EFFORTS.indexOf(resolved) > THINKING_EFFORTS.indexOf(ceiling) ? ceiling : resolved;

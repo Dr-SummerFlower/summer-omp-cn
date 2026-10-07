@@ -32,6 +32,7 @@ import {
 	type MuxConnectParams,
 	type MuxConnectResult,
 } from "./protocol";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const CONNECT_TIMEOUT_MS = 3_000;
 const HANDSHAKE_TIMEOUT_MS = 10_000;
@@ -103,7 +104,7 @@ function requestOnSocket(
 	};
 	const onClose = () => {
 		cleanup();
-		reject(new Error("LSP mux connection closed during handshake"));
+		reject(new Error(t("tui.ca.lsp.mux.daemon.lspMuxConnectionClosedDuringHandshake")));
 	};
 	const cleanup = () => {
 		clearTimeout(timer);

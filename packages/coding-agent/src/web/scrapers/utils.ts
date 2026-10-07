@@ -5,6 +5,7 @@ export { isRecord };
 import { ToolAbortError } from "../../tools/tool-errors";
 import { convertBufferWithMarkit } from "../../utils/markit";
 import { MAX_BYTES } from "./types";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export function asRecord(value: unknown): Record<string, unknown> | null {
 	return isRecord(value) ? value : null;
@@ -91,7 +92,10 @@ export async function fetchBinary(url: string, timeout: number = 20, signal?: Ab
 	} catch (err) {
 		if (signal?.aborted) throw new ToolAbortError();
 		if (requestSignal?.aborted) return { ok: false, error: "aborted" };
-		return { ok: false, error: err instanceof Error ? err.message : "Failed to fetch binary" };
+		return {
+			ok: false,
+			error: err instanceof Error ? err.message : t("tui.ca.web.scrapers.utils.failedToFetchBinary"),
+		};
 	}
 }
 

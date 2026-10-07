@@ -7,6 +7,7 @@ import type { ToolSession } from ".";
 import type { OutputMeta } from "@oh-my-pi/pi-tui/tools/output-meta";
 import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";
 import { toolResult } from "./tool-result";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export interface CheckpointState {
 	/** Number of in-memory messages at checkpoint (AFTER checkpoint tool result is appended) */
@@ -81,7 +82,11 @@ export class CheckpointTool implements AgentTool<typeof checkpointSchema, Checkp
 		}
 		const startedAt = new Date().toISOString();
 		return toolResult<CheckpointToolDetails>({ goal: params.goal, startedAt })
-			.text([`Checkpoint: ${params.goal}`, "Finish exploration and formulate findings."].join("\n"))
+			.text(
+				[`Checkpoint: ${params.goal}`, t("tui.ca.tools.checkpoint.finishExplorationAndFormulateFindings")].join(
+					"\n",
+				),
+			)
 			.done();
 	}
 }
@@ -114,9 +119,7 @@ export class RewindTool implements AgentTool<typeof rewindSchema, RewindToolDeta
 	): Promise<AgentToolResult<RewindToolDetails>> {
 		if (!this.session.getCheckpointState?.()) {
 			if (this.session.getLastCompletedRewind?.()) {
-				throw new ToolError(
-					"Checkpoint already completed; continue from the retained rewind report instead of calling rewind again.",
-				);
+				throw new ToolError(t("tui.ca.tools.checkpoint.checkpointAlreadyCompletedContinueFromThe"));
 			}
 			throw new ToolError("No active checkpoint. Create a checkpoint before calling rewind.");
 		}
@@ -125,7 +128,7 @@ export class RewindTool implements AgentTool<typeof rewindSchema, RewindToolDeta
 			throw new ToolError("Report cannot be empty.");
 		}
 		return toolResult<RewindToolDetails>({ report, rewound: true })
-			.text(["Rewind requested.", "Report captured for context replacement."].join("\n"))
+			.text([t("tui.ca.tools.checkpoint.rewindRequested"), "Report captured for context replacement."].join("\n"))
 			.done();
 	}
 }

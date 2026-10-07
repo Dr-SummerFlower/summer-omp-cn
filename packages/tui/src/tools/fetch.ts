@@ -20,6 +20,7 @@ import {
 } from "../render/render-utils";
 import { applyListLimit } from "./list-limit";
 import { formatFullOutputReference, formatStyledArtifactReference } from "./output-meta";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Display metadata for fetch tool results. */
 export interface ReadUrlToolDetails {
@@ -161,11 +162,11 @@ export function describeReadUrlResult(result: {
 	const details = result.details;
 	if (result.isError || !details) {
 		const urlText = details?.finalUrl ?? details?.url ?? "";
-		const message = plainText(resultText(result) || "No response data").replace(/^Error:\s*/, "");
+		const message = plainText(resultText(result) || t("tui.tools.fetch.noResponseData")).replace(/^Error:\s*/, "");
 		return {
 			tool: readUrlHead(urlText),
 			tone: "error",
-			body: [errorText(message.trim() || "Read failed")],
+			body: [errorText(message.trim() || t("tui.tools.fetch.readFailed"))],
 		};
 	}
 
@@ -204,7 +205,7 @@ export function describeReadUrlResult(result: {
 							span(
 								truncation?.artifactId
 									? `Output truncated · ${formatFullOutputReference(truncation.artifactId)}`
-									: "Output truncated",
+									: t("tui.tools.fetch.outputTruncated"),
 								"warning",
 							),
 						],
@@ -225,7 +226,7 @@ export function renderReadUrlResult(
 
 	if (result.isError || !details) {
 		const rawErrorText = result.content?.find(c => c.type === "text")?.text ?? "";
-		const errorText = (rawErrorText || "No response data").replace(/^Error:\s*/, "");
+		const errorText = (rawErrorText || t("tui.tools.fetch.noResponseData2")).replace(/^Error:\s*/, "");
 		const urlText = details?.finalUrl ?? details?.url ?? "";
 		const description = urlText ? formatReadUrlDescription(urlText) : undefined;
 		const header = renderStatusLine({ icon: "error", title: "Read", description }, uiTheme);
@@ -261,12 +262,12 @@ export function renderReadUrlResult(
 	const contentLines = contentBody.split("\n").filter(l => l.trim());
 
 	const metadataLines: string[] = [
-		`${uiTheme.fg("muted", "Content-Type:")} ${details.contentType || "unknown"}`,
+		`${uiTheme.fg("muted", t("tui.tools.fetch.contentType"))} ${details.contentType || "unknown"}`,
 		`${uiTheme.fg("muted", "Method:")} ${details.method}`,
 	];
 	if (hasRedirect) {
 		metadataLines.push(
-			`${uiTheme.fg("muted", "Final URL:")} ${formatReadUrlMetadataValue(details.finalUrl, uiTheme)}`,
+			`${uiTheme.fg("muted", t("tui.tools.fetch.finalUrl"))} ${formatReadUrlMetadataValue(details.finalUrl, uiTheme)}`,
 		);
 	}
 	const lineLabel = `${lineCount} line${lineCount === 1 ? "" : "s"}`;
@@ -310,7 +311,7 @@ export function renderReadUrlResult(
 				phase: truncated ? "warning" : "success",
 				sections: [
 					{ label: uiTheme.fg("toolTitle", "Metadata"), content: metadataLines },
-					{ label: uiTheme.fg("toolTitle", "Content Preview"), content: contentPreviewLines },
+					{ label: uiTheme.fg("toolTitle", t("tui.tools.fetch.contentPreview")), content: contentPreviewLines },
 				],
 				applyBg: false,
 			};

@@ -39,6 +39,7 @@ import type {
 import { isUsageLimitOutcome, resolveModelServiceTier, streamSimple } from "@oh-my-pi/pi-ai";
 import * as AIError from "@oh-my-pi/pi-ai/error";
 import { extractProviderRetryHint } from "@oh-my-pi/pi-ai/utils/retry-after";
+import { t } from "@oh-my-pi/pi-i18n";
 import { modelsAreEqual } from "@oh-my-pi/pi-catalog/models";
 import { extractHttpStatusFromError, logger, prompt } from "@oh-my-pi/pi-utils";
 import type { AdvisorConfig } from "@oh-my-pi/pi-tui/overlays/advisor-config";
@@ -927,7 +928,7 @@ export class SessionAdvisors {
 					if (emitWarnings) {
 						this.#host.emitNotice(
 							"warning",
-							`Advisor "${config.name}": no model matched "${config.model}"`,
+							t("tui.session.advisorNoModelMatched", { name: config.name, model: config.model }),
 							"advisor",
 						);
 					}
@@ -1362,7 +1363,11 @@ export class SessionAdvisors {
 					const message = error instanceof Error ? error.message : String(error);
 					this.#host.emitNotice(
 						"warning",
-						`Advisor${slug ? ` "${advisorName}"` : ""} unavailable for ${formatModelString(advisorAgent.state.model)}: ${message}`,
+						t("tui.session.advisorUnavailable", {
+							name: slug ? ` "${advisorName}"` : "",
+							model: formatModelString(advisorAgent.state.model),
+							message,
+						}),
 						"advisor",
 					);
 				},
@@ -1370,7 +1375,7 @@ export class SessionAdvisors {
 					this.#advisorStatuses.set(slug, { name: advisorName, status: "quota_exhausted" });
 					this.#host.emitNotice(
 						"warning",
-						`Advisor "${advisorName}" quota exhausted — pausing until reset.`,
+						t("tui.session.advisorQuotaExhausted", { name: advisorName }),
 						"advisor",
 					);
 				},
@@ -1839,7 +1844,7 @@ export class SessionAdvisors {
 					from: currentSelector,
 					to: selector.raw,
 					role,
-					reason: `Advisor request failed: ${message}`,
+					reason: t("tui.session.advisorRequestFailed", { message }),
 				});
 				return true;
 			}
@@ -2597,41 +2602,73 @@ export class SessionAdvisors {
 	 */
 	formatAdvisorStatus(): string {
 		const stats = this.getAdvisorStats();
+		const noModelOrDisabled = (): string =>
+			stats.configured ? t("tui.session.advisorSettingNoModel") : t("tui.session.advisorDisabled");
 		if (!stats.active && stats.advisors.length === 0) {
-			return stats.configured
-				? "Advisor setting is enabled, but no model is assigned to the 'advisor' role."
-				: "Advisor is disabled.";
+			return noModelOrDisabled();
 		}
 		if (stats.advisors.length <= 1) {
 			const s = stats.advisors[0];
 			if (s && s.status === "no_model") {
-				return stats.configured
-					? "Advisor setting is enabled, but no model is assigned to the 'advisor' role."
-					: "Advisor is disabled.";
+				return noModelOrDisabled();
 			}
 			const contextLine =
 				s.contextWindow > 0
-					? `Context: ${s.contextTokens.toLocaleString()} / ${s.contextWindow.toLocaleString()} tokens (${Math.round((s.contextTokens / s.contextWindow) * 100)}%)`
-					: `Context: ${s.contextTokens.toLocaleString()} tokens`;
-			const spendParts = [`${s.tokens.input.toLocaleString()} input`, `${s.tokens.output.toLocaleString()} output`];
-			if (s.tokens.cacheRead > 0) spendParts.push(`${s.tokens.cacheRead.toLocaleString()} cache read`);
-			if (s.tokens.cacheWrite > 0) spendParts.push(`${s.tokens.cacheWrite.toLocaleString()} cache write`);
-			const spendLine = `Spend: ${spendParts.join(", ")}, $${stats.cost.toFixed(4)}`;
-			if (!s.model || s.status !== "running") return `Advisor "${s.name}" is ${s.status.replace("_", " ")}.`;
-			return `Advisor is enabled (${s.model.provider}/${s.model.id}). ${contextLine}. ${spendLine}.`;
+					? t("tui.session.advisorContextWithWindow", {
+							used: s.contextTokens.toLocaleString(),
+							window: s.contextWindow.toLocaleString(),
+							percent: Math.round((s.contextTokens / s.contextWindow) * 100),
+						})
+					: t("tui.session.advisorContextTokensOnly", { used: s.contextTokens.toLocaleString() });
+			const spendParts = [
+				t("tui.session.advisorTokenInput", { value: s.tokens.input.toLocaleString() }),
+				t("tui.session.advisorTokenOutput", { value: s.tokens.output.toLocaleString() }),
+			];
+			if (s.tokens.cacheRead > 0) {
+				spendParts.push(t("tui.session.advisorTokenCacheRead", { value: s.tokens.cacheRead.toLocaleString() }));
+			}
+			if (s.tokens.cacheWrite > 0) {
+				spendParts.push(t("tui.session.advisorTokenCacheWrite", { value: s.tokens.cacheWrite.toLocaleString() }));
+			}
+			const spendLine = t("tui.session.advisorSpendLine", {
+				tokens: spendParts.join(", "),
+				cost: stats.cost.toFixed(4),
+			});
+			if (!s.model || s.status !== "running") {
+				return t("tui.session.advisorNamedStatus", { name: s.name, status: s.status.replace("_", " ") });
+			}
+			return t("tui.session.advisorEnabledLine", {
+				provider: s.model.provider,
+				id: s.model.id,
+				context: contextLine,
+				spend: spendLine,
+			});
 		}
-		const lines = [`Advisors enabled (${stats.advisors.length}):`];
+		const lines = [t("tui.session.advisorsEnabledHeader", { count: stats.advisors.length })];
 		for (const s of stats.advisors) {
 			const ctx =
 				s.contextWindow > 0
-					? `${s.contextTokens.toLocaleString()} / ${s.contextWindow.toLocaleString()} (${Math.round((s.contextTokens / s.contextWindow) * 100)}%)`
-					: `${s.contextTokens.toLocaleString()}`;
+					? t("tui.session.advisorContextBare", {
+							used: s.contextTokens.toLocaleString(),
+							window: s.contextWindow.toLocaleString(),
+							percent: Math.round((s.contextTokens / s.contextWindow) * 100),
+						})
+					: s.contextTokens.toLocaleString();
 			lines.push(
-				`  • ${s.name}${s.model && s.status === "running" ? ` (${s.model.provider}/${s.model.id})` : ` [${s.status}]`} — context ${ctx} tokens, $${s.cost.toFixed(4)}`,
+				t("tui.session.advisorListRow", {
+					name: s.name,
+					label: s.model && s.status === "running" ? ` (${s.model.provider}/${s.model.id})` : ` [${s.status}]`,
+					ctx,
+					cost: s.cost.toFixed(4),
+				}),
 			);
 		}
 		lines.push(
-			`Totals: ${stats.tokens.input.toLocaleString()} input, ${stats.tokens.output.toLocaleString()} output, $${stats.cost.toFixed(4)}.`,
+			t("tui.session.advisorTotalsLine", {
+				input: stats.tokens.input.toLocaleString(),
+				output: stats.tokens.output.toLocaleString(),
+				cost: stats.cost.toFixed(4),
+			}),
 		);
 		return lines.join("\n");
 	}
@@ -2675,7 +2712,14 @@ export class SessionAdvisors {
 					});
 		if (this.#advisors.length === 1) return dump(this.#advisors[0]);
 		return this.#advisors
-			.map(a => `### Advisor: ${a.name} (${a.agent.state.model.provider}/${a.agent.state.model.id})\n\n${dump(a)}`)
+			.map(
+				a =>
+					`${t("tui.session.advisorHistoryHeader", {
+						name: a.name,
+						provider: a.agent.state.model.provider,
+						id: a.agent.state.model.id,
+					})}\n\n${dump(a)}`,
+			)
 			.join("\n\n");
 	}
 }

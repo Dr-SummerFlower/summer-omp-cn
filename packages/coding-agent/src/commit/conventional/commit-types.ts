@@ -7,6 +7,7 @@ import type {
 	ConventionalDetail,
 } from "../types";
 import commitTypesResource from "./resources/commit_types.json" with { type: "json" };
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Conventional commit types in llm-git's canonical classification order. */
 export const COMMIT_TYPE_ORDER: readonly CommitType[] = [
@@ -152,7 +153,7 @@ export function conventionalCommit(input: {
 	const type = canonicalCommitType(input.type);
 	if (!type) throw new Error(`Invalid commit type: ${input.type}`);
 	const scope = coerceOptionalScope(input.scope);
-	if (!input.summary.trim()) throw new Error("Commit summary cannot be empty");
+	if (!input.summary.trim()) throw new Error(t("tui.ca.commit.conventional.commitTypes.commitSummaryCannotBeEmpty"));
 	return {
 		type,
 		scope,

@@ -1,3 +1,4 @@
+import { t } from "@oh-my-pi/pi-i18n";
 import type { Component } from "../tui";
 import { Text } from "../components/text";
 import { replaceTabs } from "../utils";
@@ -154,15 +155,17 @@ function astEditPatternHead(args: AstEditRenderArgs | undefined): Pick<NativeToo
 		const pattern = patternPreview(args?.ops?.[0]?.pat);
 		return pattern ? { target: pattern, targetKind: "pattern" } : {};
 	}
-	return rewriteCount > 1 ? { target: `${rewriteCount} rewrites`, targetKind: "text" } : {};
+	return rewriteCount > 1
+		? { target: t("tui.astEditCard.count.rewriteMany", { count: rewriteCount }), targetKind: "text" }
+		: {};
 }
 
 /** Scope facts for the final quiet line: `in src · searched 12 files · limit reached; narrow path`. */
 function astEditScopeStats(details: AstEditToolDetails | undefined): NativeNode | undefined {
 	const parts: string[] = [];
-	if (details?.scopePath) parts.push(`in ${details.scopePath}`);
+	if (details?.scopePath) parts.push(t("tui.toolCard.meta.inScope", { path: details.scopePath }));
 	if (details?.filesSearched) parts.push(`searched ${formatCount("file", details.filesSearched)}`);
-	if (details?.limitReached) parts.push("limit reached; narrow path");
+	if (details?.limitReached) parts.push(t("tui.toolCard.hint.limitNarrowPath"));
 	return statsText(parts);
 }
 
@@ -171,13 +174,20 @@ export const astEditToolRenderer = {
 	inline: true,
 	renderCall(args: AstEditRenderArgs, _options: RenderResultOptions, uiTheme: Theme): Component {
 		const meta: string[] = [];
-		if (args.paths?.length) meta.push(`in ${args.paths.join(", ")}`);
+		if (args.paths?.length) meta.push(t("tui.toolCard.meta.inScope", { path: args.paths.join(", ") }));
 		const rewriteCount = args.ops?.length ?? 0;
-		if (rewriteCount > 1) meta.push(`${rewriteCount} rewrites`);
+		if (rewriteCount > 1) meta.push(t("tui.astEditCard.count.rewriteMany", { count: rewriteCount }));
 
 		const description =
-			rewriteCount === 1 ? patternPreview(args.ops?.[0]?.pat) : rewriteCount ? `${rewriteCount} rewrites` : "?";
-		const header = renderStatusLine({ icon: "pending", title: "AST Edit", description, meta }, uiTheme);
+			rewriteCount === 1
+				? patternPreview(args.ops?.[0]?.pat)
+				: rewriteCount
+					? t("tui.astEditCard.count.rewriteMany", { count: rewriteCount })
+					: "?";
+		const header = renderStatusLine(
+			{ icon: "pending", title: t("tui.astEditCard.title"), description, meta },
+			uiTheme,
+		);
 		// Pending call has no body yet — a lone status line is sleeker than an empty frame.
 		return new Text(header, 0, 0);
 	},
@@ -191,8 +201,8 @@ export const astEditToolRenderer = {
 		const details = result.details;
 
 		if (result.isError) {
-			const errorText = result.content?.find(c => c.type === "text")?.text || "Unknown error";
-			const header = renderStatusLine({ icon: "error", title: "AST Edit" }, uiTheme);
+			const errorText = result.content?.find(c => c.type === "text")?.text || t("tui.toolCard.error.unknown");
+			const header = renderStatusLine({ icon: "error", title: t("tui.astEditCard.title") }, uiTheme);
 			return framedToolCard(uiTheme, () => ({
 				header,
 				sections: [{ content: formatErrorDetail(errorText, uiTheme).split("\n") }],
@@ -209,10 +219,13 @@ export const astEditToolRenderer = {
 		if (totalReplacements === 0) {
 			const rewriteCount = args?.ops?.length ?? 0;
 			const description = rewriteCount === 1 ? patternPreview(args?.ops?.[0]?.pat) : undefined;
-			const meta = ["0 replacements"];
-			if (details?.scopePath) meta.push(`in ${details.scopePath}`);
-			if (filesSearched > 0) meta.push(`searched ${filesSearched}`);
-			const header = renderStatusLine({ icon: "warning", title: "AST Edit", description, meta }, uiTheme);
+			const meta = [formatCount("replacement", 0)];
+			if (details?.scopePath) meta.push(t("tui.toolCard.meta.inScope", { path: details.scopePath }));
+			if (filesSearched > 0) meta.push(t("tui.toolCard.meta.searched", { count: filesSearched }));
+			const header = renderStatusLine(
+				{ icon: "warning", title: t("tui.astEditCard.title"), description, meta },
+				uiTheme,
+			);
 			// The "0 replacements" count already rides on the status line; only parse
 			// errors are worth a body, so frame solely when there are some.
 			const bodyLines: string[] = [];
@@ -228,9 +241,9 @@ export const astEditToolRenderer = {
 
 		const summaryParts = [formatCount("replacement", totalReplacements), formatCount("file", filesTouched)];
 		const meta = [...summaryParts];
-		if (details?.scopePath) meta.push(`in ${details.scopePath}`);
-		meta.push(`searched ${filesSearched}`);
-		if (limitReached) meta.push(uiTheme.fg("warning", "limit reached"));
+		if (details?.scopePath) meta.push(t("tui.toolCard.meta.inScope", { path: details.scopePath }));
+		meta.push(t("tui.toolCard.meta.searched", { count: filesSearched }));
+		if (limitReached) meta.push(uiTheme.fg("warning", t("tui.toolCard.badge.limitReached")));
 		const rewriteCount = args?.ops?.length ?? 0;
 		const description = rewriteCount === 1 ? patternPreview(args?.ops?.[0]?.pat) : undefined;
 
@@ -263,15 +276,15 @@ export const astEditToolRenderer = {
 			})
 			.map(indices => indices.map(index => styledLines[index]!));
 
-		const badge = { label: "proposed", color: "warning" as const };
+		const badge = { label: t("tui.toolCard.badge.proposed"), color: "warning" as const };
 		const header = renderStatusLine(
-			{ icon: limitReached ? "warning" : "success", title: "AST Edit", description, badge, meta },
+			{ icon: limitReached ? "warning" : "success", title: t("tui.astEditCard.title"), description, badge, meta },
 			uiTheme,
 		);
 
 		const extraLines: string[] = [];
 		if (limitReached) {
-			extraLines.push(uiTheme.fg("warning", "limit reached; narrow path"));
+			extraLines.push(uiTheme.fg("warning", t("tui.toolCard.hint.limitNarrowPath")));
 		}
 		if (details?.parseErrors?.length) {
 			extraLines.push(
@@ -293,9 +306,11 @@ export const astEditToolRenderer = {
 	describeCall(args: AstEditRenderArgs): NativeToolView {
 		return {
 			tool: {
-				title: "AST Edit",
+				title: t("tui.astEditCard.title"),
 				...astEditPatternHead(args),
-				meta: args.paths?.length ? [`in ${args.paths.map(displayPath).join(", ")}`] : undefined,
+				meta: args.paths?.length
+					? [t("tui.toolCard.meta.inScope", { path: args.paths.map(displayPath).join(", ") })]
+					: undefined,
 			},
 		};
 	},
@@ -309,9 +324,9 @@ export const astEditToolRenderer = {
 		const patternHead = astEditPatternHead(args);
 		if (result.isError) {
 			return {
-				tool: { title: "AST Edit", ...patternHead },
+				tool: { title: t("tui.tools.astEdit.astEdit"), ...patternHead },
 				tone: "error",
-				body: [errorText(resultText(result) || "Unknown error")],
+				body: [errorText(resultText(result) || t("tui.tools.astEdit.unknownError"))],
 			};
 		}
 		const parseErrors = details?.parseErrors ?? [];
@@ -331,7 +346,7 @@ export const astEditToolRenderer = {
 		const totalReplacements = details?.totalReplacements ?? 0;
 		if (totalReplacements === 0) {
 			return {
-				tool: { title: "AST Edit", ...patternHead, meta: ["0 replacements"] },
+				tool: { title: t("tui.tools.astEdit.astEdit2"), ...patternHead, meta: ["0 replacements"] },
 				tone: "warning",
 				body: compact<NativeChild>([parseNote, astEditScopeStats(details)]),
 			};
@@ -362,7 +377,7 @@ export const astEditToolRenderer = {
 		const pattern = args?.ops?.length === 1 ? patternPreview(args.ops[0]?.pat) : undefined;
 		return {
 			tool: {
-				title: "AST Edit",
+				title: t("tui.tools.astEdit.astEdit"),
 				target: single ? displayPath(single.path) : formatCount("file", fileCount),
 				targetKind: single ? "path" : "text",
 				meta: compact([diffStatsMeta(added, removed), formatCount("replacement", totalReplacements)]),

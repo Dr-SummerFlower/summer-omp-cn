@@ -12,6 +12,7 @@ import { editorKey, editorKeys } from "../chrome/keybinding-hints";
 import { node, span, text } from "../native/describe";
 import type { NativeNode, NativeUiEvent } from "../native/node";
 import { actionHint, hintsRow, overlayCard } from "../native/overlay";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const RESET_SELECTOR_MAX_VISIBLE = 10;
 
@@ -76,7 +77,7 @@ export class ResetUsageSelectorComponent extends OverlayPanel {
 	#nativeRoot: NativeNode | undefined;
 
 	constructor(accounts: ResetUsageAccount[], onSelect: (account: ResetUsageAccount) => void, onCancel: () => void) {
-		super("Spend a saved rate-limit reset", "omp.overlay.reset-usage");
+		super(t("tui.overlays.resetUsageSelector.spendASavedRateLimitReset"), "omp.overlay.reset-usage");
 		this.#onSelectCallback = onSelect;
 		this.#onCancelCallback = onCancel;
 		const firstRedeemable = accounts.find(account => account.redeemableCount > 0);
@@ -146,7 +147,11 @@ export class ResetUsageSelectorComponent extends OverlayPanel {
 
 		if (total === 0) {
 			this.#listContainer.addChild(
-				new TruncatedText(theme.fg("muted", "No provider accounts with saved resets"), 0, 0),
+				new TruncatedText(
+					theme.fg("muted", t("tui.overlays.resetUsageSelector.noProviderAccountsWithSavedResets")),
+					0,
+					0,
+				),
 			);
 		}
 
@@ -171,12 +176,12 @@ export class ResetUsageSelectorComponent extends OverlayPanel {
 			`Press ${formatKeyHint("enter")} again to spend ${subject} for ${account.label} (${account.providerLabel}).`,
 		];
 		if (account.credit?.program === "juniper_tide") {
-			messages.push("This resets Claude's 5h session limit only; weekly limits stay unchanged.");
+			messages.push(t("tui.overlays.resetUsageSelector.thisResetsClaudeS5hSession"));
 		} else if (account.credit?.clears?.length) {
 			messages.push(`Covers ${account.credit.clears.map(formatUsageResetWindow).join(", ")}.`);
 		}
 		if (account.credit?.requiresLimit === false) {
-			messages.push("Optional early use: this can be spent before the covered limit is reached.");
+			messages.push(t("tui.overlays.resetUsageSelector.optionalEarlyUseThisCanBe"));
 		}
 		messages.push(`${editorKey("tui.select.cancel")} cancels.`);
 		return messages.join(" ");
@@ -224,7 +229,7 @@ export class ResetUsageSelectorComponent extends OverlayPanel {
 		if (account.redeemableCount <= 0) {
 			this.#statusMessage = account.unavailableReason
 				? `That account's saved resets are unavailable: ${account.unavailableReason}`
-				: "That account has no saved resets usable right now.";
+				: t("tui.overlays.resetUsageSelector.thatAccountHasNoSavedResets");
 			this.#updateList();
 			return;
 		}
@@ -262,7 +267,7 @@ export class ResetUsageSelectorComponent extends OverlayPanel {
 				"list",
 				{
 					selected: this.#menu.selectedKey ?? null,
-					empty: [span("No provider accounts with saved resets", "muted")],
+					empty: [span(t("tui.overlays.resetUsageSelector.noProviderAccountsWithSavedResets2"), "muted")],
 					max: { lines: RESET_SELECTOR_MAX_VISIBLE },
 				},
 				this.#nativeItems,
@@ -272,7 +277,7 @@ export class ResetUsageSelectorComponent extends OverlayPanel {
 				? text([span(oneLine(this.#confirmationMessage(pending)), "warning")])
 				: (this.#nativeHints ??= hintsRow([
 						actionHint(["tui.select.up", "tui.select.down"], "select"),
-						{ keys: ["enter"], label: "spend a reset" },
+						{ keys: ["enter"], label: t("tui.overlays.resetUsageSelector.spendAReset") },
 						actionHint("tui.select.cancel", "cancel"),
 					])),
 		];

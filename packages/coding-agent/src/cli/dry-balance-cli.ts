@@ -27,6 +27,7 @@ import {
 import { Settings } from "../config/settings";
 import dryBalanceBenchPrompt from "../prompts/dry-balance-bench.md" with { type: "text" };
 import { discoverAuthStorage, loadCliExtensionProviders } from "../sdk";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const DEFAULT_SAMPLE_COUNT = 100;
 const DEFAULT_CONCURRENCY = 32;
@@ -584,8 +585,7 @@ async function resolveDryBalanceModel(
 
 	return {
 		model: allowedModels[0],
-		warning:
-			"No allowed model had usable credentials during default resolution; dry-balance will report OAuth failures for the first allowed model.",
+		warning: t("cli.dryBalance.noAllowedModelHadUsableCredentials"),
 	};
 }
 

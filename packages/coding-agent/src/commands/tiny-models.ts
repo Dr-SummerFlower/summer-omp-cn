@@ -1,6 +1,7 @@
 import { Args, Command, Flags } from "@oh-my-pi/pi-utils/cli";
 import { tinyModelsHelp as commandHelp } from "../cli/command-help";
 import { runTinyModelsCommand, type TinyModelsAction, type TinyModelsCommandArgs } from "../cli/tiny-models-cli";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const ACTIONS: TinyModelsAction[] = ["download", "list"];
 
@@ -8,18 +9,18 @@ export default class TinyModels extends Command {
 	static description = commandHelp.description;
 	static args = {
 		action: Args.string({
-			description: "Action to perform",
+			description: t("cli.tinyModels.actionToPerform"),
 			required: false,
 			options: ACTIONS,
 		}),
 		model: Args.string({
-			description: "Model key (`smollm` = word completion), or all",
+			description: t("cli.tinyModels.modelKeySmollmWordCompletionOr"),
 			required: false,
 		}),
 	};
 
 	static flags = {
-		json: Flags.boolean({ description: "Output JSON" }),
+		json: Flags.boolean({ description: t("cli.agents.outputJson") }),
 	};
 
 	async run(): Promise<void> {

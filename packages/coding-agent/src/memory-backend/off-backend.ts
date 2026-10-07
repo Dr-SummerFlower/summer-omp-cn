@@ -1,4 +1,5 @@
 import type { MemoryBackend } from "./types";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /**
  * No-op memory backend.
@@ -19,7 +20,7 @@ export const offBackend: MemoryBackend = {
 			active: false,
 			writable: false,
 			searchable: false,
-			message: "Memory backend is off.",
+			message: t("tui.ca.memoryBackend.offBackend.memoryBackendIsOff"),
 		};
 	},
 };

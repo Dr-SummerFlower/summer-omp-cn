@@ -41,6 +41,7 @@ import type { KeyName } from "../key-hint-format";
 import { item, keyed, node, row as rowNode, span, text } from "../native/describe";
 import { leafKey, type NativeChild, type NativeNode, type NativeUiEvent } from "../native/node";
 import { hintsRow, itemIndex, type NativeHint, noteSpans, overlayCard, selectList } from "../native/overlay";
+import { t } from "@oh-my-pi/pi-i18n";
 
 function fit(text: string, width: number): string {
 	if (width <= 0) return "";
@@ -52,8 +53,8 @@ function fit(text: string, width: number): string {
 	return truncatedWidth < width ? truncated + padding(width - truncatedWidth) : truncated;
 }
 
-export const CONTINUE_CODE_REVIEW_ACTION = "Continue with LLM review";
-export const PASTE_CODE_REVIEW_ACTION = "Paste annotations into prompt";
+export const CONTINUE_CODE_REVIEW_ACTION = t("tui.overlays.annotationOverlay.continueWithLlmReview");
+export const PASTE_CODE_REVIEW_ACTION = t("tui.overlays.annotationOverlay.pasteAnnotationsIntoPrompt");
 
 export interface AnnotationOverlayCallbacks {
 	onComplete(result: CodeReviewOverlayResult | TextReviewOverlayResult | undefined): void;
@@ -113,8 +114,8 @@ interface NativeBody {
 
 const SOURCE_SELECTION_GUTTER_WIDTH = 2;
 
-const OVERLAY_TITLE = "Code Review";
-const TEXT_OVERLAY_TITLE = "Annotate Text";
+const OVERLAY_TITLE = t("tui.overlays.annotationOverlay.codeReview");
+const TEXT_OVERLAY_TITLE = t("tui.overlays.annotationOverlay.annotateText");
 const MIN_BODY_ROWS = 3;
 const SIDEBAR_MIN_TOTAL_WIDTH = 64;
 const SIDEBAR_MIN_BODY_WIDTH = 40;
@@ -214,7 +215,7 @@ export class AnnotationOverlay implements Component {
 		if (isTextSource(filesOrSource)) {
 			this.#files = [];
 			this.#actions = TEXT_REVIEW_ACTIONS;
-			this.#mode = "Annotating text";
+			this.#mode = t("tui.overlays.annotationOverlay.annotatingText");
 			this.#callbacks = modeOrCallbacks as TextReviewOverlayCallbacks;
 			this.#textSource = { ...filesOrSource };
 			this.#textLines = splitTextLines(filesOrSource.text);
@@ -543,7 +544,7 @@ export class AnnotationOverlay implements Component {
 		const file = this.#currentFile();
 		const source = this.#currentSourceRows()[this.#sourceIndex];
 		if (!file || (scope === "line" && (file.isBinary || !source))) {
-			this.#callbacks.onWarning?.("This file has no annotatable diff rows");
+			this.#callbacks.onWarning?.(t("tui.overlays.annotationOverlay.thisFileHasNoAnnotatableDiff"));
 			return;
 		}
 		const existing = existingIndex === undefined ? undefined : this.#annotations[existingIndex];
@@ -776,7 +777,7 @@ export class AnnotationOverlay implements Component {
 		if (this.#externalOperation || !this.#annotating) return;
 		const openEditor = this.#callbacks.onAnnotationExternalEditor;
 		if (!openEditor) {
-			this.#callbacks.onWarning?.("External editor is unavailable in this UI host.");
+			this.#callbacks.onWarning?.(t("tui.overlays.annotationOverlay.externalEditorIsUnavailableInThis"));
 			return;
 		}
 		const draft = this.#editor.getExpandedText();
@@ -806,7 +807,7 @@ export class AnnotationOverlay implements Component {
 		const file = this.#currentFile();
 		if (!file)
 			return {
-				lines: [this.#theme.fg("dim", "No reviewable files")],
+				lines: [this.#theme.fg("dim", t("tui.overlays.annotationOverlay.noReviewableFiles"))],
 				renderedRowBySource: [],
 			};
 		const staticBody = this.#getStaticRenderedBody(file);
@@ -892,9 +893,9 @@ export class AnnotationOverlay implements Component {
 		const renderedRowBySource: number[] = [];
 		const selectedSourceLines: string[] = [];
 		if (file.isBinary) {
-			lines.push(this.#theme.fg("dim", "Binary diff; no annotatable source rows"));
+			lines.push(this.#theme.fg("dim", t("tui.overlays.annotationOverlay.binaryDiffNoAnnotatableSourceRows")));
 		} else if (file.rows.length === 0) {
-			lines.push(this.#theme.fg("dim", "No diff hunks; this may be a rename-only change"));
+			lines.push(this.#theme.fg("dim", t("tui.overlays.annotationOverlay.noDiffHunksThisMayBe")));
 		} else {
 			let sourceIndex = 0;
 			for (const diffRow of file.rows) {
@@ -952,7 +953,7 @@ export class AnnotationOverlay implements Component {
 			);
 		}
 		const file = this.#currentFile();
-		if (!file) return this.#theme.fg("dim", "No reviewable files");
+		if (!file) return this.#theme.fg("dim", t("tui.overlays.annotationOverlay.noReviewableFiles2"));
 		const count = this.#annotationCount(this.#fileIndex);
 		const suffix = `  +${file.linesAdded}/-${file.linesRemoved}${count ? `  ✎${count}` : ""}`;
 		return truncateToWidth(
@@ -1060,9 +1061,9 @@ export class AnnotationOverlay implements Component {
 			action =
 				this.#editingAnnotationIndex === undefined
 					? this.#annotationScope === "text"
-						? "Annotate text"
-						: "Annotate line"
-					: "Edit annotation";
+						? t("tui.overlays.annotationOverlay.annotateText2")
+						: t("tui.overlays.annotationOverlay.annotateLine")
+					: t("tui.overlays.annotationOverlay.editAnnotation");
 		} else {
 			const file = this.#currentFile();
 			const source = this.#currentSourceRows()[this.#sourceIndex];
@@ -1077,9 +1078,9 @@ export class AnnotationOverlay implements Component {
 			action =
 				this.#editingAnnotationIndex === undefined
 					? this.#annotationScope === "file"
-						? "Annotate file"
-						: "Annotate line"
-					: "Edit annotation";
+						? t("tui.overlays.annotationOverlay.annotateFile")
+						: t("tui.overlays.annotationOverlay.annotateLine2")
+					: t("tui.overlays.annotationOverlay.editAnnotation2");
 		}
 		return { action, location: sanitizeStatusText(location) };
 	}
@@ -1162,7 +1163,7 @@ export class AnnotationOverlay implements Component {
 		const lines = selectList("lines", body.items, {
 			selected: this.#focus === "diff" ? `l${this.#sourceIndex}` : null,
 			virtual: true,
-			empty: [span(this.#textSource ? "No text" : "No reviewable files", "dim")],
+			empty: [span(this.#textSource ? "No text" : t("tui.overlays.annotationOverlay.noReviewableFiles3"), "dim")],
 			role: this.#textSource ? "omp.overlay.annotateText.lines" : "omp.overlay.codeReview.diff",
 			tone: this.#focus === "diff" ? "accent" : undefined,
 		});
@@ -1295,12 +1296,15 @@ export class AnnotationOverlay implements Component {
 				}
 				if (file.isBinary) {
 					items.push(
-						item("binary", { label: [span("Binary diff; no annotatable source rows", "dim")], disabled: true }),
+						item("binary", {
+							label: [span(t("tui.overlays.annotationOverlay.binaryDiffNoAnnotatableSourceRows"), "dim")],
+							disabled: true,
+						}),
 					);
 				} else if (file.rows.length === 0) {
 					items.push(
 						item("empty", {
-							label: [span("No diff hunks; this may be a rename-only change", "dim")],
+							label: [span(t("tui.overlays.annotationOverlay.noDiffHunksThisMayBe"), "dim")],
 							disabled: true,
 						}),
 					);
@@ -1354,7 +1358,7 @@ export class AnnotationOverlay implements Component {
 			return keyed(text(spans, { truncate: "end" }), "header");
 		}
 		const file = this.#currentFile();
-		if (!file) return keyed(text([span("No reviewable files", "dim")]), "header");
+		if (!file) return keyed(text([span(t("tui.overlays.annotationOverlay.noReviewableFiles4"), "dim")]), "header");
 		const count = this.#annotationCount(this.#fileIndex);
 		const spans = [
 			span(sanitizeStatusText(displayFileLabel(file)), "strong path"),
@@ -1382,7 +1386,7 @@ export class AnnotationOverlay implements Component {
 				});
 			});
 			return [
-				keyed(text([span("Edit annotation", "accent strong")]), "chooserHead"),
+				keyed(text([span(t("tui.overlays.annotationOverlay.editAnnotation3"), "accent strong")]), "chooserHead"),
 				selectList("chooser", entries, { selected: `c${chooser.selected}` }),
 				hintsRow(
 					[

@@ -102,6 +102,7 @@ import type {
 } from "./types";
 
 import { cfgExtensionHandlersToolCallTimeoutMs } from "../settings";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Combined result from all before_agent_start handlers */
 interface BeforeAgentStartCombinedResult {
@@ -130,7 +131,7 @@ export const EXTENSION_HANDLER_TIMEOUT_MS = 30_000;
 let extensionHandlerTimeoutMs = EXTENSION_HANDLER_TIMEOUT_MS;
 
 function throwUnsupportedServiceTierAction(): never {
-	throw new Error("This extension host does not support service-tier actions");
+	throw new Error(t("tui.ca.extensibility.extensions.runner.thisExtensionHostDoesNotSupport"));
 }
 
 export function testSetExtensionHandlerTimeoutMs(timeoutMs: number): void {
@@ -466,7 +467,8 @@ const noOpUIContext: ExtensionUIContext = {
 	},
 	getAllThemes: () => Promise.resolve([]),
 	getTheme: () => Promise.resolve(undefined),
-	setTheme: (_theme: string | Theme) => Promise.resolve({ success: false, error: "UI not available" }),
+	setTheme: (_theme: string | Theme) =>
+		Promise.resolve({ success: false, error: t("tui.ca.extensibility.extensions.runner.uiNotAvailable") }),
 	getToolsExpanded: () => false,
 	setToolsExpanded: () => {},
 };

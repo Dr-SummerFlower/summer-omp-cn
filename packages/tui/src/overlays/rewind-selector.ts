@@ -74,6 +74,7 @@ import {
 	turnItem,
 	turnPreview,
 } from "./copy-selector";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** One alternate branch at a divergence: its root and message path root → most-recent leaf. */
 export interface BranchVariantPath {
@@ -723,19 +724,19 @@ export class RewindSelectorComponent implements Component {
 		const matches = filter === undefined ? undefined : this.#filterMatches();
 		const props: TspPickerProps = {
 			title: "Rewind",
-			subtitle: "Pick the point to continue from",
+			subtitle: t("tui.overlays.rewindSelector.pickThePointToContinueFrom"),
 			icon: "rewind",
 			noun: "turns",
 			size: "lg",
 			layout: "timeline",
 			preview: "side",
 			...pickerQuery(this.#filterInput ?? null),
-			placeholder: "Filter turns…",
+			placeholder: t("tui.overlays.rewindSelector.filterTurns"),
 			columns: TIMELINE_COLUMNS,
 			items: main,
 			selected: this.#targets[this.#selected]?.turnId ?? null,
 			total: this.#targets.length,
-			empty: "Nothing to rewind to",
+			empty: t("tui.overlays.rewindSelector.nothingToRewindTo"),
 		};
 		if (matches) {
 			props.order = matches.map(index => this.#targets[index]!.turnId);
@@ -764,11 +765,16 @@ export class RewindSelectorComponent implements Component {
 			props.selected = column.targets[this.#siblingSelected]?.turnId ?? null;
 		}
 		props.actions = compact([
-			pickerAction("rewind", "Rewind here", "enter", { primary: true }),
-			pickerAction("lateral", columns.length > 0 ? "Branches" : "User turns", ["left", "right"]),
+			pickerAction("rewind", t("tui.overlays.rewindSelector.rewindHere"), "enter", { primary: true }),
+			pickerAction("lateral", columns.length > 0 ? "Branches" : t("tui.overlays.rewindSelector.userTurns"), [
+				"left",
+				"right",
+			]),
 			filter === undefined ? pickerAction("filter", "Filter", "f") : undefined,
-			filter === undefined && this.#truncated ? pickerAction("earlier", "Earlier turns", "a") : undefined,
-			filter === undefined ? CLOSE_ACTION : { ...CLOSE_ACTION, label: "Show all" },
+			filter === undefined && this.#truncated
+				? pickerAction("earlier", t("tui.overlays.rewindSelector.earlierTurns"), "a")
+				: undefined,
+			filter === undefined ? CLOSE_ACTION : { ...CLOSE_ACTION, label: t("tui.overlays.rewindSelector.showAll") },
 		]);
 
 		const preview: NativeChild[] = [];
@@ -781,10 +787,10 @@ export class RewindSelectorComponent implements Component {
 				text(
 					dropped > 0
 						? [
-								span("Continue from here: everything below is dropped", "warning"),
+								span(t("tui.overlays.rewindSelector.continueFromHereEverythingBelowIs"), "warning"),
 								span(`${theme.sep.dot}${dropped} turn${dropped === 1 ? "" : "s"}`, "dim"),
 							]
-						: [span("Continue from here: nothing below to drop", "warning")],
+						: [span(t("tui.overlays.rewindSelector.continueFromHereNothingBelowTo"), "warning")],
 					{ role: "omp.rewind.drop" },
 				),
 				...(column?.builder ?? this.#builder).container.children.slice(outlined.start, outlined.end),
@@ -827,7 +833,7 @@ export class RewindSelectorComponent implements Component {
 					"list",
 					{
 						selected: this.#targets[this.#selected]?.turnId ?? null,
-						empty: "Nothing to rewind to",
+						empty: t("tui.overlays.rewindSelector.nothingToRewindTo2"),
 						virtual: true,
 						max: 0.5,
 					},
@@ -885,9 +891,9 @@ export class RewindSelectorComponent implements Component {
 						]
 					: [
 							upDown,
-							{ keys: ["left", "right"], label: "user turns" },
+							{ keys: ["left", "right"], label: t("tui.overlays.rewindSelector.userTurns2") },
 							{ keys: ["enter"], label: "rewind" },
-							actionHint("tui.select.cancel", "show all"),
+							actionHint("tui.select.cancel", t("tui.overlays.rewindSelector.showAll2")),
 						],
 			),
 		);

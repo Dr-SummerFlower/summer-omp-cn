@@ -14,6 +14,7 @@ import type { NativeNode, NativeUiEvent } from "../native/node";
 import { col, node, span, text } from "../native/describe";
 import { actionBar, actionButton } from "../native/overlay";
 import { isNativeRendering } from "../native/state";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const FRAME_INTERVAL_MS = 85;
 const FRAME_COUNT = 34;
@@ -270,7 +271,7 @@ function describeCodexResetFireworks(event: CodexResetFireworksEvent): NativeNod
 	const title = event.kind === "unscheduled-weekly-reset" ? "OpenAI reset" : "Saved reset";
 	const subtitle =
 		event.kind === "unscheduled-weekly-reset"
-			? "Weekly usage cleared early"
+			? t("tui.overlays.codexResetFireworks.weeklyUsageClearedEarly")
 			: event.added === 1
 				? `New reset banked · ${event.available} available`
 				: `${event.added} resets banked · ${event.available} available`;

@@ -44,6 +44,7 @@ import { SecurityStore, writeSecurityBundleToDirectory } from "./store";
 import { cfgRetryFallbackChains, cfgRetryModelFallback, cfgRetryUsageAwareFallback } from "../session/settings";
 import { cfgSecurityEnabled } from "../tools/settings";
 import { cfgTaskAgentModelOverrides, cfgTaskAgentPrewalk } from "../task/settings";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const SECURITY_SESSION_TOOLS = ["read", "grep", "glob", "lsp", "ast_grep", "task", "security_publish"];
 const SECURITY_WORKFLOW_FINGERPRINT = createSecurityWorkflowFingerprint([
@@ -188,7 +189,7 @@ function initialCoverage(plan: SecurityScanPlan): SecurityCoverage {
 		excludePaths: plan.target.excludePaths,
 		surfaces: [],
 		explicitExclusions: [],
-		deferred: [{ id: "scan-pending", reason: "Security review has not completed" }],
+		deferred: [{ id: "scan-pending", reason: t("tui.ca.security.coordinator.securityReviewHasNotCompleted") }],
 	};
 }
 
@@ -626,7 +627,7 @@ export class SecurityCoordinator {
 			});
 			record.snapshot.sessionFile = session.sessionFile;
 			const abortSession = (): void => {
-				void session?.abort({ reason: "Security scan cancelled" });
+				void session?.abort({ reason: t("tui.ca.security.coordinator.securityScanCancelled") });
 			};
 			signal.addEventListener("abort", abortSession, { once: true });
 			try {

@@ -4,6 +4,7 @@
  */
 import { register } from "../config/registry";
 import { DEFAULT_SHARE_URL } from "@oh-my-pi/pi-wire";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export const cfgShareServerUrl = register({
 	id: "share.serverUrl",
@@ -12,9 +13,8 @@ export const cfgShareServerUrl = register({
 	ui: {
 		tab: "interaction",
 		group: "Collab",
-		label: "Share Server",
-		description:
-			"Share viewer/upload base used by /share (encrypted blob upload + viewer; links are <base>/<id>#<key>)",
+		label: t("settings.item.share.serverUrl.label"),
+		description: t("settings.item.share.serverUrl.description"),
 	},
 });
 
@@ -26,18 +26,18 @@ export const cfgShareStore = register({
 	ui: {
 		tab: "interaction",
 		group: "Collab",
-		label: "Share Store",
-		description: "Where /share uploads the encrypted session blob",
+		label: t("settings.item.share.store.label"),
+		description: t("settings.item.share.store.description"),
 		options: [
 			{
 				value: "blob",
-				label: "Encrypted Blob",
-				description: "Upload to the share server (no GitHub account needed; avoids gist API rate limits)",
+				label: t("settings.item.share.store.option.blob.label"),
+				description: t("settings.item.share.store.option.blob.description"),
 			},
 			{
 				value: "gist",
-				label: "GitHub Gist",
-				description: "Push to a secret gist (needs authenticated gh), falling back to the share server",
+				label: t("settings.item.share.store.option.gist.label"),
+				description: t("settings.item.share.store.option.gist.description"),
 			},
 		],
 	},
@@ -50,7 +50,7 @@ export const cfgShareRedactSecrets = register({
 	ui: {
 		tab: "interaction",
 		group: "Collab",
-		label: "Share Secret Redaction",
-		description: "Run the secret obfuscator over /share snapshots before upload (uses the secrets.* config)",
+		label: t("settings.item.share.redactSecrets.label"),
+		description: t("settings.item.share.redactSecrets.description"),
 	},
 });

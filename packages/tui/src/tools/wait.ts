@@ -33,6 +33,7 @@ import { OwnerMemo } from "../native/memo";
 import { plainText } from "../native/spans";
 import { errorView, resultText, toolHead } from "./native-view";
 import type { NativeToolView, ToolRenderResult } from "./renderer";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Whether a wait snapshot contains only running jobs and no cancellations. */
 export function isWaitingPollDetails(details: unknown): boolean {
@@ -638,7 +639,7 @@ function describeJobsResult(
 		return {
 			head: toolHead("Wait"),
 			tone: "warning",
-			body: [text([span(plainText(resultText(result) || "No jobs to process"), "dim")])],
+			body: [text([span(plainText(resultText(result) || t("tui.tools.wait.noJobsToProcess")), "dim")])],
 		};
 	}
 	if (!isPartial && agents.length === 0) {

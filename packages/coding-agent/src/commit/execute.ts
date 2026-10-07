@@ -5,6 +5,7 @@
  */
 
 import * as vcs from "@oh-my-pi/pi-natives/vcs";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /**
  * A commit or push failure that has already been reported to the user with a
@@ -49,7 +50,7 @@ export async function pushOrAbort(cwd: string): Promise<void> {
 	try {
 		await vcs.requireGit(cwd).push({});
 	} catch (error) {
-		if (vcs.isVcsError(error)) abortOnGitFailure("Push failed", error);
+		if (vcs.isVcsError(error)) abortOnGitFailure(t("tui.ca.commit.execute.pushFailed"), error);
 		throw error;
 	}
 	process.stdout.write("Pushed to remote.\n");

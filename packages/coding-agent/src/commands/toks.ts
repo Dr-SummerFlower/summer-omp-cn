@@ -9,6 +9,7 @@ import { formatBytes, pluralize } from "@oh-my-pi/pi-utils";
 import chalk from "@oh-my-pi/pi-utils/chalk";
 import { Args, CliUsageError, Command, Flags } from "@oh-my-pi/pi-utils/cli";
 import { toksHelp as commandHelp } from "../cli/command-help";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Display name and served model lines per native encoding; `Record` keeps it exhaustive. */
 const ENCODINGS: Record<natives.Encoding, { name: string; models: string }> = {
@@ -61,13 +62,13 @@ export default class Toks extends Command {
 	static description = commandHelp.description;
 	static args = {
 		input: Args.string({
-			description: "File path, or literal text when it does not name a file",
+			description: t("cli.toks.filePathOrLiteralTextWhen"),
 			required: true,
 			multiple: true,
 		}),
 	};
 	static flags = {
-		json: Flags.boolean({ description: "Output JSON" }),
+		json: Flags.boolean({ description: t("cli.agents.outputJson") }),
 	};
 
 	static examples = [

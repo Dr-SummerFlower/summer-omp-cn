@@ -55,6 +55,7 @@ import type {
 	ToolDefinition,
 	ToolInfo,
 } from "./types";
+import { t } from "@oh-my-pi/pi-i18n";
 
 installLegacyPiSpecifierShim();
 
@@ -89,7 +90,7 @@ export function extensionToolSourceInfo(
 
 export class ExtensionRuntimeNotInitializedError extends Error {
 	constructor() {
-		super("Extension runtime not initialized. Action methods cannot be called during extension loading.");
+		super(t("tui.ca.extensibility.extensions.loader.extensionRuntimeNotInitializedActionMethods"));
 	}
 }
 
@@ -277,7 +278,7 @@ class ConcreteExtensionAPI implements ExtensionAPI, IExtensionRuntime {
 	registerComposerShape(definition: ComposerShapeDefinition): void {
 		const id = definition.style.id;
 		if (id.length === 0 || id !== id.trim()) {
-			throw new TypeError("Composer shape id must be a non-empty trimmed string");
+			throw new TypeError(t("tui.ca.extensibility.extensions.loader.composerShapeIdMustBeA"));
 		}
 		if (definition.label.trim().length === 0) {
 			throw new TypeError(`Composer shape "${id}" must have a label`);

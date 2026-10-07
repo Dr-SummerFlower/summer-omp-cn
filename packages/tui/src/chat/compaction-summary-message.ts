@@ -10,6 +10,7 @@ import type { TspSpan } from "@oh-my-pi/pi-wire";
 import { md, node, span, text } from "../native/describe";
 import { type NativeChild, type NativeNode, type NativeUiEvent, rootToggleExpanded } from "../native/node";
 import { Memo } from "../native/memo";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Divider labels per compaction method; unknown/legacy methods fall back to "compacted". */
 const COMPACTION_METHOD_LABELS: Record<string, string> = {
@@ -227,7 +228,7 @@ function compactionNativeDetail(message: CompactionSummaryMessage): NativeChild[
 	const caption =
 		frames > 0
 			? `Summary · ${frames} snapcompact frame${frames === 1 ? "" : "s"} attached`
-			: "Summary of the earlier conversation";
+			: t("tui.chat.compactionSummaryMessage.summaryOfTheEarlierConversation");
 	const detail: NativeChild[] = [text([span(caption, "dim")], { role: "omp.compaction.caption", key: "caption" })];
 	if (message.warning) detail.push(text([span(message.warning, "warning")], { wrap: "word", key: "warning" }));
 	detail.push(md(message.summary, { key: "summary" }));
@@ -251,7 +252,7 @@ function compactionDetailMarkdown(message: CompactionSummaryMessage): string {
 				: `Compacted from ${message.tokensBefore.toLocaleString()} tokens`
 			: message.tokensAfter !== undefined
 				? `Compacted to ${message.tokensAfter.toLocaleString()} tokens`
-				: "Compacted context";
+				: t("tui.chat.compactionSummaryMessage.compactedContext");
 	const frameCount = message.images?.length ?? 0;
 	const frameNote =
 		frameCount > 0 ? `\n\n_${frameCount} snapcompact frame${frameCount === 1 ? "" : "s"} attached_` : "";
@@ -268,7 +269,7 @@ export class HandoffSummaryMessageComponent extends SummaryMessageComponent {
 	constructor(message: CustomMessage<unknown>) {
 		super({
 			label: () => `${theme.icon.context} handed-off`,
-			nativeLabel: () => [span("Handed off", "muted")],
+			nativeLabel: () => [span(t("tui.chat.compactionSummaryMessage.handedOff"), "muted")],
 			role: "omp.handoff",
 			detailMarkdown: () => {
 				const document = extractHandoffDocument(getCustomMessageText(message));
@@ -297,7 +298,7 @@ export class BranchSummaryMessageComponent extends SummaryMessageComponent {
 	constructor(message: BranchSummaryMessage) {
 		super({
 			label: () => `${theme.icon.branch} branch`,
-			nativeLabel: () => [span("Branch summarized", "muted")],
+			nativeLabel: () => [span(t("tui.chat.compactionSummaryMessage.branchSummarized"), "muted")],
 			role: "omp.branch",
 			detailMarkdown: () => `**Branch summary**\n\n${message.summary}`,
 		});

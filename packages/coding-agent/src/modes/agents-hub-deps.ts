@@ -1,6 +1,7 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import type { AgentMessage } from "@oh-my-pi/pi-agent-core";
+import { t } from "@oh-my-pi/pi-i18n";
 import type { AgentsHubDeps } from "@oh-my-pi/pi-tui/overlays/agents-hub";
 import { shortenPath } from "@oh-my-pi/pi-tui/render/render-utils";
 import { isEnoent, prompt } from "@oh-my-pi/pi-utils";
@@ -145,7 +146,7 @@ export function createAgentsHubDeps(
 			);
 			const { model } = resolveModelOverride(patterns, modelRegistry, settings);
 			const selectedModel = model ?? modelRegistry.getAvailable()[0];
-			if (!selectedModel) throw new Error("No available model to generate agent specification.");
+			if (!selectedModel) throw new Error(t("tui.agentHub.create.noModel"));
 			const { session } = await createAgentSession({
 				cwd,
 				authStorage: modelRegistry.authStorage,
@@ -177,7 +178,7 @@ export function createAgentsHubDeps(
 					expandPromptTemplates: false,
 				});
 				const raw = extractAssistantText(session.state.messages);
-				if (!raw) throw new Error("No response returned by agent creation architect.");
+				if (!raw) throw new Error(t("tui.agentHub.create.noArchitectResponse"));
 				return raw;
 			} finally {
 				unsubscribe();
@@ -187,11 +188,11 @@ export function createAgentsHubDeps(
 		saveAgent: async (scope, spec) => {
 			const dirs = getConfigDirs("agents", { user: scope === "user", project: scope === "project", cwd });
 			const targetDir = dirs[0]?.path;
-			if (!targetDir) throw new Error(`Cannot resolve ${scope} agents directory.`);
+			if (!targetDir) throw new Error(t("tui.agentHub.create.cannotResolveDir", { scope }));
 			const filePath = path.join(targetDir, `${spec.identifier}.md`);
 			try {
 				await fs.stat(filePath);
-				throw new Error(`Agent file already exists: ${shortenPath(filePath)}`);
+				throw new Error(t("tui.agentHub.create.fileExists", { path: shortenPath(filePath) }));
 			} catch (error) {
 				if (!isEnoent(error)) throw error;
 			}

@@ -10,6 +10,7 @@ import { Args, type CliConfig, Command, type CommandCtor } from "@oh-my-pi/pi-ut
 import { completionsHelp as commandHelp } from "../cli/command-help";
 import { buildSpec, generateCompletion, type Shell } from "../cli/completion-gen";
 import { commands } from "../cli-commands";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Entry name of the default command whose flags become top-level completions. */
 const ROOT_COMMAND = "launch";
@@ -34,7 +35,7 @@ export default class Completions extends Command {
 	static description = commandHelp.description;
 	static args = {
 		shell: Args.string({
-			description: "Target shell",
+			description: t("cli.completions.targetShell"),
 			required: true,
 			options: SHELLS,
 		}),

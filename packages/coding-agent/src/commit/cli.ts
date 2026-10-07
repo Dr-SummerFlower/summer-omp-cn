@@ -1,5 +1,6 @@
 import chalk from "@oh-my-pi/pi-utils/chalk";
 import type { CommitCommandArgs } from "./types";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const FLAG_ALIASES = new Map<string, string>([
 	["-c", "--context"],
@@ -36,7 +37,7 @@ export function parseCommitArgs(args: string[]): CommitCommandArgs | undefined {
 			case "--context": {
 				const value = args[i + 1];
 				if (!value || value.startsWith("-")) {
-					process.stderr.write(`${chalk.red("Error: --context requires a value")}\n`);
+					process.stderr.write(`${chalk.red(t("tui.ca.commit.cli.errorContextRequiresAValue"))}\n`);
 					process.exit(1);
 				}
 				result.context = value;
@@ -46,7 +47,7 @@ export function parseCommitArgs(args: string[]): CommitCommandArgs | undefined {
 			case "--model": {
 				const value = args[i + 1];
 				if (!value || value.startsWith("-")) {
-					process.stderr.write(`${chalk.red("Error: --model requires a value")}\n`);
+					process.stderr.write(`${chalk.red(t("tui.ca.commit.cli.errorModelRequiresAValue"))}\n`);
 					process.exit(1);
 				}
 				result.model = value;

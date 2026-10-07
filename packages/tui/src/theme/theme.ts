@@ -41,6 +41,7 @@ export {
 	setMarkdownMermaidRendering,
 	warmHighlighter,
 } from "./tui-adapters";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Appearance detected via OSC 11 background color query, or undefined if not yet available. */
 var terminalReportedAppearance: "dark" | "light" | undefined;
@@ -230,7 +231,7 @@ export async function setTheme(
 	try {
 		const loadedTheme = await loadTheme(name, getCurrentThemeOptions());
 		if (requestId !== themeLoadRequestId) {
-			return { success: false, error: "Theme change superseded by a newer request" };
+			return { success: false, error: t("tui.theme.theme.themeChangeSupersededByANewer") };
 		}
 		assignTheme(loadedTheme);
 		if (enableWatcher) {
@@ -240,7 +241,7 @@ export async function setTheme(
 		return { success: true };
 	} catch (error) {
 		if (requestId !== themeLoadRequestId) {
-			return { success: false, error: "Theme change superseded by a newer request" };
+			return { success: false, error: t("tui.theme.theme.themeChangeSupersededByANewer2") };
 		}
 		// Theme is invalid - fall back to dark theme
 		currentThemeName = "dark";
@@ -265,7 +266,7 @@ export async function previewTheme(
 	try {
 		const loadedTheme = await loadTheme(name, getCurrentThemeOptions());
 		if (requestId !== themeLoadRequestId) {
-			return { success: false, error: "Theme preview superseded by a newer request" };
+			return { success: false, error: t("tui.theme.theme.themePreviewSupersededByANewer") };
 		}
 		// Previewing the active theme again (selector cancel) ends the preview.
 		assignTheme(loadedTheme, name === currentThemeName ? undefined : name);
@@ -273,7 +274,7 @@ export async function previewTheme(
 		return { success: true };
 	} catch (error) {
 		if (requestId !== themeLoadRequestId) {
-			return { success: false, error: "Theme preview superseded by a newer request" };
+			return { success: false, error: t("tui.theme.theme.themePreviewSupersededByANewer2") };
 		}
 		return {
 			success: false,

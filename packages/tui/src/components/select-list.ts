@@ -1,3 +1,4 @@
+import { t } from "@oh-my-pi/pi-i18n";
 import { popLoopPhase, pushLoopPhase } from "@oh-my-pi/pi-utils";
 import { Input } from "./input";
 import { getMenuWindow, MenuSelection } from "./menu-selection";
@@ -117,6 +118,10 @@ export interface SelectListLayoutOptions {
 	emptyText?: string;
 	/** No-match message (after filtering). */
 	noMatchText?: string;
+	/** Word before the structural `": "` in the search status line (search-field label). */
+	searchLabel?: string;
+	/** Typed-input affordance shown on the status line while the query is empty. */
+	searchHint?: string;
 	/** Optional status renderer. Return undefined to omit the status row. */
 	statusText?: (context: SelectListStatusContext) => string | undefined;
 	/** Whether single-step keyboard navigation wraps at the edges. Defaults to true. */
@@ -305,8 +310,8 @@ export class SelectList implements Component, MouseRoutable {
 			filter: this.#nativeMark === undefined ? query.trim() || undefined : undefined,
 			empty:
 				query.trim().length > 0
-					? (this.layout.noMatchText ?? "No matching items")
-					: (this.layout.emptyText ?? "No items"),
+					? (this.layout.noMatchText ?? t("tui.selectList.empty.noMatch"))
+					: (this.layout.emptyText ?? t("tui.selectList.empty.noItems")),
 			max:
 				typeof cachedMax === "object" && cachedMax.lines === this.#maxVisible
 					? cachedMax
@@ -395,8 +400,8 @@ export class SelectList implements Component, MouseRoutable {
 			}
 			const message =
 				this.#selection.query.trim().length > 0
-					? (this.layout.noMatchText ?? "No matching items")
-					: (this.layout.emptyText ?? "No items");
+					? (this.layout.noMatchText ?? t("tui.selectList.empty.noMatch"))
+					: (this.layout.emptyText ?? t("tui.selectList.empty.noItems"));
 			lines.push(this.theme.noMatch(`  ${message}`));
 			return lines;
 		}
@@ -716,7 +721,8 @@ export class SelectList implements Component, MouseRoutable {
 			this.#selection.pendingKey === undefined &&
 			this.#selection.query.length > 0
 		) {
-			const label = truncateToWidth("  Search: ", avail, Ellipsis.Omit);
+			const searchLabel = this.layout.searchLabel ?? t("tui.selectList.status.searchLabel");
+			const label = truncateToWidth(`  ${searchLabel}: `, avail, Ellipsis.Omit);
 			const fieldWidth = avail - visibleWidth(label);
 			const styled = this.theme.scrollInfo(label);
 			return fieldWidth > 0 ? styled + this.#search.render(fieldWidth)[0].trimEnd() : styled;
@@ -737,10 +743,15 @@ export class SelectList implements Component, MouseRoutable {
 			totalCount: this.#selection.items.length,
 			pendingItem,
 		});
+		const searchLabel = this.layout.searchLabel ?? t("tui.selectList.status.searchLabel");
 		return this.layout.statusText !== undefined
 			? (custom ?? "")
 			: (pendingItem?.confirmation ??
-					(query ? `  Search: ${query}` : this.#canEditSearch() ? "  Type to search" : ""));
+					(query
+						? `  ${searchLabel}: ${query}`
+						: this.#canEditSearch()
+							? `  ${this.layout.searchHint ?? t("tui.selector.typeToSearch")}`
+							: ""));
 	}
 
 	#shouldRenderSearchStatus(): boolean {

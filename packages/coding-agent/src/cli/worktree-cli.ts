@@ -27,6 +27,7 @@ import { hasLiveIsolationOwner, ISOLATION_OWNER_FILE, readRetainedMountBackend }
 import { formatIsolationBackend, parseIsolationBackend } from "../task/worktree";
 
 import { cfgIsolationBackend, cfgWorktreeClone } from "../task/settings";
+import { t } from "@oh-my-pi/pi-i18n";
 
 type WorktreeKind = "pr-checkout" | "task-isolation" | "empty" | "stray";
 
@@ -153,9 +154,14 @@ export async function addWorktree(options: AddWorktreeOptions): Promise<void> {
 		backend: parseIsolationBackend(cfgIsolationBackend.get(settings)),
 	});
 	if (!options.quiet) {
-		console.log(`HEAD is now at ${shortSha} ${subject}`);
+		console.log(t("cli.worktree.headIsNowAtShortshaSubject", { shortSha: shortSha, subject: subject }));
 		if (result.clonedWith != null) {
-			console.log(`Cloned from ${repository.info().repoRoot} via ${formatIsolationBackend(result.clonedWith)}`);
+			console.log(
+				t("cli.worktree.clonedFromRepositoryInfoReporootVia", {
+					arg: repository.info().repoRoot,
+					arg2: formatIsolationBackend(result.clonedWith),
+				}),
+			);
 		}
 	}
 	if (result.cloneError) {

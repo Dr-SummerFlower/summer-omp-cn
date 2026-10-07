@@ -1,4 +1,5 @@
 import { clearSubmittedText } from "./helpers/draft";
+import { t } from "@oh-my-pi/pi-i18n";
 import { getOAuthProviders } from "@oh-my-pi/pi-ai/oauth";
 import { journalJudgmentUsage, resolveJudge, sharedJudgmentCache } from "../judgment";
 import type { AgentSession } from "../session/agent-session";
@@ -53,39 +54,49 @@ async function handleUsageResetCommand(
 	try {
 		accounts = toResetUsageAccounts(await session.listResetCredits());
 	} catch (error) {
-		await output(`Could not load saved resets: ${safe(errorMessage(error))}`);
+		await output(t("slash.usage.reset.loadFailed", { reason: safe(errorMessage(error)) }));
 		return;
 	}
 	if (accounts.length === 0) {
-		await output("No provider accounts found. Use /login to add one.");
+		await output(t("slash.usage.reset.noAccounts"));
 		return;
 	}
 	const targetArg = arg.trim();
 	if (!targetArg) {
-		const lines = ["Saved rate-limit resets:"];
+		const lines = [t("slash.usage.reset.title")];
 		for (const account of accounts) {
 			let detail: string;
 			if (account.error) {
-				detail = `unavailable (${safe(account.error)})`;
+				detail = t("slash.usage.reset.unavailable", { reason: safe(account.error) });
 			} else {
-				detail = `${account.availableCount} saved, ${account.redeemableCount} usable now`;
-				if (account.expiresAt) detail += `, expires ${safe(account.expiresAt)}`;
+				detail = t("slash.usage.reset.counts", {
+					available: account.availableCount,
+					redeemable: account.redeemableCount,
+				});
+				if (account.expiresAt) detail += t("slash.usage.reset.expires", { when: safe(account.expiresAt) });
 				if (account.redeemableCount === 0 && account.unavailableReason) {
-					detail += ` (${safe(account.unavailableReason)})`;
+					detail += t("slash.usage.reset.reason", { reason: safe(account.unavailableReason) });
 				}
 			}
 			lines.push(
-				`- ${safe(account.label)} [${safe(account.providerLabel)} · ${account.provider}/${account.target.credentialId}]: ${detail}${account.active ? " (active)" : ""}`,
+				t("slash.usage.reset.accountLine", {
+					label: safe(account.label),
+					providerLabel: safe(account.providerLabel),
+					provider: account.provider,
+					credentialId: account.target.credentialId,
+					detail,
+					active: account.active ? t("slash.common.activeSuffix") : "",
+				}),
 			);
 		}
-		lines.push("", "Spend one with `/usage reset <provider>/<credential id>` or `/usage reset <provider>/active`.");
+		lines.push("", t("slash.usage.reset.spendHint"));
 		await output(lines.join("\n"));
 		return;
 	}
 
 	const slash = targetArg.indexOf("/");
 	if (slash <= 0) {
-		await output("Choose an account with `/usage reset <provider>/<credential id>`.");
+		await output(t("slash.usage.reset.chooseHint"));
 		return;
 	}
 	const requestedProvider = normalizeResetProvider(targetArg.slice(0, slash));
@@ -94,7 +105,7 @@ async function handleUsageResetCommand(
 		.trim()
 		.toLowerCase();
 	if (!requestedProvider) {
-		await output(`Unknown reset provider "${safe(targetArg.slice(0, slash))}". Use anthropic or openai-codex.`);
+		await output(t("slash.usage.reset.unknownProvider", { provider: safe(targetArg.slice(0, slash)) }));
 		return;
 	}
 	const requestedCredentialId = /^\d+$/.test(requestedAccount) ? Number(requestedAccount) : undefined;
@@ -104,12 +115,20 @@ async function handleUsageResetCommand(
 		return requestedCredentialId !== undefined && account.target.credentialId === requestedCredentialId;
 	});
 	if (!target) {
-		await output(`No stored account matches "${safe(targetArg)}". List choices with \`/usage reset\`.`);
+		await output(t("slash.usage.reset.noMatch", { target: safe(targetArg) }));
 		return;
 	}
 	if (target.redeemableCount <= 0) {
-		const reason = target.unavailableReason ? ` (${safe(target.unavailableReason)})` : "";
-		await output(`${safe(target.label)} [${safe(target.providerLabel)}]: no saved resets usable right now${reason}.`);
+		const reason = target.unavailableReason
+			? t("slash.usage.reset.reason", { reason: safe(target.unavailableReason) })
+			: "";
+		await output(
+			t("slash.usage.reset.noneUsable", {
+				label: safe(target.label),
+				providerLabel: safe(target.providerLabel),
+				reason,
+			}),
+		);
 		return;
 	}
 	const outcome = await session.redeemResetCredit(target.target);
@@ -122,18 +141,18 @@ async function handleSessionPinCommand(
 	output: SlashCommandRuntime["output"],
 ): Promise<void> {
 	if (session.isStreaming) {
-		await output("Cannot pin an account while the session is streaming.");
+		await output(t("slash.session.pin.streaming"));
 		return;
 	}
 	let accountList: SessionOAuthAccountList | undefined;
 	try {
 		accountList = await session.listCurrentProviderOAuthAccounts();
 	} catch (error) {
-		await output(`Could not load provider accounts: ${errorMessage(error)}`);
+		await output(t("slash.session.pin.loadFailed", { reason: errorMessage(error) }));
 		return;
 	}
 	if (!accountList) {
-		await output("Select a model before pinning a provider account.");
+		await output(t("slash.session.pin.selectModel"));
 		return;
 	}
 	const provider = getOAuthProviders().find(candidate => candidate.id === accountList.provider);
@@ -143,42 +162,50 @@ async function handleSessionPinCommand(
 		const source = session.modelRegistry.authStorage.keys.describe(accountList.provider, session.sessionId);
 		await output(
 			source
-				? `No stored OAuth accounts for ${providerName}. Current auth comes from ${source}.`
-				: `No stored OAuth accounts for ${providerName}. Use /login to add one.`,
+				? t("slash.session.pin.noAccountsWithSource", { provider: providerName, source })
+				: t("slash.session.pin.noAccounts", { provider: providerName }),
 		);
 		return;
 	}
 
 	const selector = arg.trim();
 	if (!selector) {
-		const lines = [`OAuth accounts for ${providerName}:`];
+		const lines = [t("slash.session.pin.title", { provider: providerName })];
 		for (const account of accounts) {
-			lines.push(`${account.position + 1}. ${account.label}${account.active ? " (active)" : ""}`);
+			lines.push(
+				t("slash.session.pin.accountLine", {
+					position: account.position + 1,
+					label: account.label,
+					active: account.active ? t("slash.common.activeSuffix") : "",
+				}),
+			);
 		}
-		lines.push("", "Pin one with `/session pin <number|email|account id>`.");
+		lines.push("", t("slash.session.pin.hint"));
 		await output(lines.join("\n"));
 		return;
 	}
 
 	const matches = matchSessionPinAccounts(accounts, selector);
 	if (matches.length === 0) {
-		await output(`No ${providerName} account matches "${selector}".`);
+		await output(t("slash.session.pin.noMatch", { provider: providerName, selector }));
 		return;
 	}
 	if (matches.length > 1) {
 		await output(
-			`"${selector}" matches multiple ${providerName} accounts: ${matches
-				.map(account => `${account.position + 1}. ${account.label}`)
-				.join(", ")}. Use the account number.`,
+			t("slash.session.pin.matchesMultiple", {
+				selector,
+				provider: providerName,
+				matches: matches.map(account => `${account.position + 1}. ${account.label}`).join(", "),
+			}),
 		);
 		return;
 	}
 	const account = matches[0];
 	if (!account || !session.pinCurrentProviderOAuthAccount(account.credentialId)) {
-		await output(`${account?.label ?? selector} is no longer available to pin.`);
+		await output(t("slash.session.pin.stale", { label: account?.label ?? selector }));
 		return;
 	}
-	await output(`Pinned ${account.label} to this session for ${providerName}.`);
+	await output(t("slash.session.pin.pinned", { label: account.label, provider: providerName }));
 }
 
 /**
@@ -206,34 +233,100 @@ export const BUILTIN_SESSION_SLASH_COMMANDS: ReadonlyArray<SlashCommandSpec> = [
 	{
 		name: "todo",
 		icon: "todo",
-		description: "View or modify the agent's todo list",
-		acpDescription: "Manage todos",
+		get description() {
+			return t("slash.todo.description");
+		},
+		get acpDescription() {
+			return t("slash.todo.acpDescription");
+		},
 		acpInputHint: "<subcommand>",
 		subcommands: [
-			{ name: "edit", description: "Open todos in $EDITOR (Markdown round-trip)" },
-			{ name: "copy", description: "Copy todos as Markdown to clipboard" },
-			{ name: "expand", description: "Show every phase and task in the HUD" },
-			{ name: "collapse", description: "Restore the bounded HUD preview" },
-			{ name: "export", description: "Write todos as Markdown to a file (default: TODO.md)", usage: "[<path>]" },
-			{ name: "import", description: "Replace todos from a Markdown file (default: TODO.md)", usage: "[<path>]" },
+			{
+				name: "edit",
+				get description() {
+					return t("slash.todo.sub.edit.description");
+				},
+			},
+			{
+				name: "copy",
+				get description() {
+					return t("slash.todo.sub.copy.description");
+				},
+			},
+			{
+				name: "expand",
+				get description() {
+					return t("slash.todo.sub.expand.description");
+				},
+			},
+			{
+				name: "collapse",
+				get description() {
+					return t("slash.todo.sub.collapse.description");
+				},
+			},
+			{
+				name: "export",
+				get description() {
+					return t("slash.todo.sub.export.description");
+				},
+				usage: "[<path>]",
+			},
+			{
+				name: "import",
+				get description() {
+					return t("slash.todo.sub.import.description");
+				},
+				usage: "[<path>]",
+			},
 			{
 				name: "append",
-				description: "Append a task; phase fuzzy-matched or auto-created",
+				get description() {
+					return t("slash.todo.sub.append.description");
+				},
 				usage: "[<phase>] <task...>",
 			},
-			{ name: "start", description: "Mark task in_progress (fuzzy-matched)", usage: "<task>" },
-			{ name: "done", description: "Mark task/phase/all completed (fuzzy-matched)", usage: "[<task|phase>]" },
-			{ name: "drop", description: "Mark task/phase/all abandoned (fuzzy-matched)", usage: "[<task|phase>]" },
-			{ name: "rm", description: "Remove task/phase/all (fuzzy-matched)", usage: "[<task|phase>]" },
+			{
+				name: "start",
+				get description() {
+					return t("slash.todo.sub.start.description");
+				},
+				usage: "<task>",
+			},
+			{
+				name: "done",
+				get description() {
+					return t("slash.todo.sub.done.description");
+				},
+				usage: "[<task|phase>]",
+			},
+			{
+				name: "drop",
+				get description() {
+					return t("slash.todo.sub.drop.description");
+				},
+				usage: "[<task|phase>]",
+			},
+			{
+				name: "rm",
+				get description() {
+					return t("slash.todo.sub.rm.description");
+				},
+				usage: "[<task|phase>]",
+			},
 		],
 		allowArgs: true,
 		getTuiAutocompleteDescription: runtime => {
 			const tasks = runtime.ctx.todoPhases.flatMap(phase => phase.tasks);
-			if (tasks.length === 0) return "Todos: none";
+			if (tasks.length === 0) return t("slash.todo.autocomplete.none");
 			const pending = tasks.filter(task => task.status === "pending").length;
 			const inProgress = tasks.filter(task => task.status === "in_progress").length;
 			const completed = tasks.filter(task => task.status === "completed").length;
-			return `Todos: ${pending + inProgress} open (${inProgress} in progress, ${completed} done)`;
+			return t("slash.todo.autocomplete.summary", {
+				open: pending + inProgress,
+				inProgress,
+				completed,
+			});
 		},
 		handle: handleTodoAcp,
 		handleTui: async (command, runtime) => {
@@ -244,15 +337,31 @@ export const BUILTIN_SESSION_SLASH_COMMANDS: ReadonlyArray<SlashCommandSpec> = [
 	{
 		name: "session",
 		icon: "session",
-		description: "Session management commands",
-		acpDescription: "Show or configure the current session",
+		get description() {
+			return t("slash.session.description");
+		},
+		get acpDescription() {
+			return t("slash.session.acpDescription");
+		},
 		acpInputHint: "[info|delete|pin [account]]",
 		subcommands: [
-			{ name: "info", description: "Show session info and stats" },
-			{ name: "delete", description: "Delete current session and return to selector" },
+			{
+				name: "info",
+				get description() {
+					return t("slash.session.info");
+				},
+			},
+			{
+				name: "delete",
+				get description() {
+					return t("slash.session.delete");
+				},
+			},
 			{
 				name: "pin",
-				description: "Pin the current provider to a stored OAuth account",
+				get description() {
+					return t("slash.session.sub.pin.description");
+				},
 				usage: "[account]",
 			},
 		],
@@ -262,17 +371,17 @@ export const BUILTIN_SESSION_SLASH_COMMANDS: ReadonlyArray<SlashCommandSpec> = [
 			if (!verb || (verb === "info" && !rest)) {
 				await runtime.output(
 					[
-						`Session: ${runtime.session.sessionId}`,
-						`Title: ${runtime.session.sessionName}`,
-						`CWD: ${runtime.cwd}`,
+						t("slash.session.info.session", { id: runtime.session.sessionId }),
+						t("slash.session.info.title", { title: runtime.session.sessionName }),
+						t("slash.session.info.cwd", { cwd: runtime.cwd }),
 					].join("\n"),
 				);
 				return commandConsumed();
 			}
 			if (verb === "delete" && !rest) {
-				if (runtime.session.isStreaming) return usage("Cannot delete the session while streaming.", runtime);
+				if (runtime.session.isStreaming) return usage(t("slash.session.deleteStreaming"), runtime);
 				const sessionFile = runtime.sessionManager.getSessionFile();
-				if (!sessionFile) return usage("No session file to delete (in-memory session).", runtime);
+				if (!sessionFile) return usage(t("slash.session.noFile"), runtime);
 				// Route through the active SessionManager so the persist writer is
 				// closed before the file is deleted. Constructing a fresh
 				// FileSessionStorage and calling deleteSessionWithArtifacts leaves
@@ -281,18 +390,16 @@ export const BUILTIN_SESSION_SLASH_COMMANDS: ReadonlyArray<SlashCommandSpec> = [
 				try {
 					await runtime.sessionManager.dropSession(sessionFile);
 				} catch (err) {
-					return usage(`Failed to delete session: ${errorMessage(err)}`, runtime);
+					return usage(t("slash.session.deleteFailed", { reason: errorMessage(err) }), runtime);
 				}
-				await runtime.output(
-					`Session deleted: ${sessionFile}. Use ACP \`session/load\` to switch to another session.`,
-				);
+				await runtime.output(t("slash.session.deleted", { file: sessionFile }));
 				return commandConsumed();
 			}
 			if (verb === "pin") {
 				await handleSessionPinCommand(rest, runtime.session, runtime.output);
 				return commandConsumed();
 			}
-			return usage("Usage: /session [info|delete|pin [account]]", runtime);
+			return usage(t("slash.session.usage"), runtime);
 		},
 		handleTui: async (command, runtime) => {
 			const { verb, rest } = parseSubcommand(command.args);
@@ -314,7 +421,7 @@ export const BUILTIN_SESSION_SLASH_COMMANDS: ReadonlyArray<SlashCommandSpec> = [
 			if (!verb || (verb === "info" && !rest)) {
 				await runtime.ctx.handleSessionCommand();
 			} else {
-				runtime.ctx.showStatus("Usage: /session [info|delete|pin [account]]");
+				runtime.ctx.showStatus(t("slash.session.usage"));
 			}
 			clearSubmittedText(runtime);
 		},
@@ -322,32 +429,38 @@ export const BUILTIN_SESSION_SLASH_COMMANDS: ReadonlyArray<SlashCommandSpec> = [
 	{
 		name: "jobs",
 		icon: "jobs",
-		description: "Show async background jobs status",
-		acpDescription: "Show background jobs",
+		get description() {
+			return t("slash.jobs.description");
+		},
+		get acpDescription() {
+			return t("slash.jobs.acpDescription");
+		},
 		getTuiAutocompleteDescription: runtime => {
 			const snapshot = runtime.ctx.session.getAsyncJobSnapshot({ recentLimit: 5 });
-			if (!snapshot || (snapshot.running.length === 0 && snapshot.recent.length === 0)) return "Jobs: none";
-			return `Jobs: ${snapshot.running.length} running, ${snapshot.recent.length} recent`;
+			if (!snapshot || (snapshot.running.length === 0 && snapshot.recent.length === 0))
+				return t("slash.jobs.autocomplete.none");
+			return t("slash.jobs.autocomplete.summary", {
+				running: snapshot.running.length,
+				recent: snapshot.recent.length,
+			});
 		},
 		handle: async (_command, runtime) => {
 			const snapshot = runtime.session.getAsyncJobSnapshot({ recentLimit: 5 });
 			if (!snapshot || (snapshot.running.length === 0 && snapshot.recent.length === 0)) {
-				await runtime.output(
-					"No background jobs running. (Background jobs run async tools — e.g. long-running bash, debug, or task subagents that would otherwise tie up a turn. They appear here while alive and briefly after (until their result is delivered; at most ~5 minutes).)",
-				);
+				await runtime.output(t("slash.jobs.none"));
 				return commandConsumed();
 			}
 			const now = Date.now();
-			const lines: string[] = ["Background Jobs", `Running: ${snapshot.running.length}`];
+			const lines: string[] = [t("slash.jobs.title"), t("slash.jobs.running", { count: snapshot.running.length })];
 			if (snapshot.running.length > 0) {
-				lines.push("", "Running Jobs");
+				lines.push("", t("slash.jobs.runningJobs"));
 				for (const job of snapshot.running) {
 					lines.push(`  [${job.id}] ${job.type} (${job.status}) — ${formatCoarseDuration(now - job.startTime)}`);
 					lines.push(`    ${job.label}`);
 				}
 			}
 			if (snapshot.recent.length > 0) {
-				lines.push("", "Recent Jobs");
+				lines.push("", t("slash.jobs.recentJobs"));
 				for (const job of snapshot.recent) {
 					lines.push(
 						`  [${job.id}] ${job.type} (${job.status}) — ${formatCoarseDuration((job.endTime ?? now) - job.startTime)}`,
@@ -366,14 +479,25 @@ export const BUILTIN_SESSION_SLASH_COMMANDS: ReadonlyArray<SlashCommandSpec> = [
 	{
 		name: "usage",
 		icon: "gauge",
-		description: "Show provider usage and limits",
-		acpDescription: "Show token usage",
+		get description() {
+			return t("slash.usage.description");
+		},
+		get acpDescription() {
+			return t("slash.usage.acpDescription");
+		},
 		acpInputHint: "[show|reset [provider/credential-id|provider/active]]",
 		subcommands: [
-			{ name: "show", description: "Show provider usage and limits" },
+			{
+				name: "show",
+				get description() {
+					return t("slash.usage.show");
+				},
+			},
 			{
 				name: "reset",
-				description: "Spend a saved provider rate-limit reset",
+				get description() {
+					return t("slash.usage.sub.reset.description");
+				},
 				usage: "[provider/credential-id|provider/active]",
 			},
 		],
@@ -388,7 +512,7 @@ export const BUILTIN_SESSION_SLASH_COMMANDS: ReadonlyArray<SlashCommandSpec> = [
 				await handleUsageResetCommand(rest, runtime.session, runtime.output);
 				return commandConsumed();
 			}
-			return usage("Usage: /usage [show|reset [provider/credential-id|provider/active]]", runtime);
+			return usage(t("slash.usage.usage"), runtime);
 		},
 		handleTui: async (command, runtime) => {
 			const { verb, rest } = parseSubcommand(command.args);
@@ -406,26 +530,28 @@ export const BUILTIN_SESSION_SLASH_COMMANDS: ReadonlyArray<SlashCommandSpec> = [
 				clearSubmittedText(runtime);
 				return;
 			}
-			runtime.ctx.showStatus("Usage: /usage [show|reset [provider/credential-id|provider/active]]");
+			runtime.ctx.showStatus(t("slash.usage.usage"));
 			clearSubmittedText(runtime);
 		},
 	},
 	{
 		name: "stats",
 		icon: "stats",
-		description: "Launch the local stats dashboard",
+		get description() {
+			return t("slash.stats.description");
+		},
 		inlineHint: "[--port <port>] [--host <host>]",
 		allowArgs: true,
 		handle: async (command, runtime) => {
 			const parsed = parseStatsDashboardArgs(command.args);
 			if ("error" in parsed) return usage(parsed.error, runtime);
 
-			await runtime.output("Syncing session files...");
+			await runtime.output(t("slash.stats.syncing"));
 			try {
 				const result = await launchSessionStatsDashboard(parsed, runtime);
 				await runtime.output(result.message);
 			} catch (error) {
-				await runtime.output(`Stats dashboard failed: ${errorMessage(error)}`);
+				await runtime.output(t("slash.stats.failed", { reason: errorMessage(error) }));
 			}
 			return commandConsumed();
 		},
@@ -441,19 +567,34 @@ export const BUILTIN_SESSION_SLASH_COMMANDS: ReadonlyArray<SlashCommandSpec> = [
 				const result = await launchSessionStatsDashboard(parsed, ctx);
 				ctx.presentCommandOutput(new StatsNotice(result.message, result.url));
 			} catch (error) {
-				ctx.showError(`Stats dashboard failed: ${errorMessage(error)}`);
+				ctx.showError(t("slash.stats.failed", { reason: errorMessage(error) }));
 			}
 		},
 	},
 	{
 		name: "changelog",
 		icon: "news",
-		description: "Show changelog entries",
-		acpDescription: "Show changelog",
+		get description() {
+			return t("slash.changelog.description");
+		},
+		get acpDescription() {
+			return t("slash.changelog.acpDescription");
+		},
 		acpInputHint: "[full|last [N]]",
 		subcommands: [
-			{ name: "full", description: "Show complete changelog" },
-			{ name: "last", description: "Show the last N releases (default 1)", usage: "[N]" },
+			{
+				name: "full",
+				get description() {
+					return t("slash.changelog.sub.full.description");
+				},
+			},
+			{
+				name: "last",
+				get description() {
+					return t("slash.changelog.sub.last.description");
+				},
+				usage: "[N]",
+			},
 		],
 		allowArgs: true,
 		handle: async (command, runtime) => {
@@ -463,7 +604,7 @@ export const BUILTIN_SESSION_SLASH_COMMANDS: ReadonlyArray<SlashCommandSpec> = [
 			const allEntries = await parseChangelog(changelogPath);
 			const entriesToShow = selectChangelogEntries(allEntries, view);
 			if (entriesToShow.length === 0) {
-				await runtime.output("No changelog entries found.");
+				await runtime.output(t("slash.changelog.none"));
 				return commandConsumed();
 			}
 			await runtime.output(renderChangelogEntries(entriesToShow).markdown);
@@ -477,7 +618,9 @@ export const BUILTIN_SESSION_SLASH_COMMANDS: ReadonlyArray<SlashCommandSpec> = [
 	{
 		name: "hotkeys",
 		icon: "keyboard",
-		description: "Show all keyboard shortcuts",
+		get description() {
+			return t("slash.hotkeys.description");
+		},
 		handleTui: (_command, runtime) => {
 			runtime.ctx.handleHotkeysCommand();
 			clearSubmittedText(runtime);
@@ -486,18 +629,22 @@ export const BUILTIN_SESSION_SLASH_COMMANDS: ReadonlyArray<SlashCommandSpec> = [
 	{
 		name: "tools",
 		icon: "tools",
-		description: "Show tools currently visible to the agent",
-		acpDescription: "Show available tools",
+		get description() {
+			return t("slash.tools.description");
+		},
+		get acpDescription() {
+			return t("slash.tools.acpDescription");
+		},
 		getTuiAutocompleteDescription: runtime => {
 			const active = runtime.ctx.session.getActiveToolNames().length;
 			const all = runtime.ctx.session.getAllToolNames().length;
-			return all === 0 ? "Tools: none available" : `Tools: ${active} active / ${all} available`;
+			return all === 0 ? t("slash.tools.autocomplete.none") : t("slash.tools.autocomplete.summary", { active, all });
 		},
 		handle: async (_command, runtime) => {
 			const active = runtime.session.getActiveToolNames();
 			const all = runtime.session.getAllToolNames();
 			if (all.length === 0) {
-				await runtime.output("No tools are available.");
+				await runtime.output(t("slash.tools.none"));
 				return commandConsumed();
 			}
 			const lines = all.map(name => `${active.includes(name) ? "*" : "-"} ${name}`);
@@ -515,12 +662,20 @@ export const BUILTIN_SESSION_SLASH_COMMANDS: ReadonlyArray<SlashCommandSpec> = [
 	{
 		name: "context",
 		icon: "context",
-		description: "Show estimated context usage breakdown",
-		acpDescription: "Show context usage",
+		get description() {
+			return t("slash.context.description");
+		},
+		get acpDescription() {
+			return t("slash.context.acpDescription");
+		},
 		getTuiAutocompleteDescription: runtime => {
 			const usage = runtime.ctx.session.getContextUsage();
-			if (!usage) return "Context: unavailable";
-			return `Context: ${Math.round(usage.percent)}% (${formatTokenCount(usage.tokens)}/${formatTokenCount(usage.contextWindow)})`;
+			if (!usage) return t("slash.context.autocomplete.unavailable");
+			return t("slash.context.autocomplete.summary", {
+				percent: Math.round(usage.percent),
+				tokens: formatTokenCount(usage.tokens),
+				window: formatTokenCount(usage.contextWindow),
+			});
 		},
 		handle: async (_command, runtime) => {
 			await runtime.output(buildContextReportText(runtime));
@@ -535,7 +690,9 @@ export const BUILTIN_SESSION_SLASH_COMMANDS: ReadonlyArray<SlashCommandSpec> = [
 		name: "extensions",
 		aliases: ["status"],
 		icon: "extension",
-		description: "Open Extension Control Center dashboard",
+		get description() {
+			return t("slash.extensions.description");
+		},
 		handleTui: (_command, runtime) => {
 			runtime.ctx.showExtensionsDashboard();
 			clearSubmittedText(runtime);
@@ -544,7 +701,9 @@ export const BUILTIN_SESSION_SLASH_COMMANDS: ReadonlyArray<SlashCommandSpec> = [
 	{
 		name: "agents",
 		icon: "agents",
-		description: "Open the agents hub (per-agent model, prewalk, and advisor)",
+		get description() {
+			return t("slash.agents.description");
+		},
 		handleTui: (_command, runtime) => {
 			runtime.ctx.showAgentsDashboard();
 			clearSubmittedText(runtime);
@@ -553,7 +712,9 @@ export const BUILTIN_SESSION_SLASH_COMMANDS: ReadonlyArray<SlashCommandSpec> = [
 	{
 		name: "git",
 		icon: "branch",
-		description: "Open the git UI (split diff viewer, staging, commit composer)",
+		get description() {
+			return t("slash.git.description");
+		},
 		inlineHint: "[revision]",
 		allowArgs: true,
 		handleTui: (command, runtime) => {
@@ -564,7 +725,9 @@ export const BUILTIN_SESSION_SLASH_COMMANDS: ReadonlyArray<SlashCommandSpec> = [
 	{
 		name: "hub",
 		icon: "agents",
-		description: "Open the live Agent Hub",
+		get description() {
+			return t("slash.hub.description");
+		},
 		handleTui: (_command, runtime) => {
 			runtime.ctx.showAgentHub({ initialSection: "activity" });
 			clearSubmittedText(runtime);
@@ -574,7 +737,9 @@ export const BUILTIN_SESSION_SLASH_COMMANDS: ReadonlyArray<SlashCommandSpec> = [
 		name: "branch",
 		aliases: ["rewind"],
 		icon: "branch",
-		description: "Rewind to a previous message, keeping the old path as a branch",
+		get description() {
+			return t("slash.branch.description");
+		},
 		handleTui: (_command, runtime) => {
 			runtime.ctx.showUserMessageSelector();
 			clearSubmittedText(runtime);
@@ -583,7 +748,9 @@ export const BUILTIN_SESSION_SLASH_COMMANDS: ReadonlyArray<SlashCommandSpec> = [
 	{
 		name: "fork",
 		icon: "branch",
-		description: "Create a new fork from a previous message",
+		get description() {
+			return t("slash.fork.description");
+		},
 		handleTui: async (_command, runtime) => {
 			clearSubmittedText(runtime);
 			await runtime.ctx.handleForkCommand();
@@ -592,7 +759,9 @@ export const BUILTIN_SESSION_SLASH_COMMANDS: ReadonlyArray<SlashCommandSpec> = [
 	{
 		name: "tree",
 		icon: "tree",
-		description: "Navigate session tree (switch branches)",
+		get description() {
+			return t("slash.tree.description");
+		},
 		handleTui: (_command, runtime) => {
 			runtime.ctx.showTreeSelector();
 			clearSubmittedText(runtime);
@@ -601,13 +770,17 @@ export const BUILTIN_SESSION_SLASH_COMMANDS: ReadonlyArray<SlashCommandSpec> = [
 	{
 		name: "login",
 		icon: "signIn",
-		description: "Login with OAuth provider",
+		get description() {
+			return t("slash.login.description");
+		},
 		inlineHint: "[provider|redirect URL]",
 		allowArgs: true,
 		getTuiAutocompleteDescription: runtime =>
 			runtime.ctx.oauthManualInput.hasPending()
-				? `Login: waiting for ${runtime.ctx.oauthManualInput.pendingProviderId ?? "OAuth"} callback`
-				: "Login: choose provider",
+				? t("slash.login.autocomplete.waiting", {
+						provider: runtime.ctx.oauthManualInput.pendingProviderId ?? "OAuth",
+					})
+				: t("slash.login.autocomplete.choose"),
 		handleTui: (command, runtime) => {
 			const manualInput = runtime.ctx.oauthManualInput;
 			const args = command.args.trim();
@@ -617,8 +790,8 @@ export const BUILTIN_SESSION_SLASH_COMMANDS: ReadonlyArray<SlashCommandSpec> = [
 					if (manualInput.hasPending()) {
 						const pendingProvider = manualInput.pendingProviderId;
 						const message = pendingProvider
-							? `OAuth login already in progress for ${pendingProvider}. Paste the redirect URL with /login <url>.`
-							: "OAuth login already in progress. Paste the redirect URL with /login <url>.";
+							? t("slash.login.pending", { provider: pendingProvider })
+							: t("slash.login.pendingGeneric");
 						runtime.ctx.showWarning(message);
 						clearSubmittedText(runtime);
 						return;
@@ -629,9 +802,9 @@ export const BUILTIN_SESSION_SLASH_COMMANDS: ReadonlyArray<SlashCommandSpec> = [
 				}
 				const submitted = manualInput.submit(args);
 				if (submitted) {
-					runtime.ctx.showStatus("OAuth callback received; completing login…");
+					runtime.ctx.showStatus(t("slash.login.callbackReceived"));
 				} else {
-					runtime.ctx.showWarning("No OAuth login is waiting for a manual callback.");
+					runtime.ctx.showWarning(t("slash.login.noPending"));
 				}
 				clearSubmittedText(runtime);
 				return;
@@ -639,9 +812,7 @@ export const BUILTIN_SESSION_SLASH_COMMANDS: ReadonlyArray<SlashCommandSpec> = [
 
 			if (manualInput.hasPending()) {
 				const provider = manualInput.pendingProviderId;
-				const message = provider
-					? `OAuth login already in progress for ${provider}. Paste the redirect URL with /login <url>.`
-					: "OAuth login already in progress. Paste the redirect URL with /login <url>.";
+				const message = provider ? t("slash.login.pending", { provider }) : t("slash.login.pendingGeneric");
 				runtime.ctx.showWarning(message);
 				clearSubmittedText(runtime);
 				return;
@@ -654,7 +825,9 @@ export const BUILTIN_SESSION_SLASH_COMMANDS: ReadonlyArray<SlashCommandSpec> = [
 	{
 		name: "logout",
 		icon: "signOut",
-		description: "Logout from OAuth provider",
+		get description() {
+			return t("slash.logout.description");
+		},
 		inlineHint: "[provider]",
 		allowArgs: true,
 		handleTui: (command, runtime) => {
@@ -662,7 +835,7 @@ export const BUILTIN_SESSION_SLASH_COMMANDS: ReadonlyArray<SlashCommandSpec> = [
 			if (providerId) {
 				const matchedProvider = getOAuthProviders().find(provider => provider.id === providerId);
 				if (!matchedProvider) {
-					runtime.ctx.showWarning(`Unknown OAuth provider: ${providerId}`);
+					runtime.ctx.showWarning(t("slash.logout.unknownProvider", { provider: providerId }));
 					clearSubmittedText(runtime);
 					return;
 				}
@@ -677,35 +850,125 @@ export const BUILTIN_SESSION_SLASH_COMMANDS: ReadonlyArray<SlashCommandSpec> = [
 	{
 		name: "mcp",
 		icon: "mcp",
-		description: "Manage MCP servers (add, list, remove, test)",
-		acpDescription: "Manage MCP servers",
+		get description() {
+			return t("slash.mcp.description");
+		},
+		get acpDescription() {
+			return t("slash.mcp.acpDescription");
+		},
 		inlineHint: "<subcommand>",
 		subcommands: [
 			{
 				name: "add",
-				description: "Add a new MCP server",
+				get description() {
+					return t("slash.mcp.sub.add.description");
+				},
 				usage: "<name> [--scope project|user] [--url <url>] [-- <command...>]",
 			},
-			{ name: "list", description: "List all configured MCP servers" },
-			{ name: "remove", description: "Remove an MCP server", usage: "<name> [--scope project|user]" },
-			{ name: "test", description: "Test connection to a server", usage: "<name>" },
-			{ name: "reauth", description: "Reauthorize OAuth for a server", usage: "<name>" },
-			{ name: "unauth", description: "Remove OAuth auth from a server", usage: "<name>" },
-			{ name: "enable", description: "Enable an MCP server", usage: "<name>" },
-			{ name: "disable", description: "Disable an MCP server", usage: "<name>" },
+			{
+				name: "list",
+				get description() {
+					return t("slash.mcp.sub.list.description");
+				},
+			},
+			{
+				name: "remove",
+				get description() {
+					return t("slash.mcp.sub.remove.description");
+				},
+				usage: "<name> [--scope project|user]",
+			},
+			{
+				name: "test",
+				get description() {
+					return t("slash.mcp.sub.test.description");
+				},
+				usage: "<name>",
+			},
+			{
+				name: "reauth",
+				get description() {
+					return t("slash.mcp.sub.reauth.description");
+				},
+				usage: "<name>",
+			},
+			{
+				name: "unauth",
+				get description() {
+					return t("slash.mcp.sub.unauth.description");
+				},
+				usage: "<name>",
+			},
+			{
+				name: "enable",
+				get description() {
+					return t("slash.mcp.sub.enable.description");
+				},
+				usage: "<name>",
+			},
+			{
+				name: "disable",
+				get description() {
+					return t("slash.mcp.sub.disable.description");
+				},
+				usage: "<name>",
+			},
 			{
 				name: "smithery-search",
-				description: "Search Smithery registry and deploy an MCP server",
+				get description() {
+					return t("slash.mcp.sub.smitherySearch.description");
+				},
 				usage: "<keyword> [--scope project|user] [--limit <1-100>] [--semantic]",
 			},
-			{ name: "smithery-login", description: "Login to Smithery and cache API key" },
-			{ name: "smithery-logout", description: "Remove cached Smithery API key" },
-			{ name: "reconnect", description: "Reconnect to a specific MCP server", usage: "<name>" },
-			{ name: "reload", description: "Force reload MCP runtime tools" },
-			{ name: "resources", description: "List available resources from connected servers" },
-			{ name: "prompts", description: "List available prompts from connected servers" },
-			{ name: "notifications", description: "Show notification capabilities and subscriptions" },
-			{ name: "help", description: "Show help message" },
+			{
+				name: "smithery-login",
+				get description() {
+					return t("slash.mcp.sub.smitheryLogin.description");
+				},
+			},
+			{
+				name: "smithery-logout",
+				get description() {
+					return t("slash.mcp.sub.smitheryLogout.description");
+				},
+			},
+			{
+				name: "reconnect",
+				get description() {
+					return t("slash.mcp.sub.reconnect.description");
+				},
+				usage: "<name>",
+			},
+			{
+				name: "reload",
+				get description() {
+					return t("slash.mcp.sub.reload.description");
+				},
+			},
+			{
+				name: "resources",
+				get description() {
+					return t("slash.mcp.sub.resources.description");
+				},
+			},
+			{
+				name: "prompts",
+				get description() {
+					return t("slash.mcp.sub.prompts.description");
+				},
+			},
+			{
+				name: "notifications",
+				get description() {
+					return t("slash.mcp.sub.notifications.description");
+				},
+			},
+			{
+				name: "help",
+				get description() {
+					return t("slash.mcp.sub.help.description");
+				},
+			},
 		],
 		allowArgs: true,
 		handle: handleMcpAcp,

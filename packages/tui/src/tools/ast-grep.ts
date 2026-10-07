@@ -1,3 +1,4 @@
+import { t } from "@oh-my-pi/pi-i18n";
 import type { Component } from "../tui";
 import { Text } from "../components/text";
 import type { Theme } from "../theme/theme";
@@ -60,11 +61,11 @@ export const astGrepToolRenderer = {
 	renderCall(args: AstGrepRenderArgs, _options: RenderResultOptions, uiTheme: Theme): Component {
 		const meta: string[] = [];
 		const scopePaths = toPathList(args.path ?? args.paths);
-		if (scopePaths.length) meta.push(`in ${scopePaths.join(", ")}`);
-		if (args.skip !== undefined && args.skip > 0) meta.push(`skip:${args.skip}`);
+		if (scopePaths.length) meta.push(t("tui.toolCard.meta.inScope", { path: scopePaths.join(", ") }));
+		if (args.skip !== undefined && args.skip > 0) meta.push(t("tui.astGrepCard.meta.skip", { count: args.skip }));
 
 		const description = args.pat ?? "?";
-		const text = renderStatusLine({ icon: "pending", title: "AST Grep", description, meta }, uiTheme);
+		const text = renderStatusLine({ icon: "pending", title: t("tui.astGrepCard.title"), description, meta }, uiTheme);
 		return new Text(text, 0, 0);
 	},
 
@@ -77,7 +78,7 @@ export const astGrepToolRenderer = {
 		const details = result.details;
 
 		if (result.isError) {
-			const errorText = result.content?.find(c => c.type === "text")?.text || "Unknown error";
+			const errorText = result.content?.find(c => c.type === "text")?.text || t("tui.toolCard.error.unknown");
 			return new Text(formatErrorMessage(errorText, uiTheme), 0, 0);
 		}
 
@@ -88,13 +89,16 @@ export const astGrepToolRenderer = {
 
 		if (matchCount === 0) {
 			const description = args?.pat;
-			const meta = ["0 matches"];
-			if (details?.scopePath) meta.push(`in ${details.scopePath}`);
-			if (filesSearched > 0) meta.push(`searched ${filesSearched}`);
-			const header = renderStatusLine({ icon: "warning", title: "AST Grep", description, meta }, uiTheme);
-			const lines = [header, formatEmptyMessage("No matches found", uiTheme)];
+			const meta = [formatCount("match", 0)];
+			if (details?.scopePath) meta.push(t("tui.toolCard.meta.inScope", { path: details.scopePath }));
+			if (filesSearched > 0) meta.push(t("tui.toolCard.meta.searched", { count: filesSearched }));
+			const header = renderStatusLine(
+				{ icon: "warning", title: t("tui.astGrepCard.title"), description, meta },
+				uiTheme,
+			);
+			const lines = [header, formatEmptyMessage(t("tui.astGrepCard.empty.noMatches"), uiTheme)];
 			if (details?.parseErrors?.length) {
-				lines.push(uiTheme.fg("warning", "Query may be mis-scoped; narrow `path` before concluding absence"));
+				lines.push(uiTheme.fg("warning", t("tui.astGrepCard.warning.misScoped")));
 				appendParseErrorsBulletList(lines, details.parseErrors, uiTheme, details.parseErrorsTotal);
 			}
 			return new Text(lines.join("\n"), 0, 0);
@@ -102,16 +106,16 @@ export const astGrepToolRenderer = {
 
 		const summaryParts = [formatCount("match", matchCount), formatCount("file", fileCount)];
 		const meta = [...summaryParts];
-		if (details?.scopePath) meta.push(`in ${details.scopePath}`);
-		meta.push(`searched ${filesSearched}`);
-		if (limitReached) meta.push(uiTheme.fg("warning", "limit reached"));
+		if (details?.scopePath) meta.push(t("tui.toolCard.meta.inScope", { path: details.scopePath }));
+		meta.push(t("tui.toolCard.meta.searched", { count: filesSearched }));
+		if (limitReached) meta.push(uiTheme.fg("warning", t("tui.toolCard.badge.limitReached")));
 		const description = args?.pat;
 		const header = renderStatusLine(
 			{
 				...(limitReached
 					? { icon: "warning" as const }
 					: { iconOverride: uiTheme.fg("accent", uiTheme.symbol("icon.search")) }),
-				title: "AST Grep",
+				title: t("tui.astGrepCard.title"),
 				description,
 				meta,
 			},
@@ -145,7 +149,7 @@ export const astGrepToolRenderer = {
 
 		const extraLines: string[] = [];
 		if (limitReached) {
-			extraLines.push(uiTheme.fg("warning", "limit reached; narrow path or increase limit"));
+			extraLines.push(uiTheme.fg("warning", t("tui.astGrepCard.hint.limitNarrow")));
 		}
 		if (details?.parseErrors?.length) {
 			extraLines.push(
@@ -174,9 +178,9 @@ export const astGrepToolRenderer = {
 	describeCall(args: AstGrepRenderArgs): NativeToolView {
 		const meta: string[] = [];
 		const scopePaths = toPathList(args.path ?? args.paths);
-		if (scopePaths.length) meta.push(`in ${scopePaths.join(", ")}`);
-		if (args.skip !== undefined && args.skip > 0) meta.push(`skip:${args.skip}`);
-		return { head: toolHead("AST Grep", span(args.pat ?? "?", "code"), ...meta) };
+		if (scopePaths.length) meta.push(t("tui.toolCard.meta.inScope", { path: scopePaths.join(", ") }));
+		if (args.skip !== undefined && args.skip > 0) meta.push(t("tui.astGrepCard.meta.skip", { count: args.skip }));
+		return { head: toolHead(t("tui.astGrepCard.title"), span(args.pat ?? "?", "code"), ...meta) };
 	},
 
 	describeResult(
@@ -188,9 +192,9 @@ export const astGrepToolRenderer = {
 		const pattern = span(args?.pat ?? "?", "code");
 		if (result.isError) {
 			return {
-				head: toolHead("AST Grep", pattern),
+				head: toolHead(t("tui.astGrepCard.title"), pattern),
 				tone: "error",
-				body: [errorText(resultText(result) || "Unknown error")],
+				body: [errorText(resultText(result) || t("tui.toolCard.error.unknown"))],
 			};
 		}
 		const matchCount = details?.matchCount ?? 0;
@@ -211,25 +215,24 @@ export const astGrepToolRenderer = {
 					)
 				: undefined;
 		if (matchCount === 0) {
-			const meta = ["0 matches"];
-			if (details?.scopePath) meta.push(`in ${details.scopePath}`);
-			if (filesSearched > 0) meta.push(`searched ${filesSearched}`);
+			const meta = [formatCount("match", 0)];
+			if (details?.scopePath) meta.push(t("tui.toolCard.meta.inScope", { path: details.scopePath }));
+			if (filesSearched > 0) meta.push(t("tui.toolCard.meta.searched", { count: filesSearched }));
 			return {
-				head: toolHead("AST Grep", pattern, ...meta),
+				head: toolHead(t("tui.astGrepCard.title"), pattern, ...meta),
 				tone: "warning",
 				body: compact<NativeChild>([
-					noteText("No matches found"),
-					parseErrors.length > 0 &&
-						noteText("Query may be mis-scoped; narrow `path` before concluding absence", "warning"),
+					noteText(t("tui.astGrepCard.empty.noMatches")),
+					parseErrors.length > 0 && noteText(t("tui.astGrepCard.warning.misScoped"), "warning"),
 					parseNote,
 				]),
 			};
 		}
 		const meta = [formatCount("match", matchCount), formatCount("file", details?.fileCount ?? 0)];
-		if (details?.scopePath) meta.push(`in ${details.scopePath}`);
-		meta.push(`searched ${filesSearched}`);
-		const head = toolHead("AST Grep", pattern, ...meta);
-		if (limitReached) head.push(span(" limit reached", "warning"));
+		if (details?.scopePath) meta.push(t("tui.toolCard.meta.inScope", { path: details.scopePath }));
+		meta.push(t("tui.toolCard.meta.searched", { count: filesSearched }));
+		const head = toolHead(t("tui.astGrepCard.title"), pattern, ...meta);
+		if (limitReached) head.push(span(` ${t("tui.toolCard.badge.limitReached")}`, "warning"));
 		const allLines = (details?.displayContent ?? resultText(result)).split("\n");
 		const kept = groupLineIndicesByBlank(allLines)
 			.filter(indices => {
@@ -241,7 +244,7 @@ export const astGrepToolRenderer = {
 			head,
 			body: compact<NativeChild>([
 				...describeGroupedOutput(kept, { lang: getLanguageFromPath }),
-				limitReached && noteText("limit reached; narrow path or increase limit", "warning"),
+				limitReached && noteText(t("tui.astGrepCard.hint.limitNarrow"), "warning"),
 				parseNote,
 			]),
 			preview: { lines: COLLAPSED_MATCH_LIMIT },

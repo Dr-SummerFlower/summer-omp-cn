@@ -24,6 +24,7 @@ import { Args, Command, Flags } from "@oh-my-pi/pi-utils/cli";
 import { installHelp as commandHelp } from "../cli/command-help";
 import { type PluginAction, type PluginCommandArgs, runPluginCommand } from "../cli/plugin-cli";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /**
  * Heuristic used to decide whether `omp install <target>` should `link` a
@@ -45,18 +46,18 @@ export default class Install extends Command {
 	static description = commandHelp.description;
 	static args = {
 		targets: Args.string({
-			description: "Local path, npm spec, or marketplace ref (e.g. ./my-ext, my-pkg@1.2.3, name@marketplace)",
+			description: t("cli.install.localPathNpmSpecOrMarketplace"),
 			required: false,
 			multiple: true,
 		}),
 	};
 
 	static flags = {
-		json: Flags.boolean({ description: "Output JSON" }),
-		force: Flags.boolean({ description: "Force install" }),
-		"dry-run": Flags.boolean({ description: "Show actions without applying changes" }),
+		json: Flags.boolean({ description: t("cli.agents.outputJson") }),
+		force: Flags.boolean({ description: t("cli.install.forceInstall") }),
+		"dry-run": Flags.boolean({ description: t("cli.install.showActionsWithoutApplyingChanges") }),
 		scope: Flags.string({
-			description: 'Install scope: "user" (default) or "project" (marketplace installs only)',
+			description: t("cli.install.installScopeUserDefaultOrProject"),
 			options: ["user", "project"],
 		}),
 	};
@@ -66,7 +67,7 @@ export default class Install extends Command {
 		const targets = Array.isArray(args.targets) ? args.targets : args.targets ? [args.targets] : [];
 
 		if (targets.length === 0) {
-			process.stderr.write("Usage: omp install <path | npm-spec | name@marketplace> [...]\n");
+			process.stderr.write(t("cli.install.usageOmpInstallPathNpmSpec"));
 			process.exit(1);
 		}
 

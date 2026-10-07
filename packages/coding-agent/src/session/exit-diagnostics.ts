@@ -1,5 +1,6 @@
 import type { AgentMessage } from "@oh-my-pi/pi-agent-core";
 import type { AssistantMessage } from "@oh-my-pi/pi-ai";
+import { t } from "@oh-my-pi/pi-i18n";
 import type { SessionEntry } from "./session-entries";
 
 export const TOOL_EXECUTION_START_CUSTOM_TYPE = "tool_execution_start";
@@ -305,6 +306,8 @@ export function describePendingToolCalls(entries: readonly SessionEntry[]): stri
 	const pending = collectPendingToolCalls(entries);
 	if (pending.length === 0) return undefined;
 	const formatted = pending.map(formatPendingToolCall).join(", ");
-	const noun = pending.length === 1 ? "tool call" : "tool calls";
-	return `Previous session ended while ${pending.length} ${noun} remained pending: ${formatted}. The prior OMP process exited before recording tool result(s).`;
+	if (pending.length === 1) {
+		return t("tui.session.pendingToolCallsWarningOne", { items: formatted });
+	}
+	return t("tui.session.pendingToolCallsWarningMany", { count: pending.length, items: formatted });
 }

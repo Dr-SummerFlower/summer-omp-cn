@@ -16,6 +16,7 @@ import { ansi, kv } from "../native/describe";
 import type { NativeChild } from "../native/node";
 import { OwnerMemo } from "../native/memo";
 import { errorView, noteText, resultText, toolHead } from "./native-view";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Display fields captured from a debugger session. */
 export interface DebugSessionSnapshot {
@@ -81,7 +82,7 @@ export function formatSessionSnapshot(snapshot: DebugSessionSnapshot): string[] 
 	const location = formatLocation(snapshot);
 	if (location) lines.push(`Location: ${location}`);
 	if (snapshot.needsConfigurationDone) {
-		lines.push("Configuration: pending configurationDone; set breakpoints, then continue.");
+		lines.push(t("tui.tools.debug.configurationPendingConfigurationdoneSetBreakpoi"));
 	}
 	if (snapshot.exitCode !== undefined) lines.push(`Exit code: ${snapshot.exitCode}`);
 	return lines;
@@ -155,9 +156,9 @@ function describeDebugResult(
 			["Status", snapshot.status],
 			["CWD", snapshot.cwd],
 			["Program", snapshot.program],
-			["Stop reason", snapshot.stopReason],
+			[t("tui.tools.debug.stopReason"), snapshot.stopReason],
 			["Frame", snapshot.frameName],
-			["Instruction pointer", snapshot.instructionPointerReference],
+			[t("tui.tools.debug.instructionPointer"), snapshot.instructionPointerReference],
 			["Location", location ?? undefined],
 			[
 				"Configuration",

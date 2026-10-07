@@ -7,6 +7,7 @@ import type {
 	MemoryBackendSearchOptions,
 	MemoryRuntimeContext,
 } from "./types";
+import { t } from "@oh-my-pi/pi-i18n";
 export function createMemoryRuntimeContext(context: MemoryBackendOperationContext): MemoryRuntimeContext {
 	const settings = context.session?.settings;
 	return {
@@ -17,7 +18,7 @@ export function createMemoryRuntimeContext(context: MemoryBackendOperationContex
 					active: false,
 					writable: false,
 					searchable: false,
-					message: "No active agent session.",
+					message: t("tui.ca.memoryBackend.runtime.noActiveAgentSession"),
 				};
 			}
 			const backend = await resolveMemoryBackend(settings);
@@ -28,7 +29,7 @@ export function createMemoryRuntimeContext(context: MemoryBackendOperationContex
 						active: backend.id !== "off",
 						writable: false,
 						searchable: false,
-						message: "This memory backend does not expose structured status.",
+						message: t("tui.ca.memoryBackend.runtime.thisMemoryBackendDoesNotExpose"),
 					};
 		},
 		async search(query: string, options?: MemoryBackendSearchOptions) {

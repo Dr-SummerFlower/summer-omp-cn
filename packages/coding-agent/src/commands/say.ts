@@ -24,18 +24,19 @@ import { resolveLocalSpeechModelId } from "../tts/vocalizer";
 import { encodeWav } from "../tts/wav";
 
 import { cfgTtsLocalVoice } from "../tts/settings";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export default class Say extends Command {
 	static description = commandHelp.description;
 	static args = {
-		text: Args.string({ description: "Text to speak (or use --file)" }),
+		text: Args.string({ description: t("cli.say.textToSpeakOrUseFile") }),
 	};
 
 	static flags = {
-		voice: Flags.string({ description: "Voice id", options: TTS_LOCAL_VOICE_VALUES }),
-		model: Flags.string({ description: "Local TTS model key" }),
-		file: Flags.string({ char: "f", description: "Read the text to speak from this file" }),
-		out: Flags.string({ char: "o", description: "Write WAV to this path instead of playing" }),
+		voice: Flags.string({ description: t("cli.say.voiceId"), options: TTS_LOCAL_VOICE_VALUES }),
+		model: Flags.string({ description: t("cli.say.localTtsModelKey") }),
+		file: Flags.string({ char: "f", description: t("cli.say.readTheTextToSpeakFrom") }),
+		out: Flags.string({ char: "o", description: t("cli.say.writeWavToThisPathInstead") }),
 	};
 
 	static examples = [

@@ -28,6 +28,7 @@ import type {
 import { ansi, compact, keyed } from "../native/describe";
 import type { NativeChild } from "../native/node";
 import { footnoteText, resultText } from "./native-view";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Default collapsed shell output preview height. */
 export const BASH_DEFAULT_PREVIEW_LINES = DEFAULT_TERMINAL_PREVIEW_LINES;
@@ -329,7 +330,7 @@ function bashStatsParts(
 		statsParts.push(`Wall: ${formatWallTimeSeconds(wallTimeMs)}s`);
 	}
 	if (timeoutDisabled) {
-		statsParts.push("Timeout: disabled");
+		statsParts.push(t("tui.tools.bash.timeoutDisabled"));
 	}
 	if (typeof timeoutSeconds === "number") {
 		statsParts.push(

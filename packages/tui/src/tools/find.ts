@@ -34,6 +34,7 @@ import type { NativeChild, NativeNode } from "../native/node";
 import { getLanguageFromPath } from "../lang-from-path";
 import { fileHref, fileRow, inlineErrorView } from "./native-view";
 import { splitUrlScheme } from "./url-scheme-host";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** A verified line range with its yes-probability and a one-line preview. */
 export interface FindRange {
@@ -230,7 +231,7 @@ export const findToolRenderer = {
 		const text = result.content?.find(c => c.type === "text")?.text ?? "";
 
 		if (result.isError) {
-			return new Text(formatErrorMessage(text || "Unknown error", uiTheme), 1, 0);
+			return new Text(formatErrorMessage(text || t("tui.tools.find.unknownError"), uiTheme), 1, 0);
 		}
 
 		// Streaming progress: the tool reports the phase it is in.
@@ -270,7 +271,7 @@ export const findToolRenderer = {
 				{ icon: "warning", title: "Find", titleColor: "toolTitle", description, meta: emptyMeta },
 				uiTheme,
 			);
-			const lines = [header, formatEmptyMessage("No relevant passages found", uiTheme)];
+			const lines = [header, formatEmptyMessage(t("tui.tools.find.noRelevantPassagesFound"), uiTheme)];
 			for (const failure of stats.failures) lines.push(uiTheme.fg("warning", failure));
 			return new Text(lines.join("\n"), 1, 0);
 		}
@@ -335,7 +336,8 @@ export const findToolRenderer = {
 		const details = result.details;
 		const progress = result.content?.find(c => c.type === "text")?.text ?? "";
 		const query = args?.query ?? details?.query;
-		if (result.isError) return inlineErrorView(findNativeHead(query, []), progress || "Unknown error");
+		if (result.isError)
+			return inlineErrorView(findNativeHead(query, []), progress || t("tui.tools.find.unknownError2"));
 		if (options.isPartial || details === undefined) {
 			return {
 				tool: findNativeHead(query, progress ? [[span(progress, "muted", { fx: "shimmer" })]] : []),

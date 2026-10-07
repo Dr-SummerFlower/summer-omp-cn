@@ -7,6 +7,7 @@ import { APP_NAME } from "@oh-my-pi/pi-utils";
 import { Args, Command, Flags } from "@oh-my-pi/pi-utils/cli";
 import { modelsHelp as commandHelp } from "../cli/command-help";
 import { resolveModelsArgs, runModelsCommand } from "../cli/models-cli";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const MODEL_KIND_OPTIONS: readonly (ModelKind | "all")[] = [...MODEL_KINDS, "all"];
 
@@ -14,32 +15,32 @@ export default class Models extends Command {
 	static description = commandHelp.description;
 	static args = {
 		action: Args.string({
-			description: "ls (default) | find | refresh | <provider>",
+			description: t("cli.models.lsDefaultFindRefreshProvider"),
 			required: false,
 		}),
 		pattern: Args.string({
-			description: "Filter/search substring, or provider name (required for find)",
+			description: t("cli.models.filterSearchSubstringOrProviderName"),
 			required: false,
 		}),
 	};
 
 	static flags = {
-		json: Flags.boolean({ description: "Output JSON" }),
+		json: Flags.boolean({ description: t("cli.agents.outputJson") }),
 		kind: Flags.string({
-			description: "Catalog kind to list",
+			description: t("cli.models.catalogKindToList"),
 			options: MODEL_KIND_OPTIONS,
 			default: "chat",
 		}),
 		extension: Flags.string({
 			char: "e",
-			description: "Load an extension file before listing (repeatable)",
+			description: t("cli.models.loadAnExtensionFileBeforeListing"),
 			multiple: true,
 		}),
 		"no-extensions": Flags.boolean({
-			description: "Disable extension discovery (explicit -e paths still work)",
+			description: t("cli.launch.disableExtensionDiscoveryExplicitEPaths"),
 		}),
 		config: Flags.string({
-			description: "Load an extra config.yml-style overlay for this run (repeatable)",
+			description: t("cli.launch.loadAnExtraConfigYmlStyle"),
 			multiple: true,
 		}),
 	};

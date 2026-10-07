@@ -1,6 +1,7 @@
 import type { AssistantMessage, ImageContent } from "@oh-my-pi/pi-ai";
 import * as AIError from "@oh-my-pi/pi-ai/error";
 import { getStreamingPartialJson } from "@oh-my-pi/pi-ai/utils/block-symbols";
+import { t } from "@oh-my-pi/pi-i18n";
 import { type Component, Loader, TERMINAL } from "@oh-my-pi/pi-tui";
 import { formatDuration, isRecord, logger, prompt, sanitizeText } from "@oh-my-pi/pi-utils";
 import { INTENT_FIELD } from "@oh-my-pi/pi-wire";
@@ -115,11 +116,11 @@ function nativeTaskJobToast(message: { role: string; customType?: string; detail
 	const details = message.details as AsyncResultJob & { jobs?: AsyncResultJob[] };
 	const jobs = details.jobs && details.jobs.length > 0 ? details.jobs : [details];
 	if (!jobs.every(job => job.type === "task")) return;
-	if (jobs.length > 1) return `${jobs.length} background tasks completed`;
+	if (jobs.length > 1) return t("tui.events.backgroundTasksCompleted", { count: jobs.length });
 	const job = jobs[0]!;
 	const name = sanitizeText(job.label ?? job.jobId ?? "task").trim() || "task";
 	const took = typeof job.durationMs === "number" ? ` · ${formatDuration(job.durationMs)}` : "";
-	return `Background task ${name} completed${took}`;
+	return `${t("tui.events.backgroundTaskCompleted", { name })}${took}`;
 }
 
 function exposesRawPartialJson(toolName: string, rawInput: boolean, tool: unknown): boolean {
@@ -2053,7 +2054,7 @@ export class EventController {
 			// error stays full-fidelity for the transcript and for replays.
 			const detail = textContent ? previewLine(sanitizeText(textContent), TRUNCATE_LENGTHS.LINE) : "";
 			this.ctx.showWarning(
-				`Todo update failed${detail ? `: ${detail}` : ". Progress may be stale until todo succeeds."}`,
+				detail ? t("tui.events.todoUpdateFailedDetail", { detail }) : t("tui.events.todoUpdateFailed"),
 				{ hideWithToolActivity: true },
 			);
 		}
@@ -2259,7 +2260,9 @@ export class EventController {
 	 * label carries no dangling whitespace.
 	 */
 	#maintenanceEscHint(): string {
-		return this.ctx.focusedAgentId ? "" : ` (${appKey(this.ctx.keybindings, "app.interrupt")} to cancel)`;
+		return this.ctx.focusedAgentId
+			? ""
+			: t("tui.events.cancelHint", { key: appKey(this.ctx.keybindings, "app.interrupt") });
 	}
 
 	async #handleAutoCompactionStart(
@@ -2272,22 +2275,22 @@ export class EventController {
 		this.ctx.statusContainer.disposeChildren();
 		const reasonText =
 			event.reason === "overflow"
-				? "Context overflow detected, "
+				? t("tui.compaction.reason.overflow")
 				: event.reason === "incomplete"
-					? "Response incomplete, "
+					? t("tui.compaction.reason.incomplete")
 					: event.reason === "idle"
-						? "Idle "
+						? t("tui.compaction.reason.idle")
 						: "";
 		const actionLabel =
 			event.action === "remote"
-				? "Auto server compaction"
+				? t("tui.compaction.remote")
 				: event.action === "handoff"
-					? "Auto-handoff"
+					? t("tui.events.autoHandoff")
 					: event.action === "shake"
-						? "Auto-shake"
+						? t("tui.events.autoShake")
 						: event.action === "snapcompact"
-							? "Auto-snapcompact"
-							: "Auto context-full maintenance";
+							? t("tui.events.autoSnapcompact")
+							: t("tui.events.autoContextFullMaintenance");
 		this.ctx.autoCompactionLoader = new Loader(
 			this.ctx.ui,
 			spinner => theme.fg("accent", spinner),
@@ -2325,14 +2328,14 @@ export class EventController {
 		if (event.aborted) {
 			this.ctx.showStatus(
 				isHandoffAction
-					? "Auto-handoff cancelled"
+					? t("tui.events.autoHandoffCancelled")
 					: isRemoteAction
-						? "Auto server compaction cancelled"
+						? t("tui.compaction.remoteCancelled")
 						: isShakeAction
-							? "Auto-shake cancelled"
+							? t("tui.events.autoShakeCancelled")
 							: isSnapcompactAction
-								? "Auto-snapcompact cancelled"
-								: "Auto context-full maintenance cancelled",
+								? t("tui.events.autoSnapcompactCancelled")
+								: t("tui.events.autoContextFullMaintenanceCancelled"),
 			);
 		} else if (isShakeAction) {
 			// Shake produces no CompactionResult; rebuild on success, suppress benign skips.
@@ -2351,7 +2354,7 @@ export class EventController {
 				this.ctx.rebuildChatFromMessages();
 				this.ctx.statusLine.invalidate();
 				this.ctx.ui.requestRender();
-				this.ctx.showStatus("Auto-shake completed");
+				this.ctx.showStatus(t("tui.events.autoShakeCompleted"));
 			}
 		} else if (event.result) {
 			this.ctx.lastAssistantUsage = undefined;
@@ -2376,16 +2379,16 @@ export class EventController {
 			this.ctx.statusLine.invalidate();
 			await this.ctx.reloadTodos();
 			this.ctx.ui.requestRender(true, { clearScrollback: true });
-			this.ctx.showStatus("Auto-handoff completed");
+			this.ctx.showStatus(t("tui.events.autoHandoffCompleted"));
 		} else if (event.skipped) {
 			// Benign skip: no model selected, no candidate models available, or nothing
 			// to compact yet. Not a failure — suppress the warning.
 		} else if (isSnapcompactAction) {
-			this.ctx.showWarning("Auto-snapcompact maintenance failed; continuing without maintenance");
+			this.ctx.showWarning(t("tui.events.autoSnapcompactFailed"));
 		} else if (isRemoteAction) {
-			this.ctx.showWarning("Auto server compaction failed; continuing without maintenance");
+			this.ctx.showWarning(t("tui.compaction.remoteFailed"));
 		} else {
-			this.ctx.showWarning("Auto context-full maintenance failed; continuing without maintenance");
+			this.ctx.showWarning(t("tui.events.autoContextFullFailed"));
 		}
 		await this.ctx.flushCompactionQueue({ willRetry: event.willRetry });
 		this.#ensureWorkingLoaderWhileStreaming();
@@ -2418,20 +2421,20 @@ export class EventController {
 			this.ctx.clearPinnedError();
 		}
 		const retryStartMs = Date.now();
-		const retryLabel = `Retrying (${event.attempt}/${event.maxAttempts})`;
+		const retryLabel = t("tui.events.retryLabel", { attempt: event.attempt, maxAttempts: event.maxAttempts });
 		this.ctx.retryLoader = new Loader(
 			this.ctx.ui,
 			spinner => theme.fg("warning", spinner),
 			text => theme.fg("muted", text),
 			() => {
 				const remaining = Math.max(0, event.delayMs - (Date.now() - retryStartMs));
-				return `${retryLabel} in ${formatDuration(remaining)}…${this.#maintenanceEscHint()}`;
+				return `${t("tui.events.retryingCountdown", { label: retryLabel, duration: formatDuration(remaining) })}${this.#maintenanceEscHint()}`;
 			},
 			getSymbolTheme().spinnerFrames,
 		);
 		this.ctx.retryLoader.setWorkingRow(
 			() => ({
-				label: `Retrying · attempt ${event.attempt} of ${event.maxAttempts}`,
+				label: t("tui.events.retryAttemptLabel", { attempt: event.attempt, maxAttempts: event.maxAttempts }),
 				startedAt: retryStartMs,
 				variant: { kind: "retry", attempt: event.attempt, max: event.maxAttempts, delayMs: event.delayMs },
 				interruptKey: this.ctx.maintenanceInterruptKey(),
@@ -2487,12 +2490,17 @@ export class EventController {
 		if (!event.success) {
 			if (terminalFailurePinned) {
 				const terminalError = this.#restorePinnedErrorInline
-					? `Retry failed after ${event.attempt} attempts: ${event.finalError || pinnedError || "Unknown error"}`
+					? t("tui.events.retryFailed", {
+							attempt: event.attempt,
+							error: event.finalError || pinnedError || "Unknown error",
+						})
 					: (pinnedError ?? event.finalError);
 				if (terminalError) this.ctx.showPinnedError(terminalError);
 				this.#restorePinnedErrorInline = true;
 			} else {
-				this.ctx.showError(`Retry failed after ${event.attempt} attempts: ${event.finalError || "Unknown error"}`);
+				this.ctx.showError(
+					t("tui.events.retryFailed", { attempt: event.attempt, error: event.finalError || "Unknown error" }),
+				);
 			}
 		}
 		this.#ensureWorkingLoaderWhileStreaming();
@@ -2505,13 +2513,13 @@ export class EventController {
 		const reason = event.reason
 			? `\n${previewLine(sanitizeText(event.reason), TRUNCATE_LENGTHS.LINE * PREVIEW_LIMITS.COLLAPSED_LINES)}`
 			: "";
-		this.ctx.showWarning(`Fallback: ${event.from} -> ${event.to}${reason}`);
+		this.ctx.showWarning(`${t("tui.events.fallback", { from: event.from, to: event.to })}${reason}`);
 	}
 
 	async #handleRetryFallbackSucceeded(
 		event: Extract<AgentSessionEvent, { type: "retry_fallback_succeeded" }>,
 	): Promise<void> {
-		this.ctx.showStatus(`Fallback succeeded on ${event.model}`);
+		this.ctx.showStatus(t("tui.events.fallbackSucceeded", { model: event.model }));
 	}
 
 	async #handleTtsrTriggered(event: Extract<AgentSessionEvent, { type: "ttsr_triggered" }>): Promise<void> {
@@ -2639,7 +2647,7 @@ export class EventController {
 			const recap = previewLine(replyText, TRUNCATE_LENGTHS.RECAP);
 			if (!recap) return;
 			session.sessionManager.recordRecap(replyText);
-			this.ctx.showStatus(theme.fg("dim", theme.italic(`※ recap: ${recap}`)), { dim: false });
+			this.ctx.showStatus(theme.fg("dim", theme.italic(`※ ${t("tui.events.recap", { recap })}`)), { dim: false });
 		} catch (error) {
 			if (!abort.signal.aborted) logger.debug("Idle recap turn failed", { error: String(error) });
 		} finally {
@@ -2704,7 +2712,7 @@ export class EventController {
 		const sessionName = this.ctx.sessionManager.getSessionName();
 		TERMINAL.sendNotification({
 			title: sessionName || "omp",
-			body: "Stopped with error",
+			body: t("tui.events.notifyStoppedWithError"),
 			type: "error",
 			actions: "focus",
 		});
@@ -2729,7 +2737,7 @@ export class EventController {
 		const sessionName = this.ctx.sessionManager.getSessionName();
 		TERMINAL.sendNotification({
 			title: sessionName || "omp",
-			body: "Complete",
+			body: t("tui.events.notifyComplete"),
 			type: "completion",
 			actions: "focus",
 		});

@@ -18,6 +18,7 @@ import type {
 	UrlCompletion,
 } from "./types";
 import { cfgSecurityEnabled } from "../tools/settings";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export type SecurityStoreResolver = (cwd: string, signal?: AbortSignal) => Promise<SecurityStore>;
 
@@ -245,7 +246,9 @@ export class SecurityProtocolHandler implements ProtocolHandler {
 		if (!(securityEnabledFromContext(context) ?? this.#enabled())) return [];
 		const store = await this.#store(context);
 		const scans = await store.listScans();
-		const candidates: UrlCompletion[] = [{ value: "scans", label: "Scans", description: "Stored security scans" }];
+		const candidates: UrlCompletion[] = [
+			{ value: "scans", label: "Scans", description: t("tui.ca.internalUrls.securityProtocol.storedSecurityScans") },
+		];
 		for (const scan of scans.slice(0, 50)) {
 			const prefix = `scans/${scan.id}`;
 			candidates.push({

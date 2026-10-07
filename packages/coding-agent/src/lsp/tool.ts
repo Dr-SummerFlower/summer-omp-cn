@@ -107,6 +107,7 @@ import { formatGroupedDiagnosticMessages } from "@oh-my-pi/pi-tui/tools/output-m
 import { runWorkspaceDiagnostics } from "./workspace-diagnostics";
 
 import { cfgToolsMaxTimeout } from "../tools/settings";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const MAX_RENAME_PAIRS = 1000;
 
@@ -245,7 +246,7 @@ export class LspTool implements AgentTool<typeof lspSchema, LspToolDetails, Them
 
 			const lines: string[] = [];
 			if (configuredNames.length === 0) {
-				lines.push("No language servers configured for this project");
+				lines.push(t("tui.ca.lsp.tool.noLanguageServersConfiguredForThis"));
 			} else {
 				const labelled = configuredNames.map(name => {
 					const started = startedByConfigName.get(name);
@@ -471,7 +472,7 @@ export class LspTool implements AgentTool<typeof lspSchema, LspToolDetails, Them
 					content: [
 						{
 							type: "text",
-							text: "Error: rename_file requires both `file` (source path) and `new_name` (destination path)",
+							text: t("tui.ca.lsp.tool.errorRenameFileRequiresBothFile"),
 						},
 					],
 					details: { action, success: false, request: params },
@@ -974,7 +975,7 @@ export class LspTool implements AgentTool<typeof lspSchema, LspToolDetails, Them
 				content: [
 					{
 						type: "text",
-						text: "Error: file parameter required. Use `*` for workspace scope where supported.",
+						text: t("tui.ca.lsp.tool.errorFileParameterRequiredUseFor"),
 					},
 				],
 				details: { action, success: false },
@@ -1221,7 +1222,7 @@ export class LspTool implements AgentTool<typeof lspSchema, LspToolDetails, Them
 					const locations = normalizeLocationResult(result);
 
 					if (locations.length === 0) {
-						output = "No definition found";
+						output = t("tui.ca.lsp.tool.noDefinitionFound");
 						useless = true;
 					} else {
 						const lines = await Promise.all(
@@ -1246,7 +1247,7 @@ export class LspTool implements AgentTool<typeof lspSchema, LspToolDetails, Them
 					const locations = normalizeLocationResult(result);
 
 					if (locations.length === 0) {
-						output = "No type definition found";
+						output = t("tui.ca.lsp.tool.noTypeDefinitionFound");
 						useless = true;
 					} else {
 						const lines = await Promise.all(
@@ -1271,7 +1272,7 @@ export class LspTool implements AgentTool<typeof lspSchema, LspToolDetails, Them
 					const locations = normalizeLocationResult(result);
 
 					if (locations.length === 0) {
-						output = "No implementation found";
+						output = t("tui.ca.lsp.tool.noImplementationFound");
 						useless = true;
 					} else {
 						const lines = await Promise.all(
@@ -1309,7 +1310,7 @@ export class LspTool implements AgentTool<typeof lspSchema, LspToolDetails, Them
 					}
 
 					if (!result || result.length === 0) {
-						output = "No references found";
+						output = t("tui.ca.lsp.tool.noReferencesFound");
 						useless = true;
 					} else {
 						const contextualReferences = result.slice(0, REFERENCE_CONTEXT_LIMIT);
@@ -1342,7 +1343,7 @@ export class LspTool implements AgentTool<typeof lspSchema, LspToolDetails, Them
 					)) as Hover | null;
 
 					if (!result?.contents) {
-						output = "No hover information";
+						output = t("tui.ca.lsp.tool.noHoverInformation");
 					} else {
 						output = extractHoverText(result.contents);
 					}
@@ -1392,14 +1393,14 @@ export class LspTool implements AgentTool<typeof lspSchema, LspToolDetails, Them
 					)) as (CodeAction | Command)[] | null;
 
 					if (!result || result.length === 0) {
-						output = "No code actions available";
+						output = t("tui.ca.lsp.tool.noCodeActionsAvailable");
 						break;
 					}
 
 					if (apply === true && query) {
 						const normalizedQuery = query.trim();
 						if (normalizedQuery.length === 0) {
-							output = "Error: query parameter required when apply=true for code_actions";
+							output = t("tui.ca.lsp.tool.errorQueryParameterRequiredWhenApply");
 							break;
 						}
 						const parsedIndex = /^\d+$/.test(normalizedQuery) ? Number.parseInt(normalizedQuery, 10) : null;
@@ -1458,7 +1459,7 @@ export class LspTool implements AgentTool<typeof lspSchema, LspToolDetails, Them
 				}
 				case "symbols": {
 					if (!targetFile) {
-						output = "Error: file parameter required for document symbols";
+						output = t("tui.ca.lsp.tool.errorFileParameterRequiredForDocument");
 						break;
 					}
 					// File-based document symbols
@@ -1472,7 +1473,7 @@ export class LspTool implements AgentTool<typeof lspSchema, LspToolDetails, Them
 					)) as (DocumentSymbol | SymbolInformation)[] | null;
 
 					if (!result || result.length === 0) {
-						output = "No symbols found";
+						output = t("tui.ca.lsp.tool.noSymbolsFound");
 						useless = true;
 					} else {
 						const relPath = formatPathRelativeToCwd(targetFile, this.session.cwd);
@@ -1511,7 +1512,7 @@ export class LspTool implements AgentTool<typeof lspSchema, LspToolDetails, Them
 					)) as WorkspaceEdit | null;
 
 					if (!result) {
-						output = "Rename returned no edits";
+						output = t("tui.ca.lsp.tool.renameReturnedNoEdits");
 					} else {
 						const shouldApply = apply !== false;
 						if (shouldApply) {

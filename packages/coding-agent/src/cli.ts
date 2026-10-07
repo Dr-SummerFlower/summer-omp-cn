@@ -14,14 +14,19 @@ try {
  * CLI entry point — registers all commands explicitly and delegates to the
  * lightweight CLI runner from pi-utils.
  */
+import * as path from "node:path";
 import type * as WorkerThreads from "node:worker_threads";
 import type { MessagePort } from "node:worker_threads";
+import { YAML } from "bun";
+import { setLanguage } from "@oh-my-pi/pi-i18n";
 import type { Process, ProcessStatus } from "@oh-my-pi/pi-natives";
 import type { CliConfig, CommandMetadata } from "@oh-my-pi/pi-utils/cli";
 import type * as Postmortem from "@oh-my-pi/pi-utils/postmortem";
 import {
 	APP_NAME,
 	getActiveProfile,
+	getAgentDir,
+	MAIN_CONFIG_FILENAMES,
 	MIN_BUN_VERSION,
 	resolveProfileEnv,
 	setProfile,
@@ -108,6 +113,34 @@ async function installNetworkBootstrap(): Promise<void> {
 // worker entrypoints) happens inside `runCli` after profile bootstrap:
 // `@oh-my-pi/pi-utils/env` eagerly loads `.env` from the agent directory at
 // import time, so it must not be imported before `setProfile` runs.
+
+/**
+ * Resolve the interface language before any command/help metadata is evaluated:
+ * `t()` freezes at call time and `cli-commands` (imported below) evaluates every
+ * help description on import. Reads the raw `language` key from the global
+ * config.yml instead of the Settings layer, whose import pulls in the TUI graph
+ * and would erase the CLI's cold-start budget. `PI_LANG` overrides, which also
+ * lets tests pin the catalog to English.
+ */
+async function initCliLanguage(): Promise<void> {
+	const override = process.env.PI_LANG;
+	if (override) {
+		setLanguage(override);
+		return;
+	}
+	const agentDir = getAgentDir();
+	for (const name of MAIN_CONFIG_FILENAMES) {
+		try {
+			const parsed = YAML.parse(await Bun.file(path.join(agentDir, name)).text()) as { language?: unknown } | null;
+			if (parsed && typeof parsed === "object" && "language" in parsed) {
+				setLanguage(parsed.language);
+				return;
+			}
+		} catch {
+			// Missing or malformed config: fall through to the default (English).
+		}
+	}
+}
 
 async function showHelp(config: CliConfig<CommandMetadata>): Promise<void> {
 	// Root help historically loads the selected profile's environment. The
@@ -591,6 +624,7 @@ export async function runCli(argv: string[]): Promise<void> {
 	}
 
 	try {
+		await initCliLanguage();
 		const [{ run }, { commands, resolveCliArgv }] = await Promise.all([
 			import("@oh-my-pi/pi-utils/cli"),
 			import("./cli-commands"),

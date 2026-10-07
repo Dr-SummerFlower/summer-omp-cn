@@ -16,6 +16,7 @@ import assignmentPrompt from "./prompts/assignment.md" with { type: "text" };
 import discoveryPrompt from "./prompts/discovery.md" with { type: "text" };
 import followUpPrompt from "./prompts/follow-up.md" with { type: "text" };
 import type { CleanseAgentOutcome, CleanseAssignment, CleanseDiagnostic, CleanseLoopResult } from "./types";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const MAX_DIAGNOSTIC_MESSAGE = 4_000;
 
@@ -96,7 +97,7 @@ export async function createCleanseAgentRuntime(options: {
 	});
 	await sessionManager.ensureOnDisk();
 	const sessionFile = sessionManager.getSessionFile();
-	if (!sessionFile) throw new Error("Cleanse session could not be persisted");
+	if (!sessionFile) throw new Error(t("tui.ca.cleanse.agent.cleanseSessionCouldNotBePersisted"));
 	const eventBus = new EventBus();
 	const toolSession: ToolSession = {
 		cwd,

@@ -22,6 +22,7 @@ import { pathMatchesSecurityScope } from "./preflight";
 import { createNativeSecurityProducer, createNativeSecurityProvenance } from "./provenance";
 import { exportSecurityBundleToSarif } from "./sarif";
 import { type SecurityStore, writeSecurityBundleToDirectory } from "./store";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const publishLocationSchema = type({
 	path: type("string > 0").describe("repository-relative source path"),
@@ -335,7 +336,7 @@ export function createSecurityPublicationTool(
 	let published = false;
 	return {
 		name: "security_publish",
-		label: "Publish Security Scan",
+		label: t("tui.ca.security.publication.publishSecurityScan"),
 		description: securityPublishDescription.trim(),
 		parameters: securityPublishSchema,
 		approval: "write",

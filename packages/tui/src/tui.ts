@@ -56,6 +56,7 @@ import {
 	truncateToWidth,
 	visibleWidth,
 } from "./utils";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Full-attribute reset terminating each rendered content row. */
 export const SEGMENT_RESET = "\x1b[0m";
@@ -2232,7 +2233,7 @@ export class TUI extends Container {
 			const acceptedBefore = this.#acceptedHistoryBatchId;
 			this.#emitPlanFrame(width, height, viewport, plan.history, provider);
 			if (plan.history.id > acceptedBefore && this.#acceptedHistoryBatchId === acceptedBefore) {
-				throw new Error("History flush did not accept the offered batch");
+				throw new Error(t("tui.tui.historyFlushDidNotAcceptThe"));
 			}
 		}
 	}

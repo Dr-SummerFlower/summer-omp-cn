@@ -38,6 +38,7 @@ import {
 } from "../slash-commands/helpers/usage-accounts";
 
 import { cfgRetryUsageReservePct } from "../session/settings";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const BAR_WIDTH = 28;
 
@@ -988,9 +989,9 @@ export async function runUsageCommand(cmd: UsageCommandArgs): Promise<void> {
 			const provider = cmd.provider?.toLowerCase();
 			await authStorage.usage.invalidate(provider);
 			if (provider) {
-				process.stdout.write(`Invalidated cached usage reports for provider "${provider}".\n`);
+				process.stdout.write(t("cli.usage.invalidatedCachedUsageReportsForProvider", { provider: provider }));
 			} else {
-				process.stdout.write("Invalidated cached usage reports for all providers.\n");
+				process.stdout.write(t("cli.usage.invalidatedCachedUsageReportsForAll"));
 			}
 			return;
 		}

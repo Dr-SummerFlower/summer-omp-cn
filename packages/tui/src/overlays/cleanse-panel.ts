@@ -19,6 +19,7 @@ import type {
 	CleanseAssignment,
 	CleanseAgentOutcome,
 } from "../apps/cleanse-board";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const SPINNER_INTERVAL_MS = 80;
 const MAX_LOG_LINES = 14;
@@ -219,7 +220,7 @@ export class CleansePanelComponent extends OverlayPanel {
 		const esc: NativeHint = { keys: boundKeys("app.interrupt", ["escape"]).slice(0, 1), label: "dismiss" };
 		switch (this.#outcome) {
 			case undefined:
-				return hintsRow([{ ...esc, label: "cancel /cleanse" }]);
+				return hintsRow([{ ...esc, label: t("tui.overlays.cleansePanel.cancelCleanse") }]);
 			case "clean":
 				return statusHintsRow([span(`${theme.status.success} Clean`, "success")], [esc]);
 			case "unresolved":

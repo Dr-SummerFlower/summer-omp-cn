@@ -10,6 +10,7 @@ import { card, node, row, span, text } from "../native/describe";
 import type { DescribeContext, NativeNode, NativeUiEvent } from "../native/node";
 import { actionBar, actionButton } from "../native/overlay";
 import { Memo } from "../native/memo";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Distinct states of a realtime call connection. */
 export type LivePhase = "connecting" | "listening" | "working" | "speaking" | "muted" | "error";
@@ -194,7 +195,7 @@ export class LiveVisualizer implements Component {
 				actionBar([
 					null,
 					actionButton(phase === "muted" ? "Unmute" : "Mute", "mute", { keys: "space" }),
-					actionButton("End call", "end", { keys: "escape", tone: "error" }),
+					actionButton(t("tui.apps.liveVisualizer.endCall"), "end", { keys: "escape", tone: "error" }),
 				]),
 			]);
 		});

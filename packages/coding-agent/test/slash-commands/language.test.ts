@@ -3,7 +3,8 @@ import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
-import { getLanguage, setLanguage } from "@oh-my-pi/pi-coding-agent/i18n";
+import { getLanguage, setLanguage } from "@oh-my-pi/pi-i18n";
+import { cfgLanguage } from "@oh-my-pi/pi-coding-agent/modes/settings";
 import type { InteractiveModeContext } from "@oh-my-pi/pi-coding-agent/modes/types";
 import { AgentStorage } from "@oh-my-pi/pi-coding-agent/session/agent-storage";
 import {
@@ -49,7 +50,7 @@ describe("/language", () => {
 		const handled = await executeBuiltinSlashCommand("/language zh-CN", runtime.runtime);
 
 		expect(handled).toBe(true);
-		expect(settings.get("language")).toBe("zh-CN");
+		expect(cfgLanguage.get(settings)).toBe("zh-CN");
 		expect(getLanguage()).toBe("zh-CN");
 		expect(runtime.refreshSlashCommandState).toHaveBeenCalledTimes(1);
 		expect(runtime.requestRender).toHaveBeenCalledTimes(1);
@@ -64,7 +65,7 @@ describe("/language", () => {
 		await executeBuiltinSlashCommand("/language 中文", runtime.runtime);
 		await executeBuiltinSlashCommand("/language fr", runtime.runtime);
 
-		expect(settings.get("language")).toBe("zh-CN");
+		expect(cfgLanguage.get(settings)).toBe("zh-CN");
 		expect(runtime.showWarning).toHaveBeenCalledTimes(1);
 		expect(runtime.showWarning.mock.calls[0]?.[0]).toContain("未知语言");
 	});
@@ -82,13 +83,13 @@ describe("/language", () => {
 		const agentDir = await fs.mkdtemp(path.join(os.tmpdir(), "omp-language-test-"));
 		try {
 			const settings = await Settings.loadIsolated({ agentDir, cwd: agentDir });
-			settings.set("language", "zh-CN");
+			cfgLanguage.set(settings, "zh-CN");
 			await settings.flush();
 
 			const reloaded = await Settings.loadIsolated({ agentDir, cwd: agentDir });
-			expect(reloaded.get("language")).toBe("zh-CN");
+			expect(cfgLanguage.get(reloaded)).toBe("zh-CN");
 		} finally {
-			AgentStorage.resetInstance();
+			AgentStorage.close();
 			// Bun keeps the Windows SQLite handle alive until process teardown.
 		}
 	});

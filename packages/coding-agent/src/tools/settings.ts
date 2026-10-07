@@ -6,6 +6,7 @@ import { cfgEvalJs, cfgEvalPy } from "../eval/settings";
 import { cfgIdaAvailable } from "../ida/install";
 import { cfgLspEnabled } from "../lsp/settings";
 import { cfgTaskMaxRecursionDepth } from "../task/settings";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const EMPTY_STRING_ARRAY: string[] = [];
 
@@ -65,8 +66,7 @@ export const cfgToolsArtifactHeadBytes = register({
 		tab: "tools",
 		group: "Output Limits",
 		label: "Artifact Head Size (KB)",
-		description:
-			"Amount of head content kept inline alongside the tail when output spills to artifact (middle elision). 0 disables — keep tail only.",
+		description: t("tui.ca.tools.settings.amountOfHeadContentKeptInline"),
 		options: [
 			{ value: "0", label: "0 KB", description: "Disabled; tail-only truncation" },
 			{ value: "1", label: "1 KB", description: "~250 tokens" },
@@ -89,8 +89,7 @@ export const cfgToolsOutputMaxColumns = register({
 		tab: "tools",
 		group: "Output Limits",
 		label: "Output Column Cap",
-		description:
-			"Per-line byte cap for streaming tool outputs (bash, python, js eval) and `read`. Lines wider than this are ellipsis-truncated; remaining bytes up to the next newline are dropped. 0 disables.",
+		description: t("tui.ca.tools.settings.perLineByteCapForStreaming"),
 		options: [
 			{ value: "0", label: "Off", description: "No per-line cap" },
 			{ value: "256", label: "256", description: "Tight" },
@@ -235,8 +234,7 @@ export const cfgReadSummarizeUnfoldUntil = register({
 		tab: "files",
 		group: "Read Summaries",
 		label: "Read Summary Unfold Target",
-		description:
-			"BFS-unfold elidable spans until the summary is at least this many visible lines. 0 keeps only the outermost elisions.",
+		description: t("tui.ca.tools.settings.bfsUnfoldElidableSpansUntilThe"),
 	},
 });
 
@@ -248,8 +246,7 @@ export const cfgReadSummarizeUnfoldLimit = register({
 		tab: "files",
 		group: "Read Summaries",
 		label: "Read Summary Unfold Ceiling",
-		description:
-			"Hard ceiling on summary size while BFS-unfolding. An unfold whose revealed lines would exceed this is skipped (that span stays folded) and unfolding continues with the remaining spans.",
+		description: t("tui.ca.tools.settings.hardCeilingOnSummarySizeWhile"),
 	},
 });
 
@@ -278,8 +275,7 @@ export const cfgToolsApproval = register({
 		tab: "interaction",
 		group: "Approvals",
 		label: "Tool Approval Policies",
-		description:
-			"Per-tool approval policies. Set to 'allow' to auto-approve, 'prompt' to require confirmation, or 'deny' to block. Overrides are honored in every approval mode.",
+		description: t("tui.ca.tools.settings.perToolApprovalPoliciesSetTo"),
 	},
 });
 
@@ -296,8 +292,7 @@ export const cfgToolsApprovalMode = register({
 		tab: "interaction",
 		group: "Approvals",
 		label: "Tool Approval",
-		description:
-			"Default approval behavior for tool calls. 'Always ask' auto-approves read-only tools only. 'Write' auto-approves read and workspace-write tools. 'Yolo' auto-approves all tiers; user policy may still prompt or block.",
+		description: t("tui.ca.tools.settings.defaultApprovalBehaviorForToolCalls"),
 		options: [
 			{
 				value: "always-ask",
@@ -307,14 +302,12 @@ export const cfgToolsApprovalMode = register({
 			{
 				value: "write",
 				label: "Write",
-				description:
-					"Auto-approve read-only and write tools; require confirmation for exec tools such as bash, eval, browser, and task.",
+				description: t("tui.ca.tools.settings.autoApproveReadOnlyAndWrite"),
 			},
 			{
 				value: "yolo",
 				label: "Yolo",
-				description:
-					"Auto-approve read, write, and exec tools. User policy can still require confirmation or block calls.",
+				description: t("tui.ca.tools.settings.autoApproveReadWriteAndExec"),
 			},
 		],
 	},
@@ -505,8 +498,7 @@ export const cfgFindEnabled = register({
 		tab: "tools",
 		group: "Available Tools",
 		label: "Find (semantic grep)",
-		description:
-			"Enable the find tool: natural-language search for files and line ranges, judged by the judge model role. Auto enables it only when the judge role resolves to a native TypeSafe jev model",
+		description: t("tui.ca.tools.settings.enableTheFindToolNaturalLanguage"),
 		options: [
 			{
 				value: "auto",
@@ -626,8 +618,7 @@ export const cfgImagesQuestionTimeoutMs = register({
 		tab: "tools",
 		group: "Execution",
 		label: "Image Question Timeout",
-		description:
-			"Per-request timeout for the vision-model call behind read's ?q= image questions, in milliseconds. A stalled provider fails fast with a timeout error instead of blocking until manual abort. Set to 0 to disable the timeout.",
+		description: t("tui.ca.tools.settings.perRequestTimeoutForTheVision"),
 		options: [
 			{ value: "0", label: "Disabled" },
 			{ value: "60000", label: "1 minute" },
@@ -684,8 +675,7 @@ export const cfgGithubEnabled = register({
 		tab: "tools",
 		group: "Available Tools",
 		label: "GitHub CLI",
-		description:
-			"Enable the github tool (op-based dispatch for repository, issue, pull request, diff, search, checkout, push, and Actions watch workflows)",
+		description: t("tui.ca.tools.settings.enableTheGithubToolOpBased"),
 	},
 });
 
@@ -721,8 +711,7 @@ export const cfgGithubCacheHardTtlSec = register({
 		tab: "tools",
 		group: "GitHub",
 		label: "GitHub Cache Hard TTL",
-		description:
-			"Past the soft TTL the cached row is returned and refreshed in the background; past the hard TTL it is dropped (seconds; default 7 days)",
+		description: t("tui.ca.tools.settings.pastTheSoftTtlTheCached"),
 	},
 });
 
@@ -785,8 +774,7 @@ export const cfgToolsAbortOnFabricatedResult = register({
 		tab: "tools",
 		group: "Execution",
 		label: "Abort On Fabricated Tool Result",
-		description:
-			"With in-band tool calls, stop the model immediately when it starts hallucinating a tool result mid-turn. Disable to let the model finish generating and discard the fabricated continuation instead.",
+		description: t("tui.ca.tools.settings.withInBandToolCallsStop"),
 	},
 });
 
@@ -798,8 +786,7 @@ export const cfgToolsSpeculativeExecutionEnabled = register({
 		tab: "tools",
 		group: "Execution",
 		label: "Experimental Speculative Execution",
-		description:
-			"Enable the discard-safe first slice: validated local reads through direct read calls and nested eval. Network requests, provider completions, and live filesystem writes are not part of this baseline.",
+		description: t("tui.ca.tools.settings.enableTheDiscardSafeFirstSlice"),
 	},
 });
 
@@ -885,8 +872,7 @@ export const cfgToolsXdevDocs = register({
 		tab: "tools",
 		group: "Discovery & MCP",
 		label: "xd:// Prompt Docs",
-		description:
-			"Choose which mounted-device docs and schemas are inlined in the system prompt. Built-ins keeps core tools inline while MCP and extension tools stay on-demand.",
+		description: t("tui.ca.tools.settings.chooseWhichMountedDeviceDocsAnd"),
 		options: [
 			{ value: "inline", label: "All Devices", description: "Inline docs and schemas for every mounted device." },
 			{

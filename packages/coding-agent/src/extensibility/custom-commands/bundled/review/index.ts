@@ -14,6 +14,7 @@ import {
 	readUncommittedReviewTarget,
 	resolveLocalReviewTarget,
 } from "./target";
+import { t } from "@oh-my-pi/pi-i18n";
 
 interface ParsedReviewArgs {
 	prRef: ReviewPrRef | undefined;
@@ -199,7 +200,7 @@ export async function selectReviewChoice(
 	];
 	if (options.includeCustom) choices.push({ label: "4. Custom review instructions", kind: "custom" });
 	const selected = await ctx.ui.select(
-		"Review Mode",
+		t("tui.ca.extensibility.customCommands.bundled.review.index.reviewMode"),
 		choices.map(choice => choice.label),
 	);
 	return choices.find(choice => choice.label === selected);
@@ -269,7 +270,7 @@ export class ReviewCommand implements CustomCommand {
 		}
 		if (selectedChoice.kind === "custom") {
 			const instructions = await ctx.ui.editor(
-				"Enter custom review instructions",
+				t("tui.ca.extensibility.customCommands.bundled.review.index.enterCustomReviewInstructions"),
 				"Review the following:\n\n",
 				undefined,
 				{ promptStyle: true },

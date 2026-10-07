@@ -46,6 +46,7 @@ import {
 	visibleMcpTools,
 } from "./mcp-runtime";
 import { type Extension, type ExtensionState, isShadowedExtension } from "./types";
+import { t } from "@oh-my-pi/pi-i18n";
 
 export type { ToolRuntimeSource };
 
@@ -117,7 +118,10 @@ export class InspectorPanel implements Component {
 
 	render(width: number): readonly string[] {
 		if (!this.#extension) {
-			return [theme.fg("muted", "Select an extension"), theme.fg("dim", "to view details")];
+			return [
+				theme.fg("muted", t("tui.overlays.extensions.inspectorPanel.selectAnExtension")),
+				theme.fg("dim", "to view details"),
+			];
 		}
 		this.#width = width;
 		this.#toolFrame = snapshotToolRuntimeSource(this.#toolSource);
@@ -268,7 +272,13 @@ export class InspectorPanel implements Component {
 		if (snap?.url) this.#pushLabeled(config, "URL", snap.url, width, "success");
 		if (snap?.args && snap.args.length > 0) this.#pushLabeled(config, "Args", snap.args.join(" "), width, "dim");
 		if (snap && snap.envCount > 0) {
-			this.#pushLabeled(config, "Env vars", `${snap.envCount} defined`, width, "dim");
+			this.#pushLabeled(
+				config,
+				t("tui.overlays.extensions.inspectorPanel.envVars"),
+				`${snap.envCount} defined`,
+				width,
+				"dim",
+			);
 		}
 		if (config.length > 0) config.push("");
 

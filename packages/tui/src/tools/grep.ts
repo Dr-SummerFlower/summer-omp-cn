@@ -29,6 +29,7 @@ import {
 	replaceTabs,
 } from "../render/render-utils";
 import { classifyGroupedLines, describeGroupedOutput, groupLineIndicesByBlank } from "./grouped-file-output";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Display metadata for grep tool results. */
 export interface GrepToolDetails {
@@ -280,7 +281,7 @@ export const grepToolRenderer = {
 		if (!hasDetailedData) {
 			const textContent = result.details?.displayContent ?? result.content?.find(c => c.type === "text")?.text;
 			if (!textContent || textContent === "No matches found") {
-				return new Text(formatEmptyMessage("No matches found", uiTheme), 1, 0);
+				return new Text(formatEmptyMessage(t("tui.tools.grep.noMatchesFound"), uiTheme), 1, 0);
 			}
 			const lines = textContent.split("\n").filter(line => line.trim() !== "");
 			const description = args?.pattern ?? undefined;
@@ -334,7 +335,7 @@ export const grepToolRenderer = {
 				{ icon: "warning", title: "Grep", titleColor: "toolTitle", description: args?.pattern, meta },
 				uiTheme,
 			);
-			const lines = [header, formatEmptyMessage("No matches found", uiTheme)];
+			const lines = [header, formatEmptyMessage(t("tui.tools.grep.noMatchesFound2"), uiTheme)];
 			if (missingNote) lines.push(missingNote);
 			return new Text(lines.join("\n"), 1, 0);
 		}
@@ -403,7 +404,10 @@ export const grepToolRenderer = {
 	): NativeToolView {
 		const details = result.details;
 		if (result.isError || details?.error) {
-			return inlineErrorView(grepNativeHead(args), details?.error || resultText(result) || "Unknown error");
+			return inlineErrorView(
+				grepNativeHead(args),
+				details?.error || resultText(result) || t("tui.tools.grep.unknownError"),
+			);
 		}
 		const textContent = details?.displayContent ?? resultText(result);
 		const missing = details?.missingPaths ?? [];

@@ -3,6 +3,7 @@ import { untilAborted } from "@oh-my-pi/pi-utils/abortable";
 import * as postmortem from "@oh-my-pi/pi-utils/postmortem";
 import { throwIfAborted } from "./tool-errors";
 import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const browserRunRejections = new WeakMap<object, object>();
 
@@ -84,7 +85,7 @@ function installPromiseCombinatorTracking(): void {
 		return;
 	}
 	const descriptor = Object.getOwnPropertyDescriptor(globalThis, "Promise");
-	if (!descriptor) throw new Error("Global Promise descriptor is unavailable");
+	if (!descriptor) throw new Error(t("tui.ca.tools.runScope.globalPromiseDescriptorIsUnavailable"));
 	const trackedPromise = createTrackedPromiseConstructor();
 	Object.defineProperty(globalThis, "Promise", { ...descriptor, value: trackedPromise });
 	previousPromiseDescriptor = descriptor;
@@ -98,7 +99,7 @@ function restorePromiseCombinatorTracking(): void {
 	}
 	const descriptor = previousPromiseDescriptor;
 	try {
-		if (!descriptor) throw new Error("Global Promise tracking scope is not installed");
+		if (!descriptor) throw new Error(t("tui.ca.tools.runScope.globalPromiseTrackingScopeIsNot"));
 		Object.defineProperty(globalThis, "Promise", descriptor);
 	} finally {
 		previousPromiseDescriptor = undefined;

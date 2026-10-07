@@ -14,6 +14,7 @@ import passageQuestionTemplate from "../../prompts/tools/find-passage-question.m
 import sketchQuestionTemplate from "../../prompts/tools/find-sketch-question.md" with { type: "text" };
 import { type Passage, plainContent } from "./passages";
 import { type FileEntry, renderTree } from "./tree";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** A judgment request: JSON state plus noul questions keyed by entry. */
 export interface Request {
@@ -21,8 +22,7 @@ export interface Request {
 	questions: Record<string, NoulQuestion>;
 }
 
-const TASK =
-	"Semantic grep over a source tree: locate files whose content matches the search description. Entries are judged by name, size, position in the tree, and (for folders) a sample of what they contain.";
+const TASK = t("tui.ca.tools.jfind.questions.semanticGrepOverASourceTree");
 
 const TREE_FORMAT =
 	"`tree` is a directory listing. Lines starting with # are headers: `# dir/` is a folder; more #s means deeper nesting under the header above; a header may fold several levels (`# a/b/c/`). Every judgeable entry carries a tag like e017 right after the #s: files as `e017 name (size)`, folders as `e017 name/ — N entries: sample of names`. Untagged header lines are only structure.";
@@ -30,23 +30,23 @@ const TREE_FORMAT =
 const FILE_CRITERIA = {
 	// Generated implementation is still implementation. File provenance must
 	// not itself be negative evidence for source-code searches.
-	no: "The file is unrelated by name and location; generated executable implementation can still be relevant.",
-	yes: "A file at this path plausibly contains code, text, or data matching the search.",
+	no: t("tui.ca.tools.jfind.questions.theFileIsUnrelatedByName"),
+	yes: t("tui.ca.tools.jfind.questions.aFileAtThisPathPlausibly"),
 };
 
 const FOLDER_CRITERIA = {
-	no: "Nothing about the folder's name, location, or sampled contents suggests it holds a match.",
-	yes: "The folder plausibly contains, at any depth, at least one file matching the search.",
+	no: t("tui.ca.tools.jfind.questions.nothingAboutTheFolderSName"),
+	yes: t("tui.ca.tools.jfind.questions.theFolderPlausiblyContainsAtAny"),
 };
 
 const SKETCH_CRITERIA = {
-	no: "Unrelated code; mere mentions, declarations, call sites, tests or configuration without implementation.",
-	yes: "Likely substantive implementation, definition or explanation of any part of the requested behavior. A matching helper for one step counts. Excerpts omit most source: favor recall.",
+	no: t("tui.ca.tools.jfind.questions.unrelatedCodeMereMentionsDeclarationsCall"),
+	yes: t("tui.ca.tools.jfind.questions.likelySubstantiveImplementationDefinitionOrExpla"),
 };
 
 const PASSAGE_CRITERIA = {
-	no: "This passage only mentions, calls, imports, tests, or configures the subject, or contains unrelated code sharing keywords.",
-	yes: "This passage contains an implementation, definition, or substantive explanation of an important part of the search. A helper implementing one requested step counts even when other steps are elsewhere.",
+	no: t("tui.ca.tools.jfind.questions.thisPassageOnlyMentionsCallsImports"),
+	yes: t("tui.ca.tools.jfind.questions.thisPassageContainsAnImplementationDefinition"),
 };
 
 /** Question key of the `i`th entry in a filename batch. */

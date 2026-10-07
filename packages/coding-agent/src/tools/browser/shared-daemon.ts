@@ -18,6 +18,7 @@ import type { DaemonSnapshot } from "@oh-my-pi/pi-tui/tools/daemon";
 import { throwIfAborted } from "../tool-errors";
 import { probeCdpStatus } from "./attach";
 import { resolveSharedBrowserLaunchSpec } from "./launch";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** Chrome prints this on stderr once the CDP listener is up; the broker's ready probe captures the line. */
 const READY_LOG_PATTERN = String.raw`DevTools listening on ws://\S+`;
@@ -87,7 +88,12 @@ export async function ensureSharedBrowser(opts: {
 	await fs.mkdir(userDataDir, { recursive: true });
 	for (let attempt = 0; attempt < ENSURE_ATTEMPTS; attempt++) {
 		throwIfAborted(opts.signal);
-		const existing = await describeQuietly(client, name, "Shared browser", opts.signal);
+		const existing = await describeQuietly(
+			client,
+			name,
+			t("tui.ca.tools.browser.sharedDaemon.sharedBrowser"),
+			opts.signal,
+		);
 		if (existing && existing.state !== "exited" && existing.state !== "failed") {
 			const settled =
 				existing.readyAt !== undefined ? existing : await waitReady(client, name, "Shared browser", opts.signal);
@@ -97,7 +103,7 @@ export async function ensureSharedBrowser(opts: {
 			}
 			// Live record but unreachable Chrome (wedged, or readiness never
 			// matched): replace it rather than handing out a dead endpoint.
-			await stopQuietly(client, name, "Shared browser", opts.signal);
+			await stopQuietly(client, name, t("tui.ca.tools.browser.sharedDaemon.sharedBrowser2"), opts.signal);
 			continue;
 		}
 		try {
@@ -124,7 +130,7 @@ export async function ensureSharedBrowser(opts: {
 			if (wsEndpoint && (await probeEndpoint(wsEndpoint))) {
 				return { wsEndpoint, daemonName: name, projectDir: client.projectDir };
 			}
-			await stopQuietly(client, name, "Shared browser", opts.signal);
+			await stopQuietly(client, name, t("tui.ca.tools.browser.sharedDaemon.sharedBrowser3"), opts.signal);
 		} catch (error) {
 			throwIfAborted(opts.signal);
 			// Lost a cross-process start race ("already starting/ready"); the next

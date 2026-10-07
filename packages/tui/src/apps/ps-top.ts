@@ -6,6 +6,7 @@
  * `x` kill, `r` restart, `a` toggle all scopes, `q`/`esc`/`ctrl+c` quit.
  * Sub-views (info, logs): `esc`/`q` back.
  */
+import { t } from "@oh-my-pi/pi-i18n";
 import * as path from "node:path";
 import { formatKeyHint, formatKeyHints } from "../app-keybindings";
 import { KeyValueList, type KeyValueRow } from "../components/key-value-list";
@@ -176,16 +177,29 @@ export class PsTopComponent implements Component {
 		const entry = this.#flat[this.#selected];
 		if (!entry) return;
 		const name = entry.row.snapshot.name;
-		this.#setStatus("warning", `${verb} ${name}…`);
+		this.#setStatus("warning", t("tui.ps.actionPending", { action: verb, name }));
 		try {
 			const daemon = await this.#host.act(entry.scope, name, verb);
 			this.#setStatus(
 				"success",
-				`${verb === "restart" ? "Restarted" : verb === "kill" ? "Killed" : "Stopped"} ${daemonLabel(daemon)}`,
+				`${
+					verb === "restart"
+						? t("tui.psTop.result.restarted")
+						: verb === "kill"
+							? t("tui.psTop.result.killed")
+							: t("tui.psTop.result.stopped")
+				} ${daemonLabel(daemon)}`,
 			);
 			void this.#refresh();
 		} catch (error) {
-			this.#setStatus("error", `${verb} ${name} failed: ${error instanceof Error ? error.message : String(error)}`);
+			this.#setStatus(
+				"error",
+				t("tui.ps.actionFailed", {
+					action: verb,
+					name,
+					reason: error instanceof Error ? error.message : String(error),
+				}),
+			);
 		}
 	}
 
@@ -270,7 +284,7 @@ export class PsTopComponent implements Component {
 
 	#toggleAll(): void {
 		this.#all = !this.#all;
-		this.#setStatus("muted", this.#all ? "Showing all scopes" : "Showing current scope");
+		this.#setStatus("muted", this.#all ? t("tui.ps.showingAll") : t("tui.ps.showingCurrent"));
 		void this.#refresh();
 	}
 
@@ -413,7 +427,7 @@ export class PsTopComponent implements Component {
 				node("icon", {
 					name: "back",
 					role: "omp.app.ibtn",
-					title: "Back  esc",
+					title: t("tui.apps.psTop.backEsc"),
 					aria: "Back",
 					actions: { click: "back" },
 				}),
@@ -441,9 +455,9 @@ export class PsTopComponent implements Component {
 								label:
 									this.#target.dir !== undefined || this.#target.global !== undefined
 										? "Target"
-										: "This project",
+										: t("tui.apps.psTop.thisProject"),
 							},
-							{ id: "all", label: "All scopes" },
+							{ id: "all", label: t("tui.apps.psTop.allScopes") },
 						],
 						active: this.#all ? "all" : "current",
 						role: "omp.app.seg",
@@ -468,7 +482,13 @@ export class PsTopComponent implements Component {
 						align: "center",
 						role: "omp.app.fresh",
 					}),
-			node("icon", { name: "x", role: "omp.app.ibtn", title: "Quit  q", aria: "Quit", actions: { click: "quit" } }),
+			node("icon", {
+				name: "x",
+				role: "omp.app.ibtn",
+				title: t("tui.apps.psTop.quitQ"),
+				aria: "Quit",
+				actions: { click: "quit" },
+			}),
 		);
 		return keyed(
 			row(
@@ -498,7 +518,7 @@ export class PsTopComponent implements Component {
 						text(
 							[
 								span(`Kill ${entry.row.snapshot.name}${pid === undefined ? "" : ` (pid ${pid})`}?`, "strong"),
-								span("  It stops at once, without cleanup.", "muted"),
+								span(t("tui.apps.psTop.itStopsAtOnceWithoutCleanup"), "muted"),
 							],
 							{ truncate: "end", grow: 1 },
 						),
@@ -522,7 +542,7 @@ export class PsTopComponent implements Component {
 			actionButton("Logs", "logs", { keys: "l" }),
 			actionButton("Restart", "restart", { keys: "r" }),
 			actionButton("Stop", "stop", { keys: "s" }),
-			actionButton("Kill", "kill", { keys: "x", tone: "error", title: "Kill the process (asks first)" }),
+			actionButton("Kill", "kill", { keys: "x", tone: "error", title: t("tui.apps.psTop.killTheProcessAsksFirst") }),
 			null,
 			actionButton("Quit", "quit", { keys: "q" }),
 		]);
@@ -533,10 +553,10 @@ export class PsTopComponent implements Component {
 			return keyed(
 				col(
 					[
-						text("No broker scopes", { role: "omp.app.empty-title" }),
+						text(t("tui.apps.psTop.noBrokerScopes"), { role: "omp.app.empty-title" }),
 						text([
-							span("No omp process broker runs here. ", "muted"),
-							span(this.#all ? "Nothing runs anywhere." : "Show every scope with ", "muted"),
+							span(t("tui.apps.psTop.noOmpProcessBrokerRunsHere"), "muted"),
+							span(this.#all ? t("tui.apps.psTop.nothingRunsAnywhere") : "Show every scope with ", "muted"),
 							...(this.#all ? [] : [span("a", "key"), span(".", "muted")]),
 						]),
 					],
@@ -558,7 +578,7 @@ export class PsTopComponent implements Component {
 								selected && selected.scope.runtimeDir === report.scope.runtimeDir
 									? stableKey(flatKey(selected))
 									: null,
-							empty: "No processes",
+							empty: t("tui.apps.psTop.noProcesses"),
 							role: "omp.ps.processes",
 						},
 						report.daemons.map(daemon => describeProcess(report.scope, daemon)),
@@ -593,7 +613,7 @@ export class PsTopComponent implements Component {
 		const body: NativeNode[] = [];
 		if (!TERMINAL_STATES[daemon.state]) {
 			body.push(
-				row([text([span("Up for", "muted")]), elapsed(Date.now() - daemon.startedAt)], {
+				row([text([span(t("tui.apps.psTop.upFor"), "muted")]), elapsed(Date.now() - daemon.startedAt)], {
 					gap: "xs",
 					role: "omp.app.fresh",
 				}),
@@ -779,8 +799,11 @@ function daemonTone(snapshot: DaemonSnapshot): TspTone {
 function scopeSpans(scope: PsScope): TspSpan[] {
 	const spans =
 		scope.kind === "global"
-			? [span("global "), span(scope.service ?? path.basename(scope.runtimeDir), "strong")]
-			: [span("project "), span(scope.projectDir ?? path.basename(scope.runtimeDir), "strong path")];
+			? [span(t("tui.apps.psTop.global")), span(scope.service ?? path.basename(scope.runtimeDir), "strong")]
+			: [
+					span(t("tui.apps.psTop.project")),
+					span(scope.projectDir ?? path.basename(scope.runtimeDir), "strong path"),
+				];
 	spans.push(span(" — ", "dim"));
 	spans.push(
 		scope.brokerPid !== undefined

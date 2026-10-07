@@ -24,6 +24,7 @@ import type { ToolSession } from "./index";
 import { formatPathRelativeToCwd } from "./path-utils";
 import { formatTextWithMode, hashlineHeaderContext, prependHashlineHeader } from "./read-format";
 import { maybeWriteSnapshotHeader, stripWriteContent } from "./write-content";
+import { t } from "@oh-my-pi/pi-i18n";
 
 /** A rendered `conflict://<N>[/<scope>]` region. */
 export interface ConflictRegionRead {
@@ -37,7 +38,7 @@ export interface ConflictRegionRead {
 	absolutePath: string;
 }
 
-const STRIPPED_NOTE = "Note: auto-stripped hashline display prefixes from content before writing.";
+const STRIPPED_NOTE = t("tui.ca.tools.conflictUri.noteAutoStrippedHashlineDisplayPrefixes");
 
 function parseTarget(raw: string): ParsedConflictUri {
 	const parsed = parseConflictUri(raw);

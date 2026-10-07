@@ -16,6 +16,7 @@ import type { StreamChatMessage, TspSpan } from "@oh-my-pi/pi-wire";
 import type { NativeNode } from "@oh-my-pi/pi-tui/native/node";
 import { col, kbd, node, row, span, text } from "@oh-my-pi/pi-tui/native/describe";
 import type { StreamConsoleEvent, StreamMuxHost } from "./streamer";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const HISTORY_LIMIT = 50;
 const PURPLE = chalk.hex("#a855f7");
@@ -125,15 +126,21 @@ class StreamConsoleComponent implements Component, Focusable {
 		if (this.#native?.revision === this.#revision) return this.#native.node;
 		const header: TspSpan[] = [
 			this.#linkState === "live"
-				? span("● LIVE", "accent strong")
+				? span(t("tui.ca.stream.consoleTui.live"), "accent strong")
 				: span(`○ ${this.#linkState === "stopped" ? "offline" : this.#linkState}`, "dim"),
 			span(" "),
-			this.#channel ? span(`#${safeInline(this.#channel)}`) : span("identifying channel", "dim"),
+			this.#channel
+				? span(`#${safeInline(this.#channel)}`)
+				: span(t("tui.ca.stream.consoleTui.identifyingChannel"), "dim"),
 			span(" · ", "dim"),
 			span(safeInline(this.#title)),
 		];
 		if (this.#user) {
-			header.push(span(" · ", "dim"), span("streaming as "), span(`@${safeInline(this.#user)}`, "accent"));
+			header.push(
+				span(" · ", "dim"),
+				span(t("tui.ca.stream.consoleTui.streamingAs")),
+				span(`@${safeInline(this.#user)}`, "accent"),
+			);
 		}
 		const paneList =
 			this.#panes.size === 0
@@ -142,7 +149,7 @@ class StreamConsoleComponent implements Component, Focusable {
 		const details: TspSpan[] = [
 			this.#viewerUrl
 				? span(safeInline(this.#viewerUrl), "link", { href: safeInline(this.#viewerUrl) })
-				: span("waiting for stream server", "dim"),
+				: span(t("tui.ca.stream.consoleTui.waitingForStreamServer"), "dim"),
 			span(" · ", "dim"),
 			span(`👁 ${this.#viewers} watching`),
 			span(" · ", "dim"),
@@ -153,7 +160,7 @@ class StreamConsoleComponent implements Component, Focusable {
 				text([span("/title <text> · /quit ·", "dim")]),
 				kbd("up", "up"),
 				kbd("down", "down"),
-				text([span("history ·", "dim")]),
+				text([span(t("tui.ca.stream.consoleTui.history"), "dim")]),
 				kbd("ctrl+c", "quit"),
 				text([span("quit", "dim")]),
 			],

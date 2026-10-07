@@ -29,6 +29,7 @@ import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";
 import { toolResult } from "./tool-result";
 
 import { cfgTaskDisabledAgents } from "../task/settings";
+import { t } from "@oh-my-pi/pi-i18n";
 
 const astGrepSchema = type({
 	pat: type("string").describe("ast pattern"),
@@ -147,23 +148,23 @@ export class AstGrepTool implements AgentTool<typeof astGrepSchema, AstGrepToolD
 
 	readonly examples: readonly ToolExample<typeof astGrepSchema.inferIn>[] = [
 		{
-			caption: "Search TypeScript files under src",
+			caption: t("tui.ca.tools.astGrep.searchTypescriptFilesUnderSrc"),
 			call: { pat: "console.log($$$)", path: "src/**/*.ts" },
 		},
 		{
-			caption: "Named imports from a specific package",
+			caption: t("tui.ca.tools.astGrep.namedImportsFromASpecificPackage"),
 			call: { pat: 'import { $$$IMPORTS } from "react"', path: "src/**/*.ts" },
 		},
 		{
-			caption: "Arrow functions assigned to a const",
+			caption: t("tui.ca.tools.astGrep.arrowFunctionsAssignedToAConst"),
 			call: { pat: "const $NAME = ($$$ARGS) => $BODY", path: "src/utils/**/*.ts" },
 		},
 		{
-			caption: "Method call on any object, ignoring method name with `$_`",
+			caption: t("tui.ca.tools.astGrep.methodCallOnAnyObjectIgnoring"),
 			call: { pat: "logger.$_($$$ARGS)", path: "src/**/*.ts" },
 		},
 		{
-			caption: "Loosest existence check for a symbol in one file",
+			caption: t("tui.ca.tools.astGrep.loosestExistenceCheckForASymbol"),
 			call: { pat: "processItems", path: "src/worker.ts" },
 		},
 	];
@@ -272,8 +273,8 @@ export class AstGrepTool implements AgentTool<typeof astGrepSchema, AstGrepToolD
 
 			if (result.matches.length === 0) {
 				const noMatchMessage = cappedParseErrors.length
-					? "No matches found. Parse issues mean the query may be mis-scoped; narrow `path` before concluding absence."
-					: "No matches found";
+					? t("tui.ca.tools.astGrep.noMatchesFoundParseIssuesMean")
+					: t("tui.ca.tools.astGrep.noMatchesFound");
 				const parseMessage = cappedParseErrors.length
 					? `\n${formatParseErrors(cappedParseErrors, parseErrorsTotal).join("\n")}`
 					: "";
@@ -351,7 +352,7 @@ export class AstGrepTool implements AgentTool<typeof astGrepSchema, AstGrepToolD
 				displayContent: displayLines.join("\n"),
 			};
 			if (result.limitReached) {
-				outputLines.push("", "Result limit reached; narrow path or increase limit.");
+				outputLines.push("", t("tui.ca.tools.astGrep.resultLimitReachedNarrowPathOr"));
 			}
 			if (cappedParseErrors.length) {
 				outputLines.push("", ...formatParseErrors(cappedParseErrors, parseErrorsTotal));
