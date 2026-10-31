@@ -2,13 +2,13 @@ import { describe, expect, it, spyOn } from "bun:test";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { ensureFastembedModelSidecars } from "../src/core/fastembed-model-cache";
+import { ensureFastembedModelSidecars, fastembedModelCacheDir } from "../src/core/fastembed-model-cache";
 
 describe("fastembed model cache repair", () => {
 	it("downloads missing config and tokenizer sidecars without overwriting cached files", async () => {
 		const cacheDir = await fs.mkdtemp(path.join(os.tmpdir(), "mnemopi-fastembed-"));
 		const model = "fast-bge-base-en-v1.5";
-		const modelDir = path.join(cacheDir, model);
+		const modelDir = fastembedModelCacheDir(model, cacheDir) ?? "";
 		const requested: string[] = [];
 		const fetchSpy = spyOn(globalThis, "fetch").mockImplementation(
 			Object.assign(
@@ -27,10 +27,11 @@ describe("fastembed model cache repair", () => {
 
 			expect(await ensureFastembedModelSidecars(model, cacheDir)).toBe(true);
 
-			expect(requested).toEqual([
-				"https://huggingface.co/BAAI/bge-base-en-v1.5/resolve/main/config.json",
-				"https://huggingface.co/BAAI/bge-base-en-v1.5/resolve/main/tokenizer_config.json",
-				"https://huggingface.co/BAAI/bge-base-en-v1.5/resolve/main/special_tokens_map.json",
+			// The endpoint follows `HF_ENDPOINT`; assert the repo/file paths, not the host.
+			expect(requested.map(url => new URL(url).pathname)).toEqual([
+				"/Qdrant/bge-base-en-v1.5-onnx-Q/resolve/main/config.json",
+				"/Qdrant/bge-base-en-v1.5-onnx-Q/resolve/main/tokenizer_config.json",
+				"/Qdrant/bge-base-en-v1.5-onnx-Q/resolve/main/special_tokens_map.json",
 			]);
 			expect(await Bun.file(path.join(modelDir, "config.json")).text()).toBe("body:config.json");
 			expect(await Bun.file(path.join(modelDir, "tokenizer.json")).text()).toBe("cached-tokenizer");

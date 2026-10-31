@@ -1,5 +1,5 @@
 import * as fs from "node:fs/promises";
-import * as path from "node:path";
+import { fastembedModelCacheDir } from "@oh-my-pi/pi-mnemopi/core/fastembed-model-cache";
 import { getFastembedCacheDir, logger } from "@oh-my-pi/pi-utils";
 import { trackDownload } from "../downloads/activity";
 import {
@@ -157,12 +157,15 @@ export class MnemopiEmbedClient {
 		model: MnemopiEmbedModelId,
 		cacheDir: string | undefined,
 	): Promise<MnemopiSubprocessEmbeddingModel | null> {
-		// fastembed unpacks each model into `<cacheDir>/<model>` and exposes no byte
-		// progress; a missing directory means this init downloads the archive.
-		const cached = await fs.access(path.join(cacheDir ?? getFastembedCacheDir(), model)).then(
-			() => true,
-			() => false,
-		);
+		// fastembed downloads each model file into `<cacheDir>/<hf-repo>` and exposes
+		// no byte progress; a missing directory means this init downloads the files.
+		const modelDir = fastembedModelCacheDir(model, cacheDir ?? getFastembedCacheDir());
+		const cached =
+			modelDir !== null &&
+			(await fs.access(modelDir).then(
+				() => true,
+				() => false,
+			));
 		const tracker = cached ? undefined : trackDownload(model.replace(/^fast-/, ""), { detail: "downloading" });
 		try {
 			const worker = this.#ensureWorker();

@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed local embeddings failing with `TAR_BAD_ARCHIVE: Unrecognized archive format`: upgraded `fastembed` from `2.1.0` — which downloaded model archives from the retired `qdrant-fastembed` GCS bucket and saved the 403 error page verbatim, then failed to untar it — to `2.1.1`, which fetches each model file from Hugging Face, checks the response status, and honours `HF_ENDPOINT` for mirrors.
+
 ## [18.4.4] - 2026-09-29
 
 ### Added

@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed the local-embedding download indicator always reporting "downloading" by detecting the model cache under fastembed's Hugging Face directory layout (`<cacheDir>/<hf-repo>`), which the upgraded `fastembed` uses.
+
 ## [18.4.4] - 2026-09-29
 
 ### Added
