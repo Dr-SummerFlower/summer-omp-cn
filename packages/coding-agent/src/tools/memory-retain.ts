@@ -2,7 +2,6 @@ import type { MemoryRetainDetails } from "@oh-my-pi/pi-tui/tools/memory";
 import { type } from "@oh-my-pi/omptype";
 import type { AgentTool, AgentToolResult } from "@oh-my-pi/pi-agent-core";
 import { prompt } from "@oh-my-pi/pi-utils";
-import { isHindsightConfigured, loadHindsightConfig } from "../hindsight/config";
 import retainDescription from "../prompts/tools/retain.md" with { type: "text" };
 import type { ToolSession } from ".";
 
@@ -57,8 +56,7 @@ export class MemoryRetainTool implements AgentTool<MemoryRetainSchema, MemoryRet
 
 	static createIf(session: ToolSession): MemoryRetainTool | null {
 		const backend = cfgMemoryBackend.get(session.settings);
-		if (backend !== "hindsight" && backend !== "mnemopi") return null;
-		if (backend === "hindsight" && !isHindsightConfigured(loadHindsightConfig(session.settings))) return null;
+		if (backend !== "mnemopi") return null;
 		return new MemoryRetainTool(session);
 	}
 
@@ -123,27 +121,6 @@ export class MemoryRetainTool implements AgentTool<MemoryRetainSchema, MemoryRet
 			};
 		}
 
-		const state = this.session.getHindsightSessionState?.();
-		if (!state) {
-			throw new Error(t("tui.ca.tools.memoryRetain.hindsightBackendIsNotInitialisedFor"));
-		}
-		if (params.items.some(item => item.scope === "global")) {
-			throw new Error(t("tui.ca.tools.memoryRetain.globalMemoryScopeIsOnlyAvailable"));
-		}
-
-		// Push every item onto the session-owned queue and return immediately.
-		// The queue flushes either when it reaches its batch threshold or when
-		// its debounce timer fires. If the eventual batch fails, the queue
-		// surfaces a UI-only warning notice — the LLM is not informed.
-		for (const item of params.items) {
-			state.enqueueRetain(item.content, item.context);
-		}
-
-		const count = params.items.length;
-		const noun = count === 1 ? "memory" : "memories";
-		return {
-			content: [{ type: "text", text: `${count} ${noun} queued.` }],
-			details: { count },
-		};
+		throw new Error("Retain is only available with memory.backend=mnemopi.");
 	}
 }

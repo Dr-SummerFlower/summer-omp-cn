@@ -239,7 +239,6 @@ function createPlanModeAgent(agent: AgentDefinition): AgentDefinition {
 		systemPrompt: `${planModeSubagentPrompt}\n\n${agent.systemPrompt}`,
 		tools,
 		spawns: undefined,
-		prewalk: undefined,
 	};
 }
 
@@ -557,7 +556,6 @@ function buildExecutorOptions(
 		preloadedCustomToolPaths: restrictToolNames ? [] : session.customToolPaths,
 		localProtocolOptions,
 		parentArtifactManager: session.getArtifactManager?.() ?? undefined,
-		parentHindsightSessionState: session.getHindsightSessionState?.(),
 		parentMnemopiSessionState: session.getMnemopiSessionState?.(),
 		parentTelemetry: session.getTelemetry?.(),
 		parentAgentId: session.getAgentId?.() ?? MAIN_AGENT_ID,

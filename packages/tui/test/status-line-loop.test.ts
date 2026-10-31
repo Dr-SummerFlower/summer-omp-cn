@@ -19,11 +19,9 @@ function createContext(loopMode: SegmentContext["loopMode"]): SegmentContext {
 		options: {},
 		planMode: null,
 		loopMode,
-		prewalk: null,
 		goalMode: null,
 		vibeMode: null,
 		vim: null,
-		collab: null,
 		stream: null,
 		recording: false,
 		usageStats: {

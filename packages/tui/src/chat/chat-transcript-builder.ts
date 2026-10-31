@@ -15,7 +15,6 @@ import type { AgentMessage, AgentTool } from "@oh-my-pi/pi-agent-core";
 import type { Usage } from "@oh-my-pi/pi-ai";
 import { type Component, type TUI } from "../tui";
 import type { AdvisorMessageDetails } from "./messages";
-import { COLLAB_PROMPT_MESSAGE_TYPE, type CollabPromptDetails } from "./messages";
 import { chatTranscriptDisplayPreferences as displayPreferences } from "./display-preferences";
 import type { MessageRenderer } from "./extension-types";
 import { LAUNCH_COMPLETION_MESSAGE_TYPE } from "./messages";
@@ -51,7 +50,6 @@ import { createBackgroundTanDispatchBlock } from "./background-tan-message";
 import { BashExecutionComponent } from "./bash-execution";
 import { detectCacheInvalidation } from "./cache-invalidation-marker";
 import { ServedModelTracker } from "./served-model-marker";
-import { CollabPromptMessageComponent } from "./collab-prompt-message";
 import {
 	BranchSummaryMessageComponent,
 	CompactionSummaryMessageComponent,
@@ -575,10 +573,6 @@ export class ChatTranscriptBuilder {
 			const component = new LateDiagnosticsMessageComponent(files);
 			this.#trackExpandable(component);
 			this.container.addChild(component);
-			return;
-		}
-		if (message.customType === COLLAB_PROMPT_MESSAGE_TYPE) {
-			this.container.addChild(new CollabPromptMessageComponent(message as CustomMessage<CollabPromptDetails>));
 			return;
 		}
 		if (message.customType === SKILL_PROMPT_MESSAGE_TYPE) {

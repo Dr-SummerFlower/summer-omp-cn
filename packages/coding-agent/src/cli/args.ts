@@ -35,9 +35,6 @@ export interface Args {
 	smol?: string;
 	slow?: string;
 	plan?: string;
-	prewalk?: boolean;
-	noPrewalk?: boolean;
-	prewalkInto?: string;
 	planYolo?: boolean;
 	planYoloInto?: string;
 	maxTime?: number;
@@ -48,7 +45,6 @@ export interface Args {
 	thinking?: ConfiguredThinkingLevel;
 	serviceTier?: ServiceTierOpenAISettingValue;
 	hideThinking?: boolean;
-	advisor?: boolean;
 	externalThinking?: boolean;
 	continue?: boolean;
 	resume?: string | true;
@@ -62,8 +58,6 @@ export interface Args {
 	providerSessionId?: string;
 	providerPromptCacheKey?: string;
 	fork?: string;
-	/** Collab link to join at startup (set by the `join` subcommand; no CLI flag). */
-	join?: string;
 	models?: string[];
 	tools?: string[];
 	noTools?: boolean;
@@ -267,14 +261,8 @@ export function parseArgs(inputArgs: string[], extensionFlags?: Map<string, { ty
 			result.noPty = true;
 		} else if (arg === "--hide-thinking") {
 			result.hideThinking = true;
-		} else if (arg === "--advisor") {
-			result.advisor = true;
 		} else if (arg === "--external-thinking") {
 			result.externalThinking = true;
-		} else if (arg === "--prewalk") {
-			result.prewalk = true;
-		} else if (arg === "--no-prewalk") {
-			result.noPrewalk = true;
 		} else if (arg === "--plan-yolo") {
 			result.planYolo = true;
 		} else if (arg === "--print" || arg === "-p") {

@@ -42,13 +42,11 @@ export function createGallerySegmentContext(sessionOptions?: GallerySessionOptio
 		},
 		compactThinkingLevel: false,
 		planMode: { enabled: true, paused: false },
-		prewalk: null,
 		loopMode: null,
 		goalMode: null,
 		goalStatusInFooter: true,
 		vibeMode: null,
 		vim: null,
-		collab: { role: "host", participantCount: 3 },
 		stream: null,
 		recording: false,
 		usageStats: {
@@ -112,7 +110,6 @@ function variantsFor(id: StatusLineSegmentId): readonly SegmentVariantSpec[] {
 			return [
 				{ label: "active", context: { planMode: { enabled: true, paused: false } } },
 				{ label: "warning / paused", context: { planMode: { enabled: true, paused: true } } },
-				{ label: "prewalk active", context: { planMode: null, prewalk: { enabled: true } } },
 				{ label: "vibe active", context: { planMode: null, vibeMode: { enabled: true } } },
 				{
 					label: "loop active",
@@ -236,11 +233,6 @@ function variantsFor(id: StatusLineSegmentId): readonly SegmentVariantSpec[] {
 					label: "error",
 					context: { usage: { tier: "Pro", fiveHour: { percent: 92, resetMinutes: 75 } } },
 				},
-			];
-		case "collab":
-			return [
-				{ label: "host active", context: { collab: { role: "host", participantCount: 3 } } },
-				{ label: "guest active", context: { collab: { role: "guest", participantCount: 3 } } },
 			];
 		case "vim":
 			return [

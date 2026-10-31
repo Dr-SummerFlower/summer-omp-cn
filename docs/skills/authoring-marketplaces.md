@@ -5,7 +5,7 @@ description: Use when creating a new omp marketplace. Covers marketplace.json sc
 
 # Authoring Marketplaces
 
-A marketplace is a Git repository (or local directory) that contains a catalog file at either `.omp-plugin/marketplace.json` (preferred for omp-specific catalogs) or `.claude-plugin/marketplace.json` (Claude Code-compatible; used as the fallback). Anyone can author one. Users add it with `/marketplace add owner/repo` and then install individual plugins from it.
+A marketplace is a Git repository (or local directory) that contains a catalog file at either `.omp-plugin/marketplace.json` (preferred for omp-specific catalogs) or `.claude-plugin/marketplace.json` (Claude Code-compatible; used as the fallback). Anyone can author one; publish the catalog and share the repository so others can install its plugins.
 
 ## Minimum viable marketplace
 
@@ -34,11 +34,10 @@ my-marketplace/
 }
 ```
 
-Push to GitHub. Users install with:
+Push to GitHub. Users install a plugin from the catalog with:
 
 ```
-/marketplace add your-github-username/my-marketplace
-/marketplace install my-plugin@my-marketplace
+omp plugin install my-plugin@my-marketplace
 ```
 
 ## marketplace.json schema
@@ -216,16 +215,9 @@ my-plugin/
 ## Install command
 
 ```
-/marketplace install name@marketplace-name
-/marketplace install --force name@marketplace-name     # reinstall
-/marketplace install --scope project name@marketplace  # project-scoped
-```
-
-CLI equivalent:
-
-```
-omp plugin marketplace add owner/repo
 omp plugin install name@marketplace-name
+omp plugin install --force name@marketplace-name     # reinstall
+omp plugin install --scope project name@marketplace  # project-scoped
 ```
 
 Scope behavior:
@@ -259,16 +251,7 @@ Invalid: `-bad-start`, `bad-end-`, `.dot-start`, `Under_score`, `HAS_CAPS`
 1. Create `marketplace.json` at `.omp-plugin/marketplace.json` (omp-only) or `.claude-plugin/marketplace.json` (shared with Claude Code) in a new Git repo.
 2. Add plugin entries pointing to subdirectories (or external sources).
 3. Push to GitHub.
-4. Share the `owner/repo` string. Users add it with `/marketplace add owner/repo`.
-5. When you update the catalog, users run `/marketplace update your-marketplace-name` to pull the latest.
-
-To test locally before publishing:
-
-```
-/marketplace add ./path/to/my-marketplace
-```
-
-Local path sources also accept `~/` and absolute paths.
+4. Share the `owner/repo` string.
 
 ## Further reading
 

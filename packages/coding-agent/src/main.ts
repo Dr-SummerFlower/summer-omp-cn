@@ -36,12 +36,10 @@ import { findConfigFile } from "./config";
 import { ModelRegistry } from "./config/model-registry";
 import { formatModelSelectorValue } from "@oh-my-pi/pi-tui/overlays/model-selector";
 import {
-	DEFAULT_PREWALK_TARGET,
 	disabledProviderIds,
 	expandRoleAlias,
 	getModelMatchPreferences,
 	resolveCliModel,
-	resolveConfiguredModelPatterns,
 	resolveModelRoleValue,
 	resolveModelScope,
 	type ScopedModel,
@@ -51,18 +49,12 @@ import { serviceTierSettingToTier } from "./config/service-tier";
 import { all, combine, type ProtocolHost, type SettingValueOf } from "./config/registry";
 import { Settings, settings } from "./config/settings";
 import { initializeWithSettings } from "./discovery";
-import {
-	clearPluginRootsAndCaches,
-	injectPluginDirRoots,
-	preloadPluginRoots,
-	resolveActiveProjectRegistryPath,
-} from "./discovery/helpers";
+import { clearPluginRootsAndCaches, injectPluginDirRoots, preloadPluginRoots } from "./discovery/helpers";
 import { injectOmpExtensionCliRoots } from "./discovery/omp-extension-roots";
 import { formatExtensionLoadNotifications } from "./extensibility/extensions/load-errors";
 import { loadExtensions } from "./extensibility/extensions/loader";
 import { ExtensionRunner } from "./extensibility/extensions/runner";
 import type { ExtensionUIContext } from "./extensibility/extensions/types";
-import { scheduleMarketplaceAutoUpdate } from "./extensibility/plugins/marketplace-auto-update";
 import { registerDaemonProjectPresence } from "./launch/presence";
 import { discoverStartupLspServers } from "./lsp/servers";
 import type { MCPManager } from "./mcp";
@@ -91,7 +83,6 @@ import {
 	createAgentSession,
 	discoverAuthStorage,
 	loadSessionExtensions,
-	resolvePrewalkTarget,
 } from "./sdk";
 import type { AgentSession } from "./session/agent-session";
 import { createAuthStorageSettingsSync, describeAuthBrokerStartupError } from "./session/auth-broker-config";
@@ -114,12 +105,9 @@ import {
 	resolvePromptInput,
 } from "./system-prompt";
 import { createPersistedSubagentReviverFactory } from "./task/persisted-revive";
-import { createTelemetryExportConfig, initTelemetryExport, isTelemetryExportEnabled } from "./telemetry-export";
-import { cfgTelemetryOtlpExportEnabled } from "./telemetry-settings";
 import { registerLocalInferenceApi } from "./tiny/local-inference-api";
 import { concreteThinkingLevel, parseConfiguredThinkingLevel } from "@oh-my-pi/pi-tui/thinking";
 import type { LspStartupServerInfo } from "./tools";
-import { sanitizeDisplayWarnings } from "@oh-my-pi/pi-tui/render/render-utils";
 import {
 	getChangelogPath,
 	readLastChangelogVersion,
@@ -130,7 +118,6 @@ import { EventBus } from "./utils/event-bus";
 import { resolveFirstLaunchPythonEvalWarning } from "./eval/startup-warning";
 import { CliUsageError } from "./cli/usage-error";
 
-import { cfgAdvisorEnabled } from "./advisor/settings";
 import { cfgToolsApprovalMode } from "./tools/settings";
 import {
 	cfgAutocompleteMaxVisible,
@@ -138,7 +125,6 @@ import {
 	cfgColorBlindMode,
 	cfgComposerShape,
 	cfgImagesAutoResize,
-	cfgMarketplaceAutoUpdate,
 	cfgSetupVersion,
 	cfgShowHardwareCursor,
 	cfgSpellingAutocomplete,
@@ -162,7 +148,6 @@ import {
 	cfgExternalThinking,
 	cfgHideThinkingBlock,
 	cfgOmitThinking,
-	cfgPrewalkEnabled,
 } from "./session/settings";
 import { cfgDisabledProviders, cfgEnabledModels } from "./config/model-settings";
 import { cfgTaskAgentIdleTtlMs } from "./task/settings";
@@ -208,11 +193,6 @@ async function loadSessionPicker(): Promise<SessionPicker> {
 			loadAllSessions: () => SessionManager.listAllForPicker(storage),
 		});
 	};
-}
-
-/** Join-only graph boundary; the full built-in slash-command registry is otherwise unnecessary at startup. */
-async function loadBuiltinSlashCommandExecutor() {
-	return (await import("./slash-commands/builtin-registry")).executeBuiltinSlashCommand;
 }
 
 /** Missing-session-directory prompt boundary; ordinary launches do not need node:readline. */
@@ -610,7 +590,6 @@ async function runInteractiveMode(
 	subagentEventBus?: EventBus,
 	initialMessage?: string,
 	initialImages?: ImageContent[],
-	joinLink?: string,
 	startDeferredStartupWork?: () => void,
 	startupLease?: ComposerLease,
 ): Promise<void> {
@@ -662,7 +641,6 @@ async function runInteractiveMode(
 			mode.init({
 				suppressWelcomeIntro: resuming || setupScenes.length > 0 || playStartupSplash,
 				clearInitialTerminalHistory: true,
-				autoStartCollab: joinLink === undefined,
 				recentSessions: startupLease?.recentSessions,
 			}),
 		);
@@ -696,13 +674,6 @@ async function runInteractiveMode(
 			}
 		});
 
-		const advisorConfigWarnings = session.getAdvisorConfigWarnings();
-		if (advisorConfigWarnings.length > 0) {
-			// Pulled here, not pushed from SessionAdvisors: the constructor-time
-			// `emitNotice` fired before the UI subscribed and was silently lost.
-			mode.showWarning(`WATCHDOG.yml: ${sanitizeDisplayWarnings(advisorConfigWarnings).join("; ")}`);
-		}
-
 		for (const notify of notifs) {
 			if (!notify) {
 				continue;
@@ -715,29 +686,8 @@ async function runInteractiveMode(
 				mode.showStatus(notify.message);
 			}
 		}
-
-		// `omp join <link>`: dispatch through the same builtin path as a typed
-		// `/join` so collab guards and error rendering stay in one place.
-		if (joinLink !== undefined) {
-			const executeBuiltinSlashCommand = await loadBuiltinSlashCommandExecutor();
-			await executeBuiltinSlashCommand(`/join ${joinLink}`, { ctx: mode });
-			// Join failure returns to the local session; success still needs the
-			// controller observing its eventual restoration without hosting replicas.
-			mode.collabController.autoStart();
-		}
-		// Keep guest mutations gated through setup dialogs and transcript replay,
-		// not just init. Only a successful outer startup opens the room for input.
-		mode.collabController.startupComplete();
 	} catch (error) {
-		// Init publishes before startup dialogs, so any later startup failure
-		// must withdraw the room before restoring the terminal.
-		try {
-			await mode.collabController.shutdown("startup failed");
-		} catch (cleanupError) {
-			logger.warn("Failed to stop collaboration after startup failure", { error: String(cleanupError) });
-		} finally {
-			mode.stop();
-		}
+		mode.stop();
 		throw error;
 	}
 
@@ -1364,10 +1314,6 @@ export async function buildSessionOptions(
 	// - supports --model <provider>/<pattern>
 	const modelMatchPreferences = getModelMatchPreferences(activeSettings);
 	const disabledProviders = disabledProviderIds(activeSettings);
-	// `--model` rewrites the session's `default` role below. Preserve the
-	// configured assignment so explicit prewalk role targets still resolve
-	// against the value that existed when the CLI was invoked.
-	const preModelOverrideDefaultRole = activeSettings.getModelRole("default");
 	// True when a configured `default` role was deliberately left unresolved for
 	// createAgentSession's post-extension re-resolution (issue #6694); the
 	// scoped thinking-level seed below must be deferred along with the model.
@@ -1476,59 +1422,6 @@ export async function buildSessionOptions(
 		// instead of an unrelated fallback. The fire-and-forget rebuild then
 		// activates the scoped list once discovery settles (issue #9220).
 		options.modelPattern = parsed.models;
-	}
-
-	if (parsed.noPrewalk && (parsed.prewalk || parsed.prewalkInto !== undefined)) {
-		throw new Error("--no-prewalk cannot be combined with --prewalk or --prewalk-into");
-	}
-	const explicitPrewalk = parsed.prewalk === true || parsed.prewalkInto !== undefined;
-	const prewalkEnabled = parsed.noPrewalk
-		? false
-		: explicitPrewalk
-			? true
-			: !restoringSession && cfgPrewalkEnabled.get(activeSettings);
-	if (prewalkEnabled) {
-		const target = parsed.prewalkInto ?? DEFAULT_PREWALK_TARGET;
-		let targetPatterns: string[];
-
-		if (parsed.prewalkInto === undefined) {
-			// Preserve the existing default-prewalk behavior; this PR only needs
-			// pre-override role semantics for an explicit target.
-			targetPatterns = [expandRoleAlias(DEFAULT_PREWALK_TARGET, activeSettings)];
-		} else {
-			// `--model` mutates only the session default role. Resolve explicit
-			// prewalk aliases against the pre-mutation default while leaving all
-			// other role lookups live.
-			const preModelOverrideRoleLookup = {
-				getModelRole: (role: string) =>
-					role === "default" ? preModelOverrideDefaultRole : activeSettings.getModelRole(role),
-			};
-
-			// Bare `default` is a backwards-compatible special selector handled
-			// by expandRoleAlias rather than the prefixed role-alias grammar.
-			const targetSelector =
-				target.trim() === "default" ? expandRoleAlias(target, preModelOverrideRoleLookup) : target;
-			const configuredPatterns = resolveConfiguredModelPatterns(targetSelector, preModelOverrideRoleLookup);
-			targetPatterns = configuredPatterns.length > 0 ? configuredPatterns : [targetSelector];
-		}
-
-		const selection = await resolvePrewalkTarget(
-			targetPatterns,
-			target,
-			modelRegistry,
-			modelMatchPreferences,
-			disabledProviders,
-			{ deferUnregistered: true },
-		);
-		if (selection.deferred) {
-			// Preserve role fallback order until extensions have registered their providers.
-			options.deferredPrewalk = { target, patterns: targetPatterns };
-		} else {
-			options.prewalk = selection.prewalk;
-			for (const warning of selection.warnings) {
-				process.stderr.write(`${chalk.yellow(`Warning: ${warning}`)}\n`);
-			}
-		}
 	}
 
 	if (parsed.planYoloInto !== undefined && !parsed.planYolo) {
@@ -1875,10 +1768,6 @@ export async function runRootCommand(
 		if (parsedArgs.hideThinking) {
 			cfgHideThinkingBlock.override(settingsInstance, true);
 		}
-		// Apply --advisor CLI flag (ephemeral, not persisted)
-		if (parsedArgs.advisor) {
-			cfgAdvisorEnabled.override(settingsInstance, true);
-		}
 		// Apply --external-thinking CLI flag (ephemeral, not persisted)
 		if (parsedArgs.externalThinking) {
 			cfgExternalThinking.override(settingsInstance, true);
@@ -2126,12 +2015,6 @@ export async function runRootCommand(
 				: undefined;
 		daemonPresencePromise?.catch(() => {});
 
-		scheduleMarketplaceAutoUpdate({
-			autoUpdate: cfgMarketplaceAutoUpdate.get(settingsInstance),
-			resolveActiveProjectRegistryPath,
-			clearPluginRootsCache: clearPluginRootsAndCaches,
-		});
-
 		const sessionOptions = await logger.time(
 			"buildSessionOptions",
 			buildSessionOptions,
@@ -2146,24 +2029,7 @@ export async function runRootCommand(
 		sessionOptions.hasUI = isInteractive || mode === "rpc-ui";
 		sessionOptions.settingsApproval = isInteractive;
 		sessionOptions.settings = settingsInstance;
-		sessionOptions.onPrewalkWarning = warning => {
-			if (isInteractive) notifs.push({ kind: "warn", message: warning });
-			else process.stderr.write(`${chalk.yellow(`Warning: ${warning}`)}\n`);
-		};
 
-		// OTEL: unless `telemetry.otlpExportEnabled` is off, register global OTLP
-		// exporters when an endpoint is configured via env, then switch on the agent
-		// loop's telemetry hooks so traces, run-level metrics, and structured logs
-		// have source events to export. Content capture remains governed by
-		// OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT.
-		await logger.time(
-			"initTelemetryExport",
-			initTelemetryExport,
-			cfgTelemetryOtlpExportEnabled.get(settingsInstance),
-		);
-		if (isTelemetryExportEnabled()) {
-			sessionOptions.telemetry = createTelemetryExportConfig(sessionOptions.telemetry);
-		}
 		await daemonPresencePromise;
 
 		// Handle CLI --api-key as runtime override (not persisted)
@@ -2521,7 +2387,6 @@ export async function runRootCommand(
 						subagentEventBus,
 						initialMessage,
 						initialImages,
-						parsedArgs.join,
 						startDeferredStartupWork,
 						startupLease,
 					);

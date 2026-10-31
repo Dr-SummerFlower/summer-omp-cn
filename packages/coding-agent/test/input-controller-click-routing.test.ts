@@ -40,7 +40,6 @@ function makeHarness() {
 		},
 		keybindings: KeybindingsManager.inMemory(),
 		settings,
-		dictationSpaceHold: () => undefined,
 		session: {
 			extensionRunner: undefined,
 		},

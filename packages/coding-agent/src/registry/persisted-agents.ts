@@ -2,7 +2,6 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import type { AssistantMessage } from "@oh-my-pi/pi-ai";
 import { logger } from "@oh-my-pi/pi-utils";
-import { ADVISOR_TRANSCRIPT_FILENAME, isAdvisorTranscriptName } from "../advisor/transcript-recorder";
 import { resolveExplicitModelRole } from "../config/model-resolver";
 import { assistantTurnProducedOutput } from "../session/messages";
 import { EPHEMERAL_MODEL_CHANGE_ROLE } from "../session/session-entries";
@@ -26,6 +25,15 @@ const MAX_METADATA_LINES = 64;
  * content)); it exists only so a legacy multi-GB transcript can't stall the
  * render thread when the Hub roster is built.
  */
+/** Read-only advisor transcripts kept by older sessions (no advisor runtime anymore). */
+const ADVISOR_TRANSCRIPT_FILENAME = "__advisor.jsonl";
+const ADVISOR_TRANSCRIPT_PREFIX = "__advisor.";
+function isAdvisorTranscriptName(name: string): boolean {
+	return (
+		name === ADVISOR_TRANSCRIPT_FILENAME || (name.startsWith(ADVISOR_TRANSCRIPT_PREFIX) && name.endsWith(".jsonl"))
+	);
+}
+
 const MAX_ADVISOR_HISTORY_LINES = 200_000;
 
 interface PersistedAgentMetadata {
@@ -701,7 +709,9 @@ async function registerPersistedSubagentsFromDir(
 			// `__advisor.jsonl` → the default advisor (no slug); `__advisor.<slug>.jsonl`
 			// → a named advisor, keyed and labeled by its slug.
 			const slug =
-				entry.name === ADVISOR_TRANSCRIPT_FILENAME ? "" : entry.name.slice("__advisor.".length, -".jsonl".length);
+				entry.name === ADVISOR_TRANSCRIPT_FILENAME
+					? ""
+					: entry.name.slice(ADVISOR_TRANSCRIPT_PREFIX.length, -".jsonl".length);
 			const advisorId = slug ? `${owner}/advisor:${slug}` : `${owner}/advisor`;
 			const displayName = slug ? `advisor:${slug}` : "advisor";
 			const existing = registry.get(advisorId);

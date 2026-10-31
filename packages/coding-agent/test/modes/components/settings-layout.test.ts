@@ -8,7 +8,6 @@ import { createPluginSettingsHost } from "@oh-my-pi/pi-coding-agent/extensibilit
 import { SettingsSelectorComponent } from "@oh-my-pi/pi-tui/overlays/settings-selector";
 import { initTheme, setTheme } from "@oh-my-pi/pi-tui/theme";
 import { cfgRetryUsageAwareFallback } from "@oh-my-pi/pi-coding-agent/session/settings";
-import { cfgAdvisorEnabled } from "@oh-my-pi/pi-coding-agent/advisor/settings";
 
 beforeAll(async () => {
 	await initTheme();
@@ -57,25 +56,6 @@ describe("settings layout", () => {
 			const grouped = sequence.filter(group => group !== "");
 			const expected = TAB_GROUPS[tab].filter(group => grouped.includes(group));
 			expect(grouped).toEqual(expected);
-		}
-	});
-
-	it("hides advisor dependent settings when advisor is disabled", () => {
-		const advisorDependentPaths = ["advisor.syncBacklog", "advisor.immuneTurns"];
-		const advisorDependentPathSet = new Set<string>(advisorDependentPaths);
-		const defs = getSettingsForTab(createSettingsHost().entries, "model").filter(def =>
-			advisorDependentPathSet.has(def.path),
-		);
-
-		expect(defs.map(def => def.path)).toEqual(advisorDependentPaths);
-		for (const def of defs) {
-			expect(def.condition?.()).toBe(false);
-		}
-
-		cfgAdvisorEnabled.set(Settings.instance, true);
-
-		for (const def of defs) {
-			expect(def.condition?.()).toBe(true);
 		}
 	});
 

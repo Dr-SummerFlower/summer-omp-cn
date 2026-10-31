@@ -3,7 +3,6 @@
  * settings-panel order; `config/all-settings.ts` registers every domain.
  */
 import { combine, register, type SettingValueOf } from "../config/registry";
-import { DEFAULT_SKILLS_URL } from "@oh-my-pi/pi-wire/skillshare";
 import { t } from "@oh-my-pi/pi-i18n";
 
 const EMPTY_STRING_ARRAY: string[] = [];
@@ -11,20 +10,6 @@ const EMPTY_STRING_ARRAY: string[] = [];
 export const cfgExtensions = register({ id: "extensions", type: "array", default: EMPTY_STRING_ARRAY });
 
 export const cfgDisabledExtensions = register({ id: "disabledExtensions", type: "array", default: EMPTY_STRING_ARRAY });
-
-// Skill registry (omp skill)
-export const cfgSkillsRegistryUrl = register({
-	id: "skills.registryUrl",
-	type: "string",
-	default: DEFAULT_SKILLS_URL,
-	ui: {
-		tab: "interaction",
-		group: "Skills",
-		label: "Skill Registry",
-		description:
-			"Skillshare registry used by `omp skill` to install, search, and publish skills (https://host[:port])",
-	},
-});
 
 // Skills
 export const cfgSkillsEnabled = register({ id: "skills.enabled", type: "boolean", default: true });

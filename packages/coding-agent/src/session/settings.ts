@@ -71,19 +71,6 @@ export const cfgPowerSleepPrevention = register({
 	},
 });
 
-export const cfgPrewalkEnabled = register({
-	id: "prewalk.enabled",
-	type: "boolean",
-	default: false,
-	ui: {
-		tab: "model",
-		group: "Prewalk",
-		label: "Enable Prewalk",
-		description:
-			"Start on the active model, then switch to a fast/cheap model (default the 'smol' role) at the first edit/write after the plan nudge's todo list exists — the strong model plans, commits the todos, and starts the implementation before handing off. Overridable per session with --prewalk / --no-prewalk.",
-	},
-});
-
 function isLimitRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -658,7 +645,6 @@ export const cfgTierAdvisor = register({
 		description:
 			"Service Tier for the advisor model. None = standard processing; Inherit = match the main agent's live per-family tiers; pick a value to apply it to the advisor model's family.",
 		options: SERVICE_TIER_INHERIT_OPTIONS,
-		condition: "advisorEnabled",
 	},
 });
 

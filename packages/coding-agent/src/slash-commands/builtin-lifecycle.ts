@@ -5,7 +5,7 @@ import * as path from "node:path";
 import { CompactionCancelledError } from "@oh-my-pi/pi-agent-core/compaction";
 import { logger, setProjectDir } from "@oh-my-pi/pi-utils";
 import { clearClaudePluginRootsCache } from "../discovery/helpers";
-import { rebindMemoryBackendForCwd } from "../hindsight/backend";
+import { rebindMemoryBackendForCwd } from "../memory-backend/cwd-rebind";
 import { memoryStatsUnavailableMessage, resolveMemoryBackend } from "../memory-backend";
 import type { AgentSession, FreshSessionResult, HandoffResult } from "../session/agent-session";
 import { COMPACT_MODES, parseCompactArgs } from "../session/compact-modes";
@@ -565,20 +565,6 @@ export const BUILTIN_LIFECYCLE_SLASH_COMMANDS: ReadonlyArray<SlashCommandSpec> =
 		},
 	},
 	{
-		name: "cleanse",
-		icon: "stethoscope",
-		get description() {
-			return t("slash.cleanse.description");
-		},
-		inlineHint: "[request] [--all]",
-		allowArgs: true,
-		handleTui: async (command, runtime) => {
-			const args = command.text.slice(`/${command.name}`.length).trim();
-			clearSubmittedText(runtime);
-			await runtime.ctx.handleCleanseCommand(args);
-		},
-	},
-	{
 		name: "retry",
 		icon: "redo",
 		get description() {
@@ -691,48 +677,6 @@ export const BUILTIN_LIFECYCLE_SLASH_COMMANDS: ReadonlyArray<SlashCommandSpec> =
 					return t("slash.memory.sub.rebuild.description");
 				},
 			},
-			{
-				name: "mm list",
-				get description() {
-					return t("slash.memory.sub.mmList.description");
-				},
-			},
-			{
-				name: "mm show",
-				get description() {
-					return t("slash.memory.sub.mmShow.description");
-				},
-			},
-			{
-				name: "mm refresh",
-				get description() {
-					return t("slash.memory.sub.mmRefresh.description");
-				},
-			},
-			{
-				name: "mm history",
-				get description() {
-					return t("slash.memory.sub.mmHistory.description");
-				},
-			},
-			{
-				name: "mm seed",
-				get description() {
-					return t("slash.memory.sub.mmSeed.description");
-				},
-			},
-			{
-				name: "mm delete",
-				get description() {
-					return t("slash.memory.sub.mmDelete.description");
-				},
-			},
-			{
-				name: "mm reload",
-				get description() {
-					return t("slash.memory.sub.mmReload.description");
-				},
-			},
 		],
 		allowArgs: true,
 		handle: async (command, runtime) => {
@@ -782,8 +726,6 @@ export const BUILTIN_LIFECYCLE_SLASH_COMMANDS: ReadonlyArray<SlashCommandSpec> =
 					await runtime.output(payload ?? memoryStatsUnavailableMessage(backend.id, verb));
 					return commandConsumed();
 				}
-				case "mm":
-					return usage(t("slash.memory.mmAcpUnsupported"), runtime);
 				default:
 					return usage(t("slash.memory.usage"), runtime);
 			}

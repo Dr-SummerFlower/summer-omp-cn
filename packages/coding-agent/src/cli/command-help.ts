@@ -23,18 +23,6 @@ export const browserRelayHelp = {
 	description: t("cli.commandHelp.runTheLocalCdpRelayThat"),
 } satisfies CommandMetadata;
 
-export const cleanseHelp = {
-	description: t("slash.cleanse.description"),
-} satisfies CommandMetadata;
-
-export const collabHelp = {
-	description: t("cli.commandHelp.listActiveLocalCollabHostMetadata"),
-} satisfies CommandMetadata;
-
-export const clipHelp = {
-	description: t("cli.commandHelp.uploadARecordRecordingToLive"),
-} satisfies CommandMetadata;
-
 export const commitHelp = {
 	description: t("cli.commandHelp.generateACommitMessageAndUpdate"),
 } satisfies CommandMetadata;
@@ -51,18 +39,11 @@ export const compressHelp = {
 
 export const configHelp = { description: t("cli.commandHelp.manageConfigurationSettings") } satisfies CommandMetadata;
 
-export const dryBalanceHelp = {
-	description: t("cli.commandHelp.dryRunOauthAccountBalancingAcross"),
-} satisfies CommandMetadata;
-
 export const galleryHelp = {
 	description: t("cli.commandHelp.previewToolComposerAndStatusLine"),
 } satisfies CommandMetadata;
 
 export const gcHelp = { description: t("cli.commandHelp.runStorageGarbageCollection") } satisfies CommandMetadata;
-export const ifBenchHelp = {
-	description: t("cli.commandHelp.benchmarkInstructionFollowingAndWorkingMemory"),
-} satisfies CommandMetadata;
 export const gitHelp = {
 	description: t("cli.commandHelp.interactiveFullscreenGitUiSplitDiff"),
 } satisfies CommandMetadata;
@@ -73,23 +54,13 @@ export const findHelp = {
 
 export const grepHelp = { description: t("cli.commandHelp.testGrepTool") } satisfies CommandMetadata;
 
-export const grievancesHelp = {
-	description: t("cli.commandHelp.viewCleanOrPushReportedTool"),
-} satisfies CommandMetadata;
-
 export const loginHelp = {
 	description: t("cli.commandHelp.logInToAModelProvider"),
-} satisfies CommandMetadata;
-
-export const imagesHelp = {
-	description: t("cli.commandHelp.inspectDiagnoseProbeAndPurgeImage"),
 } satisfies CommandMetadata;
 
 export const installHelp = {
 	description: t("cli.commandHelp.installOrLinkAnExtensionPackage"),
 } satisfies CommandMetadata;
-
-export const joinHelp = { description: t("cli.commandHelp.joinASharedCollabSessionSame") } satisfies CommandMetadata;
 
 export const modelsHelp = {
 	description: t("cli.commandHelp.listSearchAndRefreshAvailableModels"),
@@ -103,10 +74,6 @@ export const playHelp = {
 	description: t("cli.commandHelp.replayARecordSessionRecordingIn"),
 } satisfies CommandMetadata;
 
-export const predictHelp = {
-	description: t("cli.commandHelp.typeAPromptAndCompareEvery"),
-} satisfies CommandMetadata;
-
 export const psHelp = {
 	description: t("cli.ps.description"),
 } satisfies CommandMetadata;
@@ -116,10 +83,6 @@ export const readHelp = {
 } satisfies CommandMetadata;
 export const renderHelp = {
 	description: t("cli.commandHelp.drawASessionSEntireThread"),
-} satisfies CommandMetadata;
-
-export const sayHelp = {
-	description: t("cli.commandHelp.synthesizeTextWithTheLocalTts"),
 } satisfies CommandMetadata;
 
 export const searchHelp = { description: t("cli.commandHelp.testWebSearchProviders") } satisfies CommandMetadata;
@@ -141,10 +104,6 @@ export const skillHelp = {
 export const sshHelp = { description: t("cli.commandHelp.manageSshHostConfigurations") } satisfies CommandMetadata;
 
 export const statsHelp = { description: t("cli.commandHelp.viewUsageStatistics") } satisfies CommandMetadata;
-
-export const streamHelp = {
-	description: t("cli.commandHelp.broadcastLocalOmpSessionScreensAnd"),
-} satisfies CommandMetadata;
 
 export const tinyModelsHelp = {
 	description: t("cli.commandHelp.downloadTinyLocalModelsSessionTitles"),

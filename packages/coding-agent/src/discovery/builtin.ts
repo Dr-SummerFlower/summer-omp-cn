@@ -314,7 +314,7 @@ async function loadSkills(ctx: LoadContext): Promise<LoadResult<Skill>> {
 // Managed skills (auto-learn) are a SEPARATE provider at the lowest skill
 // priority, so an authored skill of the same name from ANY other provider wins
 // the capability-level priority dedup. Discovery is unconditional (an empty
-// managed dir is a no-op); only writing/nudging is gated by `autolearn.enabled`.
+// managed dir is a no-op); writing goes through the kept managed-skills helper.
 const MANAGED_SKILLS_PRIORITY = 5;
 async function loadManagedSkills(ctx: LoadContext): Promise<LoadResult<Skill>> {
 	return scanSkillsFromDir(ctx, {

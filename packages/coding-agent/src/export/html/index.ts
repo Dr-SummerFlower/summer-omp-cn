@@ -12,9 +12,9 @@ import templateHtmlPath from "./template.html" with { type: "file" };
 import templateJsPath from "./template.js" with { type: "file" };
 import highlightJsPath from "./vendor/highlight.min.js" with { type: "file" };
 import markedJsPath from "./vendor/marked.min.js" with { type: "file" };
-// Pre-built React tool renderers: built by `gen:tool-views` (`bun run gen:tool-views`),
-// run automatically by root `prepare` on install and by `prepack` at publish.
-import toolViewsJsPath from "./tool-views.generated.js" with { type: "file" };
+// Pre-built React tool renderers (the `<omp-tool-view>` web component). Vendored alongside
+// marked/highlight: checked in as a static asset so exports work without a build step.
+import toolViewsJsPath from "./vendor/tool-views.generated.js" with { type: "file" };
 import { webExportThemeVars } from "./web-palette";
 
 export { type ExportThemeNames, parseExportArgs } from "./args";

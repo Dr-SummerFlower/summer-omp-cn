@@ -29,7 +29,7 @@ function createHarness(draft: string): Harness {
 
 const COMMANDS: ReadonlyArray<readonly [string, (h: Harness) => void]> = [
 	["/record", h => expect(h.toggleRecording).toHaveBeenCalledTimes(1)],
-	["/skills search", h => expect(h.showError).toHaveBeenCalledWith("Usage: /skills search <query>")],
+	["/force", h => expect(h.showError).toHaveBeenCalledWith("Usage: /force:<tool-name> [prompt]")],
 ];
 
 describe("builtin commands and detached drafts", () => {

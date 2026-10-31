@@ -264,9 +264,6 @@ describe("ACP lazy startup", () => {
 			"task.agentAdvisor": { task: "on" },
 			"memory.backend": "local",
 			"memories.enabled": true,
-			"advisor.enabled": true,
-			"advisor.syncBacklog": "5",
-			"advisor.immuneTurns": 7,
 			"todo.enabled": false,
 			"todo.reminders": false,
 			"todo.eager": "always",
@@ -422,7 +419,7 @@ describe("ACP lazy startup", () => {
 
 		const authStorage = createInMemoryAuthStorage();
 		try {
-			const settings = Settings.isolated({ "marketplace.autoUpdate": "off" });
+			const settings = Settings.isolated();
 			const { runRootCommand } = await import("@oh-my-pi/pi-coding-agent/main");
 			const { createAgentSession } = await import("@oh-my-pi/pi-coding-agent/sdk");
 			let session: AgentSession | undefined;

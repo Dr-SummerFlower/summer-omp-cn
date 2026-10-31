@@ -13,7 +13,6 @@ import { resolveMCPTimeoutMs } from "../mcp/timeout";
 import { type AgentSession, type AgentSessionEvent, SHUTDOWN_CONSOLIDATE_BUDGET_MS } from "../session/agent-session";
 import { CREDENTIAL_DISABLED_NOTICE_SOURCE } from "../session/credential-disabled-notice";
 import { isSilentAbort } from "../session/messages";
-import { flushTelemetryExport } from "../telemetry-export";
 import { formatPersistenceDurabilityFailure, formatPersistenceFailure } from "./persistence-failure";
 import { initializeExtensions } from "./runtime-init";
 
@@ -38,11 +37,6 @@ export interface PrintModeOptions {
 	/** Manager returned by session creation; only print mode waits for its servers. */
 	mcpManager?: MCPManager;
 }
-
-/** Matches the longest built-in provider request deadline while bounding tool-loop stalls. */
-export const PRINT_MODE_ADVISOR_DRAIN_TIMEOUT_MS = 10 * 60_000;
-/** Error exits cannot hold automation for the full normal drain budget. */
-export const PRINT_MODE_ERROR_ADVISOR_DRAIN_TIMEOUT_MS = 30_000;
 
 /** Sanitize untrusted text (server names, errors) into one stderr-safe line. */
 function singleLine(text: string): string {
@@ -173,7 +167,7 @@ async function runPrintModeCore(
 	// `xd://propose` execute-dispatch, and when it does not the run strands until
 	// the deadline (issue #8272). So do not honor the startup default here; the
 	// supported headless plan flow is `--plan-yolo` (auto-approve → implement),
-	// which is wired independently through the prewalk coordinator.
+	// which is wired through the plan-yolo coordinator.
 	const planStartupIgnored =
 		cfgPlanDefaultOnStartup.get(session.settings) &&
 		cfgPlanEnabled.get(session.settings) &&
@@ -284,10 +278,6 @@ async function runPrintModeCore(
 		}
 	}
 
-	// From this point onward a late blocker must be recorded without starting a
-	// primary turn whose response print mode would never emit.
-	session.prepareForHeadlessAdvisorDrain();
-
 	// Read via the session accessor, not the raw state tail: a classifier
 	// refusal is pruned from active context at settle, and an aborted turn
 	// can trail synthetic tool results — both would hide the terminal
@@ -329,18 +319,6 @@ async function runPrintModeCore(
 		}
 		session.setTextOutputCommitted(true);
 	}
-
-	// A turn-fatal exit cannot hold automation for the full normal drain budget.
-	if (!strictMCPFailure) {
-		// Print mode's drain budget covers a fallback-chain switch; the reviewer's
-		// verdict is the point of a headless advisor run, so wait through recovery.
-		await session.waitForAdvisorCatchup(
-			terminalFailure ? PRINT_MODE_ERROR_ADVISOR_DRAIN_TIMEOUT_MS : PRINT_MODE_ADVISOR_DRAIN_TIMEOUT_MS,
-			{ waitThroughRecovery: true },
-		);
-	}
-	// Error spans must reach the exporter; the postmortem `exit` handler can't await.
-	if (terminalFailure) await flushTelemetryExport();
 
 	// Block shutdown until every serialized stdout write (including the final
 	// agent_end and late JSON advisor events) has drained; process.exit would

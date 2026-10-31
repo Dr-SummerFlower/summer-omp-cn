@@ -206,19 +206,6 @@ export const cfgTaskBatch = register({
 	},
 });
 
-export const cfgTaskSpeculativeLaunch = register({
-	id: "task.speculativeLaunch",
-	type: "boolean",
-	default: true,
-	ui: {
-		tab: "tasks",
-		group: "Subagents",
-		label: "Speculative Task Launch",
-		description:
-			"Start each batch subagent as soon as its tasks[] item finishes streaming instead of waiting for the whole task call. Launched agents are aborted if the finished call fails validation, is blocked, or its arguments change. Requires auto-allowed task approval and no extension tool lifecycle handlers.",
-	},
-});
-
 export const cfgTaskEnableEffort = register({
 	id: "task.enableEffort",
 	type: "boolean",
@@ -398,31 +385,11 @@ export const cfgTaskAgentCompactionThresholdOverrides = register({
 	validate: validateAgentCompactionThresholdOverrides,
 });
 
-export const cfgTaskAgentPrewalk = register({
-	id: "task.agentPrewalk",
-	protocolDefault: ["rpc", "acp"],
-	type: "record",
-	default: {} as Record<string, string>,
-});
-
 export const cfgTaskAgentAdvisor = register({
 	id: "task.agentAdvisor",
 	protocolDefault: ["rpc", "acp"],
 	type: "record",
 	default: {} as Record<string, string>,
-});
-
-export const cfgTaskPrewalk = register({
-	id: "task.prewalk",
-	type: "boolean",
-	default: false,
-	ui: {
-		tab: "tasks",
-		group: "Subagents",
-		label: "Generic Task Prewalk",
-		description:
-			"Arm prewalk for the bundled generic `task` subagent: it starts on its resolved model, plans and begins the implementation, then hands off to the 'smol' role at its first edit/write. Per-agent overrides (task.agentPrewalk, configured from the /agents hub) and user agent `prewalk` frontmatter apply regardless of this toggle.",
-	},
 });
 
 export const cfgTaskShowResolvedModelBadge = register({

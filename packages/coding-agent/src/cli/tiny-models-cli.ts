@@ -7,18 +7,7 @@ import {
 	TINY_LOCAL_MODELS,
 	type TinyLocalModelKey,
 } from "../tiny/models";
-import {
-	ensureSmolLmWeights,
-	getSmolLmModelDir,
-	SMOLLM_LABEL,
-	SMOLLM_TOTAL_BYTES,
-	smolLmWeightsReady,
-} from "../predict/smollm-weights";
 import { shutdownTinyTitleClient, tinyTitleClient, tinyWorkerUsesMlx } from "../tiny/title-client";
-import { t } from "@oh-my-pi/pi-i18n";
-
-/** CLI key for the word-completion model (`spelling.autocomplete` `auto`/`smollm`). */
-const SMOLLM_KEY = "smollm";
 
 export type TinyModelsAction = "download" | "list";
 
@@ -80,22 +69,14 @@ export function resolveModels(model: string | undefined, mlx = tinyWorkerUsesMlx
 		).map(spec => spec.key);
 	if (!isTinyLocalModelKey(model)) {
 		const values = TINY_LOCAL_MODELS.map(spec => spec.key).join(", ");
-		throw new Error(`Unknown tiny local model: ${model}. Expected one of: ${values}, ${SMOLLM_KEY}, all`);
+		throw new Error(`Unknown tiny local model: ${model}. Expected one of: ${values}, all`);
 	}
 	return [model];
 }
 
-async function listModels(json: boolean | undefined): Promise<void> {
-	const wordCompletion = {
-		key: SMOLLM_KEY,
-		label: SMOLLM_LABEL,
-		description: t("cli.tinyModels.wordCompletionSpellingAutocompleteAutoSmollm"),
-		bytes: SMOLLM_TOTAL_BYTES,
-		dir: getSmolLmModelDir(),
-		ready: await smolLmWeightsReady(),
-	};
+function listModels(json: boolean | undefined): void {
 	if (json) {
-		writeLine(JSON.stringify({ models: TINY_LOCAL_MODELS, wordCompletion }));
+		writeLine(JSON.stringify({ models: TINY_LOCAL_MODELS }));
 		return;
 	}
 	writeLine(chalk.bold("Tiny local models"));
@@ -104,10 +85,6 @@ async function listModels(json: boolean | undefined): Promise<void> {
 		writeLine(`${chalk.cyan(spec.key)}${defaultMark}`);
 		writeLine(`  ${spec.label} — ${spec.description}`);
 	}
-	const status = wordCompletion.ready ? chalk.green("downloaded") : chalk.dim("not downloaded");
-	writeLine(`${chalk.cyan(SMOLLM_KEY)}`);
-	writeLine(`  ${SMOLLM_LABEL} — ${wordCompletion.description}, ${formatBytes(SMOLLM_TOTAL_BYTES)}, ${status}`);
-	writeLine(`  ${chalk.dim(wordCompletion.dir)}`);
 }
 
 function makeProgressReporter(label: string, json: boolean | undefined): ProgressReporter {
@@ -161,40 +138,13 @@ async function downloadOne(modelKey: TinyLocalModelKey, json: boolean | undefine
 	return result.error ? { model: modelKey, ok: result.ok, error: result.error } : { model: modelKey, ok: result.ok };
 }
 
-/** Fetch the word-completion model the composer would otherwise download on first use. */
-async function downloadSmolLm(json: boolean | undefined): Promise<DownloadResult> {
-	if (!json && !process.stdout.isTTY) writeLine(`Downloading ${SMOLLM_LABEL} (${SMOLLM_KEY})...`);
-	const progress = makeProgressReporter(SMOLLM_LABEL, json);
-	try {
-		await ensureSmolLmWeights({
-			onProgress: (loaded, file) =>
-				progress.onProgress({
-					progress: (loaded / SMOLLM_TOTAL_BYTES) * 100,
-					loaded,
-					total: SMOLLM_TOTAL_BYTES,
-					file,
-					ready: loaded === SMOLLM_TOTAL_BYTES,
-				}),
-		});
-		progress.finish(true);
-		if (!json && !process.stdout.isTTY) writeLine(`Downloaded ${SMOLLM_LABEL} to ${getSmolLmModelDir()}.`);
-		return { model: SMOLLM_KEY, ok: true };
-	} catch (error) {
-		progress.finish(false);
-		const message = error instanceof Error ? error.message : String(error);
-		if (!json) writeLine(`${SMOLLM_LABEL} failed: ${message}`);
-		return { model: SMOLLM_KEY, ok: false, error: message };
-	}
-}
-
 export async function runTinyModelsCommand(command: TinyModelsCommandArgs): Promise<void> {
 	if (command.action === "list") {
-		await listModels(command.flags.json);
+		listModels(command.flags.json);
 		return;
 	}
 
-	const wantsSmolLm = command.model === SMOLLM_KEY || command.model === "all";
-	const models = command.model === SMOLLM_KEY ? [] : resolveModels(command.model);
+	const models = resolveModels(command.model);
 	const results: DownloadResult[] = [];
 	try {
 		for (const model of models) {
@@ -203,7 +153,6 @@ export async function runTinyModelsCommand(command: TinyModelsCommandArgs): Prom
 	} finally {
 		await shutdownTinyTitleClient();
 	}
-	if (wantsSmolLm) results.push(await downloadSmolLm(command.flags.json));
 
 	if (command.flags.json) {
 		writeLine(JSON.stringify({ results }));

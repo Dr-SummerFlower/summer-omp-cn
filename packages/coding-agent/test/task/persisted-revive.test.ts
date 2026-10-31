@@ -31,8 +31,6 @@ import { type IrcMessage } from "@oh-my-pi/pi-tui/tools/irc";
 import { TempDir } from "@oh-my-pi/pi-utils";
 import { createSessionDefaults } from "../helpers/session-defaults";
 
-import { cfgAdvisorEnabled } from "@oh-my-pi/pi-coding-agent/advisor/settings";
-
 const tempDirs: TempDir[] = [];
 
 function makeTempDir(prefix: string): string {
@@ -131,7 +129,7 @@ async function createPersistedSession(
 	cwd: string,
 	restrictToolNames?: boolean,
 	modelRole?: string,
-	advisor?: string,
+	_advisor?: string,
 	contract?: {
 		tools?: string[];
 		readOnly?: boolean;
@@ -150,7 +148,6 @@ async function createPersistedSession(
 		restrictToolNames,
 		modelRole,
 		resolvedModel: modelRole ? "anthropic/claude-sonnet-4-5" : undefined,
-		advisor,
 		readOnly: contract?.readOnly,
 		agent: contract?.agent,
 		isolated: contract?.isolated,
@@ -605,33 +602,6 @@ describe("persisted subagent revival", () => {
 		// unnamed subagent session.
 		expect(capturedOptions?.agentName).toBe(ref.displayName);
 		expect(capturedOptions?.agentName).not.toBe("sub");
-	});
-
-	it("restores the persisted per-agent advisor opt-in on cold revival", async () => {
-		const cwd = makeTempDir("@pi-advisor-revive-");
-		const advisedFile = await createPersistedSession(cwd, undefined, undefined, "moonshot/k3");
-		const roleAdvisedFile = await createPersistedSession(cwd, undefined, undefined, "on");
-		const unadvisedFile = await createPersistedSession(cwd);
-		const captured: Settings[] = [];
-		vi.spyOn(sdkModule, "createAgentSession").mockImplementation(async options => {
-			if (options?.settings) captured.push(options.settings);
-			return { session: createRevivedSession([]).session } as CreateAgentSessionResult;
-		});
-
-		const factory = createFactory(cwd);
-		for (const sessionFile of [advisedFile, roleAdvisedFile, unadvisedFile]) {
-			const ref = createRef(sessionFile);
-			const reviver = await factory(ref);
-			if (!reviver) throw new Error("Expected a persisted reviver");
-			await reviver(ref);
-		}
-
-		const [advised, roleAdvised, unadvised] = captured;
-		expect(cfgAdvisorEnabled.get(advised)).toBe(true);
-		expect(advised.getModelRole("advisor")).toBe("moonshot/k3");
-		expect(cfgAdvisorEnabled.get(roleAdvised)).toBe(true);
-		expect(roleAdvised.getModelRole("advisor")).toBeUndefined();
-		expect(cfgAdvisorEnabled.get(unadvised)).toBe(false);
 	});
 
 	it("restores the persisted custom model role before reopening the session", async () => {

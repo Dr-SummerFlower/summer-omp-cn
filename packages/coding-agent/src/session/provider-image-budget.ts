@@ -13,9 +13,33 @@ import type {
 import { decodeDataUri } from "@oh-my-pi/pi-ai/providers/openai-data-uri";
 import { isRecord } from "@oh-my-pi/pi-utils";
 import { LRUCache } from "@oh-my-pi/pi-utils/lru";
+import { modelMatchesHost } from "@oh-my-pi/pi-catalog/hosts";
 import { providerImageBudget } from "@oh-my-pi/snapcompact";
-import { supportsRemoteImageUrls } from "../blob-broker/context-images";
 import { imageDecodeFailureReason } from "@oh-my-pi/pi-tui/chat/image-loading";
+
+/** Responses/Chat APIs whose `image_url` accepts arbitrary https URLs. */
+const URL_CAPABLE_OPENAI_APIS: Record<string, true> = {
+	"openai-responses": true,
+	"openai-codex-responses": true,
+	"azure-openai-responses": true,
+	"openai-completions": true,
+	openrouter: true,
+};
+
+/** Whether this model's provider fetches https image URLs server-side. */
+function supportsRemoteImageUrls(model: Model): boolean {
+	if (!model.input.includes("image")) return false;
+	// Moonshot-native hosts (api.moonshot.ai / api.kimi.com) reject remote image
+	// URLs on both dialects: the OpenAI surface wants inline data and the
+	// kimiApiFormat="anthropic" transport 400s with "unsupported image url".
+	if (modelMatchesHost(model, "moonshotNative")) return false;
+	if (URL_CAPABLE_OPENAI_APIS[model.api]) return true;
+	if (model.api === "anthropic-messages") return model.provider === "anthropic";
+	// Antigravity's Cloud Code endpoint fetches arbitrary https fileUri;
+	// Vertex documents public https URLs for Gemini fileData.
+	if (model.api === "google-gemini-cli") return model.provider === "google-antigravity";
+	return model.api === "google-vertex";
+}
 
 const TOOL_RESULT_IMAGE_OMISSION: TextContent = {
 	type: "text",
@@ -117,14 +141,10 @@ async function unreadableImageReason(image: ImageContent): Promise<string | null
  * reference, and it is the reference — never those bytes — that the provider
  * receives. Provider-file references displace inline bytes only on an API that
  * understands that provider's reference shape; another API falls back to data.
- * Two producers make the empty reference-backed shape:
+ * One producer makes the empty reference-backed shape:
  *   - `openai-responses-server.ts` `functionOutputContent()` represents a
  *     native `input_image` URL / file id as `{ data: "", url }` or
- *     `{ data: "", providerFile }`;
- *   - `blob-broker/service.ts` `frameSink` publishes lazy snapcompact frames as
- *     `{ data: "", url }` whose PNG renders only when a provider fetches it —
- *     and `SnapcompactInlineTransformer` runs BEFORE this guard in `sdk.ts`, so
- *     those placeholders are already reference-shaped when we see them.
+ *     `{ data: "", providerFile }`.
  * `openai-shared.ts` `convertResponsesInputImage()` prefers `providerFile`, then
  * `url`, and only falls back to `data:<mime>;base64,<data>`. Decoding a
  * reference-backed block would therefore destroy a perfectly good image over

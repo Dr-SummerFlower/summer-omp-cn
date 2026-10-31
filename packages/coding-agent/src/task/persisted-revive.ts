@@ -117,20 +117,8 @@ export function createPersistedSubagentReviverFactory(
 					`Cannot revive subagent "${ref.id}": session file "${sessionFile}" has no message history (truncated to header/session_init). The agent was not revived.`,
 				);
 			}
-			// Rebuild the same advisor opt-in the original spawn resolved: `"on"` =
-			// advisor-role model, anything else = the explicit pattern stamped onto
-			// this session's `modelRoles.advisor`. Absent = unadvised (the
-			// createSubagentSettings default).
 			const subagentSettings = createSubagentSettings(ctx.settings, {
 				...(init.readSummarize === false ? { "read.summarize.enabled": false } : undefined),
-				...(init.advisor
-					? {
-							"advisor.enabled": true,
-							...(init.advisor !== "on"
-								? { modelRoles: { ...ctx.settings.getModelRoles(), advisor: init.advisor } }
-								: undefined),
-						}
-					: undefined),
 				...compactionThresholdSettings(init.compactionThreshold),
 			});
 			const persistedModelPattern =

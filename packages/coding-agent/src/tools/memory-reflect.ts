@@ -1,8 +1,6 @@
 import { type } from "@oh-my-pi/omptype";
 import type { AgentTool, AgentToolResult } from "@oh-my-pi/pi-agent-core";
 import { logger, prompt, untilAborted } from "@oh-my-pi/pi-utils";
-import { isHindsightConfigured, loadHindsightConfig } from "../hindsight/config";
-import { ensureBankExists } from "../hindsight/bank";
 import reflectDescription from "../prompts/tools/reflect.md" with { type: "text" };
 import { sessionMemoryToolRefs } from "../memory-backend/tool-names";
 import type { ToolSession } from ".";
@@ -35,8 +33,7 @@ export class MemoryReflectTool implements AgentTool<typeof memoryReflectSchema> 
 
 	static createIf(session: ToolSession): MemoryReflectTool | null {
 		const backend = cfgMemoryBackend.get(session.settings);
-		if (backend !== "hindsight" && backend !== "mnemopi") return null;
-		if (backend === "hindsight" && !isHindsightConfigured(loadHindsightConfig(session.settings))) return null;
+		if (backend !== "mnemopi") return null;
 		return new MemoryReflectTool(session);
 	}
 
@@ -71,28 +68,7 @@ export class MemoryReflectTool implements AgentTool<typeof memoryReflectSchema> 
 				}
 			}
 
-			const state = this.session.getHindsightSessionState?.();
-			if (!state) {
-				throw new Error(t("tui.ca.tools.memoryReflect.hindsightBackendIsNotInitialisedFor"));
-			}
-
-			try {
-				await ensureBankExists(state.client, state.bankId, state.config, state.banksSet);
-				const response = await state.client.reflect(state.bankId, params.query, {
-					context: params.context,
-					budget: state.config.recallBudget,
-					tags: state.recallTags,
-					tagsMatch: state.recallTagsMatch,
-				});
-				const text = response.text?.trim() || t("tui.ca.tools.memoryReflect.noRelevantInformationFoundToReflect");
-				return {
-					content: [{ type: "text", text }],
-					details: {},
-				};
-			} catch (err) {
-				logger.warn("reflect failed", { bankId: state.bankId, error: String(err) });
-				throw err instanceof Error ? err : new Error(String(err));
-			}
+			throw new Error("Reflect is only available with memory.backend=mnemopi.");
 		});
 	}
 }

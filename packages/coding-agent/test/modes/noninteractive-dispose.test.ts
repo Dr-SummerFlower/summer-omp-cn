@@ -14,7 +14,6 @@ import { postmortem, TempDir } from "@oh-my-pi/pi-utils";
 import { Settings } from "../../src/config/settings";
 import { runPrintMode } from "../../src/modes/print-mode";
 import type { AgentSession } from "../../src/session/agent-session";
-import * as telemetryExport from "../../src/telemetry-export";
 
 describe("print mode disposes the session before terminating", () => {
 	it("disposes on the assistant-error path before returning exit code 1", async () => {
@@ -53,9 +52,6 @@ describe("print mode disposes the session before terminating", () => {
 			},
 		} as unknown as AgentSession;
 
-		const flushSpy = spyOn(telemetryExport, "flushTelemetryExport").mockImplementation(async () => {
-			order.push("flush");
-		});
 		const stderrLines: string[] = [];
 		const stderrSpy = spyOn(process.stderr, "write").mockImplementation(((chunk: unknown) => {
 			order.push("stderr");
@@ -69,10 +65,9 @@ describe("print mode disposes the session before terminating", () => {
 			expect(await runPrintMode(session, { mode: "text" })).toBe(1);
 		} finally {
 			stderrSpy.mockRestore();
-			flushSpy.mockRestore();
 		}
 
-		expect(order).toEqual(["catchup", "flush", "dispose", "stderr"]);
+		expect(order).toEqual(["catchup", "dispose", "stderr"]);
 		expect(stderrLines.join("")).toContain("boom");
 	});
 

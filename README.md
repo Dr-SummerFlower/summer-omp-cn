@@ -186,23 +186,7 @@ _[观看演示 ↗](https://omp.sh/clips/ttsr.mp4)_
 
 运行过程中可以按 Alt+A 打开 [Agent Hub](docs/agent-hub.md)，查看所有子代理的活动和用量。打开某个子代理后，可以阅读实时记录、发送引导消息、唤醒暂停的 worker，或终止卡住的任务，而不会中止父会话。
 
-### 06 · 第二个模型观察每一轮
-
-将审查模型绑定到 advisor 角色后，它会阅读主代理的每一轮操作，并以内联方式注入旁注、疑问或阻断性问题。它使用独立的上下文和模型，可以发现执行代理匆忙跳过的问题。主代理会看到这些意见并修正方向，或者解释为什么不采纳。
-
-![omp TUI：advisor 使用 openai-codex/gpt-5.5 运行，在主代理缩小 ENOENT 捕获范围后显示一条提醒，指出修复不再符合用户的字面验收标准。](https://omp.sh/clips/advisor-poster.webp)
-
-_[观看演示 ↗](https://omp.sh/clips/advisor.mp4)_
-
-### 07 · 分享一个链接，别人立即加入
-
-/collab 会把实时会话放到 relay 上，并返回链接和二维码。队友可以在另一个终端执行 omp join，也可以直接在浏览器中打开。通过读写模式共同操作同一个代理，或使用 /collab view 生成只读链接，让任何人都能观看但不能控制。画面在客户端加密，relay 不会看到你的密钥。
-
-![omp TUI：/collab view 输出会话已启动、omp join 命令、浏览器链接和只读提示，并显示一个可扫描的二维码。](https://omp.sh/clips/collab-poster.webp)
-
-_[观看演示 ↗](https://omp.sh/clips/collab.mp4)_
-
-### 08 · 读取 arXiv PDF，当然可以
+### 06 · 读取 arXiv PDF，当然可以
 
 web_search 会串联二十三个按排名排列的供应商，并将找到的 URL 直接交给 read。arXiv PDF、GitHub 页面和 Stack Overflow 讨论会转换为保留锚点的结构化 Markdown，与本地文件使用同一套工具接口。可以引用、跟进和摘录，并始终保留来源位置。
 
@@ -210,45 +194,45 @@ web_search 会串联二十三个按排名排列的供应商，并将找到的 UR
 
 _[观看演示 ↗](https://omp.sh/clips/web.mp4)_
 
-### 09 · 真正的原生能力，Windows 也一样
+### 07 · 真正的原生能力，Windows 也一样
 
 其他代理需要启动 rg、grep、find 和 bash。很多机器根本没有这些二进制文件，即使存在，每次调用也要付出一次 fork-exec 往返成本。omp 将真实实现直接链接到进程中：ripgrep、glob、find 都在进程内运行；brush 提供 bash，跨调用保留会话；58 个命令行工具（包括 ls、sed、sort、xargs 和 jq）已移植到 `pi-builtins` crate，并作为内置功能在进程内运行，无需 fork/exec。同一个 omp 二进制文件可以运行在 macOS、Linux 和 Windows 上，无需 WSL 桥接。
 
-### 10 · 带优先级和结论的代码审查
+### 08 · 带优先级和结论的代码审查
 
 清楚判断某项改动是否可以发布，并将每个问题按 P0 到 P3 分级，同时给出置信度评分。/review 会启动专用审查子代理，并行检查分支、单个提交或未提交的工作。先处理阻断发布的问题，重要内容不会被大段文字掩盖。
 
-### 11 · Hashline：按内容哈希编辑
+### 09 · Hashline：按内容哈希编辑
 
 更少 Token，获得更可靠的编辑。模型指向锚点，而不是重新输入要修改的行，因此空白差异和“找不到字符串”的重试会大幅减少。编辑过时文件时，锚点会发生偏离；系统会在补丁破坏文件前拒绝它。Grok 4 Fast 在相同任务上的输出 Token 可减少 61%。
 
-### 12 · GitHub 只是另一种文件系统
+### 10 · GitHub 只是另一种文件系统
 
 其他 harness 需要分别学习 gh_issue_view、gh_pr_view、gh_search 等工具，每个工具都有不同的参数。这里直接复用路径接口：read 已经能够处理路径，PR 也可以表示为路径。代理只需学习一种接口，系统也只需维护一个工具面。
 
-### 13 · 由代理整理的记忆
+### 11 · 由代理整理的记忆
 
 代理可以跨会话记住代码库。运行中使用 retain 写入事实，用 learn 保存可复用经验，用 recall 取回记忆，并将每个会话压缩为下一次会话开始时加载的工作模型。通过 memory.backend 选择 local、Hindsight 或 Mnemopi。默认按项目隔离，因此代理对当前仓库学到的内容会留在当前仓库范围内。
 
-### 14 · ACP：由编辑器驱动的代理
+### 12 · ACP：由编辑器驱动的代理
 
 在 Zed 中运行 omp，就能获得与终端相同的代理：读取当前编辑器缓冲区，通过编辑器保存路径写入文件，并在编辑器终端中启动 shell。破坏性工具会暂停并请求权限，你确认一次即可继续。无需桥接、插件或额外的同步层。
 
-### 15 · 继承其他工具已经写下的配置
+### 13 · 继承其他工具已经写下的配置
 
 其他代理往往要求导入并转换配置；omp 可以直接读取磁盘上已有的八种格式，包括 Cursor MDC、Cline .clinerules、Codex AGENTS.md、Copilot applyTo 等。无需迁移脚本、YAML 到 TOML 的转换，也没有“只支持一部分格式”的附注；团队上个季度写下的配置今晚仍然可以使用。
 
-### 16 · omp commit：原子拆分与已验证的提交信息
+### 14 · omp commit：原子拆分与已验证的提交信息
 
 omp 通过 git_overview、git_file_diff 和 git_hunk 读取工作树，然后按依赖顺序将不相关的改动拆分为原子提交。写入前会拒绝循环依赖。源文件的优先级高于测试、文档和配置，因此最重要的改动会出现在标题提交中；锁文件完全排除在分析之外。
 
-### 17 · 读取 PR、遍历 skill、从子代理结果中提取 JSON
+### 15 · 读取 PR、遍历 skill、从子代理结果中提取 JSON
 
 pr://、issue://、agent://、skill://、ssh:// 等十六种内部 scheme，会在代理已经使用的所有文件系统型工具中透明解析。read pr://1428 返回的结构与 read src/foo.ts 相同；grep 可以像遍历目录一样遍历 diff；agent://<id>/findings.0.path 可以按路径从子代理结果中提取字段。
 
 ![omp TUI：读取 pr://can1357/oh-my-pi/1063，再读取 /diff/1，显示区块标题和 [MODIFIED] (+12 -0) 摘要。](https://omp.sh/captures/pr.webp)
 
-### 18 · 轻松解决冲突
+### 16 · 轻松解决冲突
 
 每个合并冲突都会变成一个 URL。代理向 conflict://N 写入 @theirs、@ours 或 @base，文件就会被干净地解析。批量形式为 conflict://*。
 
@@ -256,7 +240,7 @@ pr://、issue://、agent://、skill://、ssh:// 等十六种内部 scheme，会�
 
 _[观看演示 ↗](https://omp.sh/clips/conflict.mp4)_
 
-### 19 · 先预览，再接受
+### 17 · 先预览，再接受
 
 ast_edit 会返回一个包含替换数量的“拟议修改”卡片，改动会先暂存。代理向 xd://resolve 写入一行理由，TUI 将其转为 Accept 卡片，然后一次性完成磁盘移动：要么全部应用，要么完全不动。
 
@@ -264,19 +248,15 @@ ast_edit 会返回一个包含替换数量的“拟议修改”卡片，改动�
 
 _[观看演示 ↗](https://omp.sh/clips/codemod.mp4)_
 
-### 20 · 驱动真正的浏览器，也可以驱动 Slack
+### 18 · 驱动真正的浏览器，也可以驱动 Slack
 
 Stealth 默认开启，因此网页看到的是普通用户，而不是无头机器人。同一套 API 还可以直接驱动 Electron 应用；指向 Slack 后，代理读取私信的方式与读取网页相同。也可以完全跳过沙盒：browser relay 扩展能接管已经打开的 Chrome 标签页，而且不会抢夺焦点。
 
 ![omp TUI 使用 browser 工具访问 DuckDuckGo。](https://omp.sh/captures/browser.webp)
 
-### 21 · 直接操作桌面
-
-computer 会在真实主机上运行持久化 JavaScript：枚举窗口和显示器、截取屏幕、发送原生输入、遍历操作系统辅助功能树、读写剪贴板。它不是浏览器工具，也不依赖 DOM；操作的就是你眼前的真实桌面。
-
 ## 任务所需的一切，都已内置
 
-31 个工具与 read、bash 位于同一个命名空间。可以使用 --tools read,edit,bash,… 固定活动工具集；不常用但可发现的工具则放在 xd:// 设备后面。read xd:// 会列出这些工具，启用 tools.xdev 后，使用 write xd://<tool> 即可运行指定工具。
+所有工具与 read、bash 位于同一个命名空间。可以使用 --tools read,edit,bash,… 固定活动工具集；不常用但可发现的工具则放在 xd:// 设备后面。read xd:// 会列出这些工具，启用 tools.xdev 后，使用 write xd://<tool> 即可运行指定工具。
 
 **文件与搜索**
 
@@ -297,7 +277,6 @@ computer 会在真实主机上运行持久化 JavaScript：枚举窗口和显示
 
 - lsp：诊断、导航、符号、重命名、代码操作和原始请求；
 - debug：驱动 DAP 会话，支持断点、单步、线程、栈和变量；
-- security_scan：规划并运行原生安全审查，驱动 Codex Security 云扫描。
 
 **协作**
 
@@ -309,12 +288,9 @@ computer 会在真实主机上运行持久化 JavaScript：枚举窗口和显示
 **桌面与 Web**
 
 - browser：通过无头 Chromium、CDP 连接的应用或 relay 操作自己的 Chrome 标签页；
-- computer：在主机桌面上运行持久化 JS，支持窗口、截图、原生输入、辅助功能树和剪贴板；
 - web_search：跨已配置供应商执行一次查询，并返回答案和引用；
 - github：执行 GitHub CLI 操作，包括仓库、PR、Issue、代码搜索和 Actions 运行监控；
-- generate_image：通过 Gemini、GPT 或 xAI Grok 图像模型生成或编辑位图；
 - inspect_image：使用视觉模型分析本地图片文件；
-- tts：使用 xAI Grok Voice 进行文字转语音，支持五种内置音色和 WAV/MP3。
 
 **记忆与技能**
 
@@ -327,7 +303,7 @@ computer 会在真实主机上运行持久化 JavaScript：枚举窗口和显示
 - learn：记录可复用经验，也可以将其提升为受管理的 skill；
 - manage_skill：创建、更新或删除独立的受管理 skill。
 
-以下功能默认关闭，需要通过设置启用：github、security_scan、generate_image、tts、checkpoint、rewind 以及记忆工具（根据 memory.backend 决定是否启用 retain、recall、reflect、memory_edit）。inspect_image 会在当前模型无法直接查看图片时自动启用。
+以下功能默认关闭，需要通过设置启用：github、checkpoint、rewind 以及记忆工具（根据 memory.backend 决定是否启用 retain、recall、reflect、memory_edit）。inspect_image 会在当前模型无法直接查看图片时自动启用。
 
 [查看完整工具参考 ↗](https://omp.sh/docs/tools)
 
@@ -598,7 +574,7 @@ omp acp
 
 ### 可扩展性
 
-让 omp 编写缺少的功能，然后执行 /reload-plugins。可以只在本地使用，也可以放入 marketplace，或发布到 npm。
+让 omp 编写缺少的功能，然后执行 /reload-plugins。可以只在本地使用，也可以发布到 npm。
 
 ## 设计理念
 
@@ -660,7 +636,6 @@ bun dev -- --version
 
 | 软件包 | 说明 |
 | --- | --- |
-| **[@oh-my-pi/collab-web](packages/collab-web)** | 浏览器访客客户端、模拟宿主和协作实时会话的本地 relay |
 | **[@oh-my-pi/pi-ai](packages/ai)** | 支持流式传输、多供应商和模型集成的 LLM 客户端 |
 | **[@oh-my-pi/pi-catalog](packages/catalog)** | 模型目录，包含内置模型数据库、供应商描述和身份信息 |
 | **[@oh-my-pi/pi-agent-core](packages/agent)** | 支持工具调用和状态管理的代理运行时 |
@@ -670,13 +645,10 @@ bun dev -- --version
 | **[@oh-my-pi/omp-stats](packages/stats)** | 本地 AI 使用量统计和可观测性面板 |
 | **[@oh-my-pi/omptype](packages/omptype)** | 支持延迟 JIT 编译的 ArkType 兼容校验库 |
 | **[@oh-my-pi/pi-utils](packages/utils)** | 共享日志、流、目录、环境和进程辅助工具 |
-| **[@oh-my-pi/pi-wire](packages/wire)** | 协作实时会话协议类型和 relay 常量 |
-| **[@oh-my-pi/hashline](packages/hashline)** | edit 工具使用的按行锚定补丁语言和应用器 |
+| **[@oh-my-pi/pi-wire](packages/wire)** | 共享的会话、流式与内部 URL 协议类型 |
 | **[@oh-my-pi/pi-mnemopi](packages/mnemopi)** | 面向代理的本地 SQLite 记忆引擎 |
 | **[@oh-my-pi/snapcompact](packages/snapcompact)** | 用于上下文压缩的位图帧压缩软件包和 SQuAD 评估套件 |
 | **[@oh-my-pi/browser-relay](packages/browser-relay)** | 让 browser 工具操作现有标签页的 Chrome 扩展 |
-| **[@oh-my-pi/pi-metaharness](packages/metaharness)** | 统一的基准运行器、Harbor 运行存储、REST/SSE API 和实时面板 |
-| **[@oh-my-pi/typescript-edit-benchmark](packages/typescript-edit-benchmark)** | 基于 TypeScript 源码变异的编辑基准套件 |
 
 ### Rust 原生模块
 

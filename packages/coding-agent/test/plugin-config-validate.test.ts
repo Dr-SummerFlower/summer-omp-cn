@@ -13,7 +13,7 @@ import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from "bun:
 import { runPluginCommand } from "@oh-my-pi/pi-coding-agent/cli/plugin-cli";
 import { PluginManager } from "@oh-my-pi/pi-coding-agent/extensibility/plugins/manager";
 import type { InstalledPluginSummary } from "@oh-my-pi/pi-coding-agent/extensibility/plugins/marketplace";
-import { MarketplaceManager } from "@oh-my-pi/pi-coding-agent/extensibility/plugins/marketplace";
+import { InstalledPluginManager } from "@oh-my-pi/pi-coding-agent/extensibility/plugins/marketplace";
 import type { InstalledPlugin } from "@oh-my-pi/pi-coding-agent/extensibility/plugins/types";
 
 describe("runPluginCommand({ action: 'config', args: ['validate'] })", () => {
@@ -58,7 +58,7 @@ describe("runPluginCommand({ action: 'config', args: ['validate'] })", () => {
 
 		// list() omits marketplace runtime packages by design.
 		spyOn(PluginManager.prototype, "list").mockResolvedValue([]);
-		spyOn(MarketplaceManager.prototype, "listInstalledPlugins").mockResolvedValue([summary]);
+		spyOn(InstalledPluginManager.prototype, "listInstalledPlugins").mockResolvedValue([summary]);
 		const getPlugin = spyOn(PluginManager.prototype, "getPlugin").mockResolvedValue(resolved);
 		spyOn(PluginManager.prototype, "getPluginSettings").mockResolvedValue({ splitMode: "bogus" });
 
@@ -111,7 +111,7 @@ describe("runPluginCommand({ action: 'config', args: ['validate'] })", () => {
 		};
 
 		spyOn(PluginManager.prototype, "list").mockResolvedValue([userPlugin]);
-		spyOn(MarketplaceManager.prototype, "listInstalledPlugins").mockResolvedValue([summary]);
+		spyOn(InstalledPluginManager.prototype, "listInstalledPlugins").mockResolvedValue([summary]);
 		const getPlugin = spyOn(PluginManager.prototype, "getPlugin").mockResolvedValue(projectPlugin);
 		spyOn(PluginManager.prototype, "getPluginSettings").mockResolvedValue({ splitMode: "legacy" });
 

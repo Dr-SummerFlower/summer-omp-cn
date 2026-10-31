@@ -537,7 +537,9 @@ describe("Agent hub Enter activation", () => {
 	});
 
 	it("selector controller restores focus to the editor after Enter focuses an agent", async () => {
-		const agents = new AgentRegistry();
+		// The controller reads the global registry, so register the fixture there.
+		AgentRegistry.resetGlobalForTests();
+		const agents = AgentRegistry.global();
 		agents.register({
 			id: AGENT_ID,
 			displayName: AGENT_ID,
@@ -574,7 +576,6 @@ describe("Agent hub Enter activation", () => {
 			},
 			editor,
 			editorContainer,
-			collabGuest: { agentRegistry: agents, hubRemote: undefined },
 			focusAgentSession: async (id: string) => {
 				focusedIds.push(id);
 				focusResolved.resolve();
@@ -609,6 +610,11 @@ describe("Agent hub double-← gating", () => {
 	});
 
 	function setup(agents: AgentRegistry, sessionFile: string | null = null) {
+		// The controller reads the global registry (the host roster), so mirror the
+		// fixture roster into it instead of relying on an injected instance.
+		AgentRegistry.resetGlobalForTests();
+		const globalRegistry = AgentRegistry.global();
+		for (const ref of agents.list()) globalRegistry.register(ref);
 		let shown: AgentHubOverlayComponent | undefined;
 		let overlayOptions: Record<string, unknown> | undefined;
 		const shownReady = Promise.withResolvers<AgentHubOverlayComponent>();
@@ -634,7 +640,6 @@ describe("Agent hub double-← gating", () => {
 				clear: () => {},
 				addChild: () => {},
 			},
-			collabGuest: { agentRegistry: agents, hubRemote: undefined },
 			focusAgentSession: async () => {},
 			session: { getToolByName: () => undefined, extensionRunner: undefined },
 			sessionManager: { getCwd: () => TEST_CWD, getSessionFile: () => sessionFile },
@@ -697,14 +702,13 @@ describe("Agent hub double-← gating", () => {
 		const workerSessionFile = path.join(tempDir.path(), "main", "Worker.jsonl");
 		await Bun.write(sessionFile, "");
 		await Bun.write(workerSessionFile, persistedChildJsonl("worker"));
-		const agents = new AgentRegistry();
-		const { controller, shown, shownReady } = setup(agents, sessionFile);
+		const { controller, shown, shownReady } = setup(new AgentRegistry(), sessionFile);
 
 		controller.showAgentHub(new SessionObserverRegistry(), { requireContent: true });
 
 		expect(shown()).toBeUndefined();
 		const shownHub = await shownReady;
-		expect(agents.get("Worker")?.sessionFile).toBe(workerSessionFile);
+		expect(AgentRegistry.global().get("Worker")?.sessionFile).toBe(workerSessionFile);
 		shownHub!.dispose();
 	});
 
@@ -713,18 +717,17 @@ describe("Agent hub double-← gating", () => {
 		const sessionFile = path.join(tempDir.path(), "main.jsonl");
 		await Bun.write(sessionFile, "");
 		await Bun.write(path.join(tempDir.path(), "main", "Worker.jsonl"), persistedChildJsonl("worker"));
-		const agents = new AgentRegistry();
-		const { controller, shown, overlayOptions } = setup(agents, sessionFile);
+		const { controller, shown, overlayOptions } = setup(new AgentRegistry(), sessionFile);
 
 		controller.showAgentHub(new SessionObserverRegistry());
 
 		const hub = shown();
 		expect(hub).toBeDefined();
 		expect(overlayOptions()).toMatchObject({ width: "100%", maxHeight: "100%", margin: 0, fullscreen: true });
-		expect(agents.get("Worker")).toBeUndefined();
+		expect(AgentRegistry.global().get("Worker")).toBeUndefined();
 		expect(Bun.stripANSI(hub!.render(120).join("\n"))).toContain("Loading saved agents");
 		await hub!.persistedSubagentsReady;
-		expect(agents.get("Worker")?.status).toBe("parked");
+		expect(AgentRegistry.global().get("Worker")?.status).toBe("parked");
 		hub!.dispose();
 	});
 

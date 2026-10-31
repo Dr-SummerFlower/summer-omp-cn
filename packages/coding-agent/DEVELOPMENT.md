@@ -22,9 +22,7 @@ Run from `packages/coding-agent/` (or add `--cwd=packages/coding-agent`):
 | Autofix: lint + format prompts | `bun run fix` |
 | Build the `dist/omp` binary | `bun run build` |
 
-Never invoke `tsc`/`npx tsc` directly — `bun run check` is the typecheck gate. After
-changing the React tool renderers under `collab-web/src/tool-render/`, rebuild them
-with `bun run gen:tool-views`.
+Never invoke `tsc`/`npx tsc` directly — `bun run check` is the typecheck gate.
 
 ## Boot flow
 
@@ -72,11 +70,9 @@ Top-level entry modules: `cli.ts`, `main.ts`, `sdk.ts`, `index.ts` (SDK barrel),
 | `mcp/` | MCP transport / manager / loader / tool bridge | [mcp-config.md](../../docs/mcp-config.md), [mcp-runtime-lifecycle.md](../../docs/mcp-runtime-lifecycle.md) |
 | `extensibility/`, `slash-commands/` | Extensions, hooks, custom tools/commands, skills, plugins | [extensions.md](../../docs/extensions.md), [hooks.md](../../docs/hooks.md), [skills.md](../../docs/skills.md) |
 | `capability/`, `discovery/` | Capability registry + provider discovery modules | [extension-loading.md](../../docs/extension-loading.md), [context-files.md](../../docs/context-files.md) |
-| `advisor/`, `autolearn/`, `autoresearch/` | Advisor/watchdog, managed skills, background research | [advisor-watchdog.md](../../docs/advisor-watchdog.md) |
-| `memories/`, `memory-backend/`, `mnemopi/`, `hindsight/` | Memory subsystems and backends | [memory.md](../../docs/memory.md), [mnemosyne-memory-backend.md](../../docs/mnemosyne-memory-backend.md) |
+| `memories/`, `memory-backend/`, `mnemopi/` | Memory subsystems and backends | [memory.md](../../docs/memory.md), [mnemosyne-memory-backend.md](../../docs/mnemosyne-memory-backend.md) |
 | `internal-urls/` | Router + handlers (`agent://`, `docs://`, `rule://`, …) | [tree.md](../../docs/tree.md) |
-| `tui/`, `collab/` | Low-level TUI primitives, live session sharing | [tui.md](../../docs/tui.md), [collab.md](../../docs/collab.md) |
-| `tts/`, `stt/` | Text-to-speech / speech-to-text | — |
+| `tui/` | Low-level TUI primitives | [tui.md](../../docs/tui.md) |
 | `tiny/`, `auto-thinking/` | Embedded tiny-model experiments, auto thinking level | [local-models.md](../../docs/local-models.md) |
 | `async/`, `lib/`, `utils/`, `prompts/`, `edit/` | Shared plumbing, prompt assets, patch/diff engine | [tools/edit.md](../../docs/tools/edit.md) |
 
@@ -116,7 +112,7 @@ Top-level entry modules: `cli.ts`, `main.ts`, `sdk.ts`, `index.ts` (SDK barrel),
 
 ### Task delegation and subagents
 - [task-agent-discovery.md](../../docs/task-agent-discovery.md), [tools/task.md](../../docs/tools/task.md)
-- [collab.md](../../docs/collab.md), [agent-hub.md](../../docs/agent-hub.md), [tools/wait.md](../../docs/tools/wait.md)
+- [agent-hub.md](../../docs/agent-hub.md), [tools/wait.md](../../docs/tools/wait.md)
 
 ### Web I/O and retrieval
 - [tools/web_search.md](../../docs/tools/web_search.md), [tools/browser.md](../../docs/tools/browser.md), [tools/github.md](../../docs/tools/github.md)
@@ -131,7 +127,7 @@ Top-level entry modules: `cli.ts`, `main.ts`, `sdk.ts`, `index.ts` (SDK barrel),
 
 ### Discovery, context, and rules
 - [context-files.md](../../docs/context-files.md), [rulebook-matching-pipeline.md](../../docs/rulebook-matching-pipeline.md)
-- [advisor-watchdog.md](../../docs/advisor-watchdog.md), [fs-scan-cache-architecture.md](../../docs/fs-scan-cache-architecture.md), [tree.md](../../docs/tree.md)
+- [fs-scan-cache-architecture.md](../../docs/fs-scan-cache-architecture.md), [tree.md](../../docs/tree.md)
 
 ### TUI and theming
 - [tui.md](../../docs/tui.md), [tui-core-renderer.md](../../docs/tui-core-renderer.md), [tui-runtime-internals.md](../../docs/tui-runtime-internals.md)

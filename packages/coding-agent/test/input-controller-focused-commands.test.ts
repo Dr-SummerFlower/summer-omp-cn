@@ -49,7 +49,6 @@ function createFocusedContext() {
 		focusedAgentId: "Worker",
 		skillCommands: new Map(),
 		fileSlashCommands: new Set<string>(),
-		collabGuest: false,
 		compactionQueuedMessages: [],
 		locallySubmittedUserSignatures: new Set<string>(),
 		showStatus: vi.fn(),

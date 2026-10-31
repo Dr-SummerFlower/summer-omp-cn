@@ -5,15 +5,12 @@ export function createSessionDefaults() {
 	return {
 		setActiveToolsByName: async (_toolNames: string[]) => {},
 		waitForIdle: async () => {},
-		prepareForHeadlessAdvisorDrain: () => {},
-		waitForAdvisorCatchup: async () => true,
 		getToolByName: () => undefined,
 		getLastAssistantMessage: () => undefined,
 		hasPendingAsyncWork: () => false,
 		abort: async () => {},
 		dispose: async () => {},
 		setIrcWakeTurnObserver: () => {},
-		isAdvisorActive: () => false,
 		subscribeRunState: () => () => {},
 	} satisfies Partial<AgentSession>;
 }

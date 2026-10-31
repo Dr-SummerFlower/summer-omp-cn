@@ -1063,24 +1063,6 @@ export const cfgUpdateChannel = register({
 	},
 });
 
-export const cfgMarketplaceAutoUpdate = register({
-	id: "marketplace.autoUpdate",
-	type: "enum",
-	values: ["off", "notify", "auto"] as const,
-	default: "notify",
-	ui: {
-		tab: "interaction",
-		group: "Startup & Updates",
-		label: "Marketplace Auto-Update",
-		description: "Check for plugin updates on startup",
-		options: [
-			{ value: "off", label: "Off", description: "Don't check for plugin updates" },
-			{ value: "notify", label: "Notify", description: "Check on startup and notify when updates are available" },
-			{ value: "auto", label: "Auto", description: "Check on startup and auto-install updates" },
-		],
-	},
-});
-
 export const cfgStartupChangelogMode = register({
 	id: "startup.changelogMode",
 	type: "enum",

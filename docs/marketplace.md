@@ -5,11 +5,8 @@ The marketplace system lets you discover, install, and manage plugins from Git, 
 ## Quick start
 
 ```
-/marketplace add anthropics/claude-plugins-official
-/marketplace install wordpress.com@claude-plugins-official
+omp plugin install wordpress.com@claude-plugins-official
 ```
-
-In the TUI, `/marketplace` with no arguments opens the interactive plugin browser. In ACP/RPC command handling, `/marketplace` lists configured marketplaces; use `/marketplace discover` to browse.
 
 ## Concepts
 
@@ -28,68 +25,27 @@ On Linux and macOS, `omp config init-xdg` initializes the XDG data, state, and c
 
 ## Commands
 
-### Interactive mode
-
-| Command        | Effect                                    |
-| -------------- | ----------------------------------------- |
-| `/marketplace` | Open interactive plugin browser (install) |
-
-### Marketplace management
-
-| Command                      | Effect                                       |
-| ---------------------------- | -------------------------------------------- |
-| `/marketplace add <source>`  | Add a marketplace source                     |
-| `/marketplace remove <name>` | Remove a marketplace                         |
-| `/marketplace update [name]` | Re-fetch catalog(s); omit name to update all |
-| `/marketplace list`          | List configured marketplaces                 |
-
 ### Plugin operations
 
-| Command                                                                   | Effect                                             |
-| ------------------------------------------------------------------------- | -------------------------------------------------- |
-| `/marketplace discover [marketplace]`                                     | Browse available plugins                           |
-| `/marketplace install [--force] [--scope user\|project] name@marketplace` | Install a plugin                                   |
-| `/marketplace uninstall [--scope user\|project] name@marketplace`         | Uninstall a plugin; no args opens the TUI selector |
-| `/marketplace installed`                                                  | List installed marketplace plugins                 |
-| `/marketplace upgrade [--scope user\|project] [name@marketplace]`         | Upgrade one or all plugins                         |
-| `/plugins list`                                                           | List npm/link and marketplace plugins              |
-| `/plugins enable [--scope user\|project] name@marketplace`                | Enable a marketplace plugin                        |
-| `/plugins disable [--scope user\|project] name@marketplace`               | Disable a marketplace plugin                       |
+| Command                                                    | Effect                                  |
+| ---------------------------------------------------------- | --------------------------------------- |
+| `/plugins list`                                            | List npm/link and marketplace plugins   |
+| `/plugins enable [--scope user\|project] name@marketplace` | Enable a marketplace plugin             |
+| `/plugins disable [--scope user\|project] name@marketplace` | Disable a marketplace plugin           |
 
 ### CLI equivalents
 
 The same operations are available from the command line:
 
 ```
-omp plugin marketplace add <source>
-omp plugin marketplace remove <name>
-omp plugin marketplace update [name]
-omp plugin marketplace list
-omp plugin discover [marketplace]
-omp plugin install [--force] [--scope user|project] name@marketplace
+omp plugin install [--force] [--scope user|project] <source>
 omp plugin uninstall [--scope user|project] name@marketplace
-omp plugin upgrade [--scope user|project] [name@marketplace]
 omp plugin enable [--scope user|project] name@marketplace
 omp plugin disable [--scope user|project] name@marketplace
 omp plugin list
-
 ```
 
-TUI marketplace mutations (explicit commands and the selector) update disk state and invalidate discovery caches but do not refresh the active session. Run `/reload-plugins` to refresh skills, slash commands, and MCP servers; restart the session for newly installed tools, hooks, or extension modules. ACP/RPC marketplace handlers refresh skills and slash commands automatically, but likewise do not rebuild every initialized capability set.
-
-## Marketplace sources
-
-When you run `/marketplace add <source>`, the system classifies the source:
-
-| Source format                   | Type                                               | Example                                |
-| ------------------------------- | -------------------------------------------------- | -------------------------------------- |
-| `owner/repo`                    | GitHub shorthand                                   | `anthropics/claude-plugins-official`   |
-| `https://...*.json`             | Direct catalog URL                                 | `https://example.com/marketplace.json` |
-| `https://...` / `http://...`    | Git repository unless the URL path ends in `.json` | `https://github.com/org/repo`          |
-| `git@...` / `ssh://...`         | Git repository                                     | `git@github.com:org/repo.git`          |
-| `./path` or `~/path` or `/path` | Local directory                                    | `./my-marketplace`                     |
-
-Git and local sources must contain a catalog at `.omp-plugin/marketplace.json` (preferred) or `.claude-plugin/marketplace.json` (Claude Code-compatible fallback). Direct catalog URLs cache only the JSON catalog; plugins in URL-sourced catalogs cannot use relative string sources like `"./plugins/foo"`.
+TUI plugin mutations update disk state and invalidate discovery caches but do not refresh the active session. Run `/reload-plugins` to refresh skills, slash commands, and MCP servers; restart the session for newly installed tools, hooks, or extension modules.
 
 ## Catalog format (marketplace.json)
 
@@ -210,13 +166,9 @@ Current installer behavior rejects npm marketplace sources with `npm plugin sour
 
 Invalid catalog JSON or invalid required top-level fields reject the catalog. An invalid plugin entry is logged and skipped so other valid entries remain available.
 
-## Updates, removal, and scope
+## Scope
 
-- `/marketplace update [name]` refreshes catalogs only; it does not reinstall plugins.
-- `omp plugin upgrade name@marketplace` reinstalls every installed scope when `--scope` is omitted. `/marketplace upgrade name@marketplace`, uninstall, and enable/disable require `--scope user|project` when the plugin exists in both scopes.
-- Upgrading all plugins compares only catalog entries that declare `version`. Semver versions must be newer; non-semver versions are treated as changed when unequal. Per-plugin failures are skipped, so an all-plugin upgrade can partially succeed.
-- `marketplace.autoUpdate` controls startup checks: `off`, `notify` (default), or `auto`. Catalogs older than 24 hours are refreshed best-effort before version checks. Despite its name, current `notify` mode writes update availability only to the debug log; it does not show a user-facing notification.
-- Removing a marketplace removes its registry entry and catalog cache; it does not uninstall plugins already cached and registered.
+- Uninstall, enable, and disable require `--scope user|project` when the plugin exists in both scopes.
 
 ## On-disk layout
 

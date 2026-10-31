@@ -492,7 +492,7 @@ Built-in roles are grouped in the model picker:
 - **Chat roles:** `default`, `smol`, `slow`, `vision`, `plan`, `commit`, `tiny`, `memory`, `task`, and `advisor`. The `tiny` and `memory` roles accept both ordinary chat models and `tiny` catalog models.
 - **Model-kind roles:** `image`, `web`, `speech`, `dictation`, and `judge`. These select image generation, search/grounded chat, text-to-speech, speech-to-text, and judgment runners respectively. The `judge` role also accepts tiny and chat models.
 
-`vision` and `image` are different workloads: `vision` selects a chat model for image analysis, such as `read screenshot.png?q=...`; `image` selects a model with catalog kind `image` for `generate_image`. Assigning a model to `vision` does not give it image-input support: image questions additionally check that the model can send image input to its provider.
+`vision` selects a chat model for image analysis, such as `read screenshot.png?q=...`. It is unrelated to the `image` catalog kind. Assigning a model to `vision` does not give it image-input support: image questions additionally check that the model can send image input to its provider.
 
 The `tiny` role selects lightweight models for background work such as session titles; when unset, it resolves through `@smol`. The `memory` role resolves through `@tiny` when unset. See [model settings](./settings.md#models) for configuration and fallback-chain examples.
 

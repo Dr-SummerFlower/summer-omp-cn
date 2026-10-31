@@ -322,7 +322,7 @@ When native compaction starts from an ordinary local summary, that summary is in
 
 For speculative native compaction, `providerReplayThroughEntryId` records the snapshot's last entry, not the later commit position. Context rebuilding and the next compaction preparation both include messages appended between those positions, followed by post-commit messages. The native payload and uncovered interval are replayed once each; `/clear` discards both when it supersedes that compaction.
 
-Advisor runtimes retain native `preserveData` for subsequent maintenance and attach its provider payload to the in-memory compaction summary for the next model request. Native replay already contains the retained tail, so advisors do not also append that tail as raw messages. Local summaries still keep recent messages separately. Advisor requests use the shared message converter so both textual compaction summaries and native payloads reach the provider.
+Native compaction retains `preserveData` for subsequent maintenance and attaches its provider payload to the in-memory compaction summary for the next model request. Native replay already contains the retained tail, so that tail is not also appended as raw messages. Local summaries still keep recent messages separately.
 
 ### Handoff generation
 

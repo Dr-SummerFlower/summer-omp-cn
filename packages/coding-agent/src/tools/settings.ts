@@ -1,5 +1,4 @@
 import { combine, register } from "../config/registry";
-import { cfgAutolearnEnabled } from "../autolearn/settings";
 import { cfgBashEnabled } from "../exec/settings";
 import { cfgCompactionExperimentalContextManagement } from "../session/context-settings";
 import { cfgEvalJs, cfgEvalPy } from "../eval/settings";
@@ -537,79 +536,6 @@ export const cfgLaunchEnabled = register({
 	},
 });
 
-export const cfgSpeechgenEnabled = register({
-	id: "speechgen.enabled",
-	type: "boolean",
-	default: false,
-	ui: {
-		tab: "tools",
-		group: "Available Tools",
-		label: "Speech Generation",
-		description: "Enable the tts tool for on-device (Kokoro) or xAI Grok Voice speech-file synthesis",
-	},
-});
-
-export const cfgGenerateImageEnabled = register({
-	id: "generate_image.enabled",
-	type: "boolean",
-	default: false,
-	ui: {
-		tab: "tools",
-		group: "Available Tools",
-		label: "Generate Image",
-		description:
-			"Enable the generate_image tool (text-to-image generation and editing). Exposed as an xd:// device when tools.xdev is on.",
-	},
-});
-
-export const cfgComputerEnabled = register({
-	id: "computer.enabled",
-	type: "boolean",
-	default: false,
-	ui: {
-		tab: "tools",
-		group: "Available Tools",
-		label: "Computer",
-		description: "Enable the scriptable host-desktop eval prelude (screenshots, input, accessibility)",
-	},
-});
-
-export const cfgComputerDisplay = register({
-	id: "computer.display",
-	type: "string",
-	default: "all",
-	ui: {
-		tab: "tools",
-		group: "Computer",
-		label: "Computer Display",
-		description: "Composite all displays or select a native display id",
-	},
-});
-
-export const cfgComputerMaxWidth = register({
-	id: "computer.maxWidth",
-	type: "number",
-	default: 3840,
-	ui: {
-		tab: "tools",
-		group: "Computer",
-		label: "Computer Screenshot Width",
-		description: "Maximum composite screenshot width in pixels",
-	},
-});
-
-export const cfgComputerMaxHeight = register({
-	id: "computer.maxHeight",
-	type: "number",
-	default: 2400,
-	ui: {
-		tab: "tools",
-		group: "Computer",
-		label: "Computer Screenshot Height",
-		description: "Maximum composite screenshot height in pixels",
-	},
-});
-
 export const cfgImagesQuestionTimeoutMs = register({
 	id: "images.questionTimeoutMs",
 	type: "number",
@@ -727,19 +653,6 @@ export const cfgWebSearchEnabled = register({
 	},
 });
 
-export const cfgSecurityEnabled = register({
-	id: "security.enabled",
-	type: "boolean",
-	default: false,
-	ui: {
-		tab: "tools",
-		group: "Available Tools",
-		label: "Security",
-		description:
-			"Enable OMP-native security scan planning, execution, and the read-only security:// resource namespace",
-	},
-});
-
 export const cfgAskEnabled = register({
 	id: "ask.enabled",
 	type: "boolean",
@@ -775,36 +688,6 @@ export const cfgToolsAbortOnFabricatedResult = register({
 		group: "Execution",
 		label: "Abort On Fabricated Tool Result",
 		description: t("tui.ca.tools.settings.withInBandToolCallsStop"),
-	},
-});
-
-export const cfgToolsSpeculativeExecutionEnabled = register({
-	id: "tools.speculativeExecution.enabled",
-	type: "boolean",
-	default: false,
-	ui: {
-		tab: "tools",
-		group: "Execution",
-		label: "Experimental Speculative Execution",
-		description: t("tui.ca.tools.settings.enableTheDiscardSafeFirstSlice"),
-	},
-});
-
-export const cfgToolsSpeculativeExecutionMaxInFlight = register({
-	id: "tools.speculativeExecution.maxInFlight",
-	type: "number",
-	default: 2,
-	ui: {
-		tab: "tools",
-		group: "Execution",
-		label: "Speculative Execution Concurrency",
-		description: "Maximum number of validated local reads allowed to run before normal dispatch.",
-		options: [
-			{ value: "1", label: "1 operation" },
-			{ value: "2", label: "2 operations" },
-			{ value: "3", label: "3 operations" },
-			{ value: "4", label: "4 operations" },
-		],
 	},
 });
 
@@ -898,66 +781,12 @@ export const cfgToolsXdevInlineDevices = register({
 	},
 });
 
-export const cfgDevAutoqa = register({
-	id: "dev.autoqa",
-	type: "boolean",
-	default: true,
-	env: "PI_AUTO_QA",
-	ui: {
-		tab: "tools",
-		group: "Developer",
-		label: "Auto QA",
-		description:
-			"Automated tool issue reporting (xd://report_issue). On by default; the first report asks for consent, and denying it disables reporting until re-enabled explicitly",
-	},
-});
-
-export const cfgDevAutoqaPushEndpoint = register({
-	id: "dev.autoqaPush.endpoint",
-	type: "string",
-	default: "https://qa.omp.sh/v1/grievances" as const,
-	ui: {
-		tab: "tools",
-		group: "Developer",
-		label: "Auto QA Push Endpoint",
-		description: "Full URL receiving Auto QA JSON reports (default https://qa.omp.sh/v1/grievances)",
-	},
-});
-
-export const cfgDevAutoqaPushToken = register({
-	id: "dev.autoqaPush.token",
-	type: "string",
-	default: undefined,
-	credential: true,
-});
-
-/**
- * User decision on sharing automatic `report_tool_issue` grievances.
- *
- *   - `"unset"`  — never asked; the first `report_tool_issue` invocation
- *                  pops a consent dialog and persists the answer here.
- *   - `"granted"` — record and (when push is configured) ship grievances.
- *   - `"denied"`  — silently no-op every `report_tool_issue` call.
- *
- * Owned by `packages/coding-agent/src/tools/report-tool-issue.ts` via the
- * process-global consent handler registered by `InteractiveMode`.
- *
- * @default "unset"
- */
-export const cfgDevAutoqaConsent = register({
-	id: "dev.autoqaConsent",
-	type: "enum",
-	values: ["unset", "granted", "denied"] as const,
-	default: "unset" as const,
-});
-
 /** Settings read by `resolveBuiltinToolPlan` (`tools/index.ts`); a live session reconciles its built-ins when any changes. */
 export const cfgBuiltinToolGates = combine({
 	ask: cfgAskEnabled,
 	astEdit: cfgAstEditEnabled,
 	astGrep: cfgAstGrepEnabled,
 	async: cfgAsyncEnabled,
-	autolearn: cfgAutolearnEnabled,
 	bash: cfgBashEnabled,
 	checkpoint: cfgCheckpointEnabled,
 	contextManagement: cfgCompactionExperimentalContextManagement,
@@ -971,7 +800,6 @@ export const cfgBuiltinToolGates = combine({
 	ida: cfgIdaAvailable,
 	launch: cfgLaunchEnabled,
 	lsp: cfgLspEnabled,
-	security: cfgSecurityEnabled,
 	taskMaxRecursionDepth: cfgTaskMaxRecursionDepth,
 	todo: cfgTodoEnabled,
 	webSearch: cfgWebSearchEnabled,
@@ -980,7 +808,5 @@ export const cfgBuiltinToolGates = combine({
 /** Settings that add or remove the built-in tools they gate (`AgentSession.reconcileBuiltinTools`). */
 export const cfgSessionToolGates = combine({
 	builtins: cfgBuiltinToolGates,
-	generateImage: cfgGenerateImageEnabled,
-	speechgen: cfgSpeechgenEnabled,
 	xdev: cfgToolsXdev,
 });

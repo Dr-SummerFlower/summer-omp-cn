@@ -10,13 +10,7 @@ import { createSettingsHost } from "../src/config/settings-ui";
 
 describe("credential settings", () => {
 	it("marks every known credential, including those with no settings panel entry", () => {
-		for (const path of [
-			"auth.broker.token",
-			"searxng.token",
-			"searxng.basicPassword",
-			"dev.autoqaPush.token",
-			"hindsight.apiToken",
-		] as const) {
+		for (const path of ["auth.broker.token", "searxng.token", "searxng.basicPassword"] as const) {
 			expect(lookup(path)?.isCredential).toBe(true);
 		}
 	});
@@ -49,7 +43,7 @@ describe("credential masking reaches every surface", () => {
 		// The panel derives masking from the same classification the CLI uses, so
 		// a credential cannot render as plain text on one surface and dots on the
 		// other.
-		for (const path of ["hindsight.apiToken", "mnemopi.embeddingApiKey", "mnemopi.llmApiKey"] as const) {
+		for (const path of ["mnemopi.embeddingApiKey", "mnemopi.llmApiKey"] as const) {
 			const def = getSettingDef(createSettingsHost().entries, path);
 			expect(def?.type).toBe("text");
 			expect(def && "secret" in def ? def.secret : undefined).toBe(true);
@@ -57,7 +51,7 @@ describe("credential masking reaches every surface", () => {
 	});
 
 	it("keeps credentials with no panel entry out of the panel entirely", () => {
-		for (const path of ["auth.broker.token", "searxng.token", "dev.autoqaPush.token"] as const) {
+		for (const path of ["auth.broker.token", "searxng.token"] as const) {
 			expect(getSettingDef(createSettingsHost().entries, path)).toBeUndefined();
 		}
 	});

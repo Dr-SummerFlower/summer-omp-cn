@@ -19,7 +19,6 @@ import type {
 import type { Skill } from "../extensibility/skills";
 import type { GoalModeState, GoalRuntime } from "../goals";
 import { GoalTool } from "../goals/tools/goal-tool";
-import type { HindsightSessionState } from "../hindsight/state";
 import type { LocalProtocolOptions } from "../internal-urls";
 import type { DaemonCompletionNotification } from "../launch/protocol";
 import { LspTool } from "../lsp";
@@ -69,7 +68,6 @@ import { MemoryRetainTool } from "./memory-retain";
 import { wrapToolWithMetaNotice } from "./output-meta";
 import { ReadTool } from "./read";
 import type { PlanProposalHandler } from "./resolve";
-import { SecurityScanTool } from "./security-scan";
 import { supportsExternalThinking, ThinkTool } from "./think";
 import { type TodoPhase } from "@oh-my-pi/pi-tui/tools/todo";
 import { TodoTool } from "./todo";
@@ -89,12 +87,10 @@ import {
 	cfgGlobEnabled,
 	cfgGrepEnabled,
 	cfgLaunchEnabled,
-	cfgSecurityEnabled,
 	cfgTodoEnabled,
 	cfgToolsXdev,
 	cfgWebSearchEnabled,
 } from "./settings";
-import { cfgAutolearnEnabled } from "../autolearn/settings";
 import { cfgBashEnabled } from "../exec/settings";
 import { cfgCompactionExperimentalContextManagement } from "../session/context-settings";
 import { cfgPythonInterpreter } from "../eval/settings";
@@ -122,8 +118,6 @@ export type {
 } from "@oh-my-pi/pi-tui/tools/bash";
 export * from "./browser";
 export * from "./checkpoint";
-export * from "./computer";
-export * from "./computer/supervisor";
 export * from "./context-notes";
 export * from "./debug";
 export * from "./ida";
@@ -136,7 +130,6 @@ export * from "./glob";
 export * from "./grep";
 export * from "./jfind";
 export type { AgentActivitySnapshot, CoordinationDetails, JobSnapshot } from "@oh-my-pi/pi-tui/tools/wait";
-export * from "./image-gen";
 export * from "./learn";
 export * from "./manage-skill";
 export * from "./memory-edit";
@@ -144,7 +137,6 @@ export * from "./memory-recall";
 export * from "./memory-reflect";
 export * from "./memory-retain";
 export * from "./read";
-export * from "./report-tool-issue";
 export * from "./resolve";
 export type {
 	FindingPriority,
@@ -152,10 +144,8 @@ export type {
 	FindingDetails,
 	SubmitReviewDetails,
 } from "@oh-my-pi/pi-tui/tools/task";
-export * from "./security-scan";
 export * from "./think";
 export * from "./todo";
-export * from "./tts";
 export * from "./vibe";
 export * from "./wait";
 export type { VibeToolDetails } from "@oh-my-pi/pi-tui/tools/vibe";
@@ -312,9 +302,6 @@ export interface ToolSession {
 	outputSchemaMode?: StructuredSubagentSchemaMode;
 	/** Whether to include the yield tool by default */
 	requireYieldTool?: boolean;
-	/** Session starts with a prewalk hand-off armed. Keeps `todo` in yield-gated
-	 *  (subagent) registries: the prewalk plan nudge + todo gate need it. */
-	prewalkArmed?: boolean;
 	/**
 	 * Constrain the active set to the caller's explicit built-in names (plus a
 	 * required yield tool). Suppresses automatic tool-set expansion.
@@ -348,8 +335,6 @@ export interface ToolSession {
 	trackEvalExecution?<T>(execution: Promise<T>, abortController: AbortController): Promise<T>;
 	/** Get tool-state session ID (distinct from the owning session for advisors). */
 	getSessionId?: () => string | null;
-	/** Get Hindsight runtime state for this agent session. */
-	getHindsightSessionState?: () => HindsightSessionState | undefined;
 	/** Get Mnemopi runtime state for this agent session. */
 	getMnemopiSessionState?: () => MnemopiSessionState | undefined;
 	/** Agent identity used for IRC routing. Returns the registry id (e.g. "Main", "AuthLoader"). */
@@ -562,7 +547,6 @@ export type ToolFactory = (session: ToolSession) => Tool | null | Promise<Tool |
  */
 export const BUILTIN_TOOLS: Record<BuiltinToolName, ToolFactory> = {
 	read: s => new ReadTool(s),
-	security_scan: s => new SecurityScanTool(s),
 	bash: s => new BashTool(s),
 	edit: s => new EditTool(s),
 	ast_grep: s => new AstGrepTool(s),
@@ -710,7 +694,7 @@ export async function resolveBuiltinToolPlan(session: ToolSession, toolNames?: s
 		) {
 			requestedTools.push("ast_edit");
 		}
-		if (["hindsight", "mnemopi"].includes(cfgMemoryBackend.get(session.settings))) {
+		if (cfgMemoryBackend.get(session.settings) === "mnemopi") {
 			for (const name of ["recall", "retain", "reflect"]) {
 				if (!requestedTools.includes(name)) requestedTools.push(name);
 			}
@@ -720,21 +704,6 @@ export async function resolveBuiltinToolPlan(session: ToolSession, toolNames?: s
 		}
 		if (externalThinkingActive && !requestedTools.includes("think")) {
 			requestedTools.push("think");
-		}
-		// Auto-learn tools are gated by `autolearn.enabled` but, like the memory
-		// tools above, must also be force-included into an explicit requestedTools
-		// list so a restricted top-level session whose controller/guidance is
-		// active still exposes the tools the nudge points at. Gated to top-level
-		// (taskDepth 0): the controller only runs there, so a subagent's explicit
-		// tool whitelist must never be silently widened with write-capable tools.
-		if (cfgAutolearnEnabled.get(session.settings) && (session.taskDepth ?? 0) === 0) {
-			if (!requestedTools.includes("manage_skill")) requestedTools.push("manage_skill");
-			if (
-				["hindsight", "mnemopi", "local"].includes(cfgMemoryBackend.get(session.settings)) &&
-				!requestedTools.includes("learn")
-			) {
-				requestedTools.push("learn");
-			}
 		}
 	}
 	const isToolAllowed = (name: string) => {
@@ -753,8 +722,7 @@ export async function resolveBuiltinToolPlan(session: ToolSession, toolNames?: s
 		if (name === "eval") return allowEval;
 		if (name === "debug") return cfgDebugEnabled.get(session.settings);
 		if (name === "ida") return cfgIdaAvailable.get(session.settings);
-		if (name === "todo")
-			return (!includeYield || session.prewalkArmed === true) && cfgTodoEnabled.get(session.settings);
+		if (name === "todo") return !includeYield && cfgTodoEnabled.get(session.settings);
 		if (name === "glob") return cfgGlobEnabled.get(session.settings);
 		if (name === "grep") return cfgGrepEnabled.get(session.settings);
 		if (name === "find") return isFindEnabled(session);
@@ -762,7 +730,6 @@ export async function resolveBuiltinToolPlan(session: ToolSession, toolNames?: s
 		if (name === "ast_grep") return cfgAstGrepEnabled.get(session.settings);
 		if (name === "ast_edit") return cfgAstEditEnabled.get(session.settings);
 		if (name === "web_search") return cfgWebSearchEnabled.get(session.settings);
-		if (name === "security_scan") return cfgSecurityEnabled.get(session.settings);
 		if (name === "think") return externalThinkingActive;
 		if (name === "ask") return cfgAskEnabled.get(session.settings);
 		if (name === "context_notes" || name === "new_context")
@@ -780,20 +747,11 @@ export async function resolveBuiltinToolPlan(session: ToolSession, toolNames?: s
 			);
 		}
 		if (name === "retain" || name === "recall" || name === "reflect") {
-			return ["hindsight", "mnemopi"].includes(cfgMemoryBackend.get(session.settings));
+			return cfgMemoryBackend.get(session.settings) === "mnemopi";
 		}
 		if (name === "memory_edit") return cfgMemoryBackend.get(session.settings) === "mnemopi";
-		if (name === "manage_skill")
-			return (
-				cfgAutolearnEnabled.get(session.settings) &&
-				((session.taskDepth ?? 0) === 0 || requestedTools !== undefined)
-			);
 		if (name === "learn") {
-			return (
-				cfgAutolearnEnabled.get(session.settings) &&
-				((session.taskDepth ?? 0) === 0 || requestedTools !== undefined) &&
-				["hindsight", "mnemopi", "local"].includes(cfgMemoryBackend.get(session.settings))
-			);
+			return ["mnemopi", "local"].includes(cfgMemoryBackend.get(session.settings));
 		}
 		if (name === "task") {
 			return canSpawnAtDepth(cfgTaskMaxRecursionDepth.get(session.settings), session.taskDepth ?? 0);

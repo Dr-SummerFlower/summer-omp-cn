@@ -22,11 +22,6 @@ export const launchHelp = {
 		smol: Flags.string({ description: t("cli.launch.smolFastModelForLightweightTasks") }),
 		slow: Flags.string({ description: t("cli.launch.slowReasoningModelForThoroughAnalysis") }),
 		plan: Flags.string({ description: t("cli.launch.planModelForArchitecturalPlanningOr") }),
-		prewalk: Flags.boolean({
-			description: t("cli.launch.switchFromTheActiveModelTo"),
-		}),
-		"no-prewalk": Flags.boolean({ description: t("cli.launch.disablePrewalkEvenIfPrewalkEnabled") }),
-		"prewalk-into": Flags.string({ description: t("cli.launch.targetModelForPrewalkDefaultThe") }),
 		"plan-yolo": Flags.boolean({
 			description: t("cli.launch.forceReadOnlyPlanModeAt"),
 		}),
@@ -78,9 +73,6 @@ export const launchHelp = {
 		}),
 		"hide-thinking": Flags.boolean({
 			description: t("cli.launch.hideThinkingBlocksInTuiOutput"),
-		}),
-		advisor: Flags.boolean({
-			description: t("cli.launch.enableTheAdvisorRuntimePassivelyReviews"),
 		}),
 		"external-thinking": Flags.boolean({
 			description: t("cli.launch.useAPrivateScratchpadWhileDisabling"),

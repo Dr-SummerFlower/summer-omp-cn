@@ -116,23 +116,6 @@
         "sherpa-onnx-node": "1.13.2",
       },
     },
-    "packages/collab-web": {
-      "name": "@oh-my-pi/collab-web",
-      "version": "16.3.6",
-      "dependencies": {
-        "@oh-my-pi/pi-utils": "catalog:",
-        "@oh-my-pi/pi-wire": "catalog:",
-        "katex": "catalog:",
-        "lucide-react": "catalog:",
-        "react": "catalog:",
-        "react-dom": "catalog:",
-      },
-      "devDependencies": {
-        "@types/bun": "catalog:",
-        "@types/react": "catalog:",
-        "@types/react-dom": "catalog:",
-      },
-    },
     "packages/i18n": {
       "name": "@oh-my-pi/pi-i18n",
       "version": "18.4.4",
@@ -709,7 +692,6 @@
 
     "@oh-my-pi/browser-relay": ["@oh-my-pi/browser-relay@workspace:packages/browser-relay"],
 
-    "@oh-my-pi/collab-web": ["@oh-my-pi/collab-web@workspace:packages/collab-web"],
 
     "@oh-my-pi/omp-stats": ["@oh-my-pi/omp-stats@workspace:packages/stats"],
 

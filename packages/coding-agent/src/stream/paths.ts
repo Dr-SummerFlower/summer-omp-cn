@@ -4,8 +4,8 @@ import { getDaemonRuntimeDir } from "@oh-my-pi/pi-utils";
 import { canonicalProjectDir } from "../launch/paths";
 
 /**
- * Resolve the Unix socket or Windows named pipe `omp stream` listens on for
- * one project directory. Shares the daemon broker's canonical-cwd hashing so
+ * Resolve the Unix socket or Windows named pipe the live stream publisher
+ * listens on for one project directory. Shares the daemon broker's canonical-cwd hashing so
  * every omp process in the same directory agrees on the endpoint.
  *
  * With `create`, the runtime directory is created (streamer side); sessions

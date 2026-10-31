@@ -69,7 +69,6 @@ async function createHarness(factory: ExtensionFactory) {
 		sessionManager,
 		settings: Settings.isolated({}),
 		keybindings: KeybindingsManager.inMemory(),
-		dictationSpaceHold: vi.fn(),
 		ui: {
 			requestRender: vi.fn(),
 			addInputListener: vi.fn(),
@@ -87,7 +86,6 @@ async function createHarness(factory: ExtensionFactory) {
 		lastSigintTime: 0,
 		hasActiveBtw: () => false,
 		hasActiveOmfg: () => false,
-		hasActiveCleanse: () => false,
 		updateEditorBorderColor: vi.fn(),
 		updatePendingMessagesDisplay: vi.fn(),
 		flushPendingBashComponents: vi.fn(),

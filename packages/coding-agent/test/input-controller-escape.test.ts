@@ -5,7 +5,6 @@ import { InputController } from "@oh-my-pi/pi-coding-agent/modes/controllers/inp
 import { SpaceHoldGesture } from "@oh-my-pi/pi-tui/space-hold";
 import type { InteractiveModeContext, SubmittedUserInput } from "@oh-my-pi/pi-coding-agent/modes/types";
 import { USER_INTERRUPT_LABEL } from "@oh-my-pi/pi-coding-agent/session/messages";
-import { vocalizer } from "@oh-my-pi/pi-coding-agent/tts/vocalizer";
 import * as logger from "@oh-my-pi/pi-utils/logger";
 
 import { cfgDoubleEscapeAction } from "@oh-my-pi/pi-coding-agent/modes/settings";
@@ -105,8 +104,6 @@ function createContext(): {
 	const hasActiveBtw = vi.fn(() => false);
 	const handleOmfgEscape = vi.fn(() => true);
 	const hasActiveOmfg = vi.fn(() => false);
-	const handleCleanseEscape = vi.fn(() => true);
-	const hasActiveCleanse = vi.fn(() => false);
 	const updatePendingMessagesDisplay = vi.fn();
 	const prompt = vi.fn();
 	const startPendingSubmission = vi.fn(
@@ -215,15 +212,11 @@ function createContext(): {
 		showAgentHub: vi.fn(),
 		unfocusSession: vi.fn(async () => {}),
 		focusParentSession: vi.fn(async () => {}),
-		handleSTTToggle: vi.fn(),
-		dictationSpaceHold: vi.fn(),
 		handleBtwEscape,
 		handleBtwCommand,
 		hasActiveBtw,
 		handleOmfgEscape,
 		hasActiveOmfg,
-		handleCleanseEscape,
-		hasActiveCleanse,
 		showTreeSelector: vi.fn(),
 		showUserMessageSelector: vi.fn(),
 		showSessionSelector: vi.fn(),
@@ -778,45 +771,6 @@ describe("InputController escape behavior", () => {
 
 		expect(ctx.showTreeSelector).not.toHaveBeenCalled();
 		expect(ctx.showUserMessageSelector).not.toHaveBeenCalled();
-	});
-
-	it("silences TTS before aborting an overlapping agent turn (#6118)", () => {
-		const clear = vi.spyOn(vocalizer, "clear").mockImplementation(() => {});
-		vi.spyOn(vocalizer, "isSpeaking").mockReturnValue(true);
-		const { ctx, editor, spies } = createContext();
-		const pauseLoop = vi.fn();
-		ctx.loopModeEnabled = true;
-		ctx.pauseLoop = pauseLoop;
-		mutableSessionState(ctx).isStreaming = true;
-		const controller = new InputController(ctx);
-
-		controller.setupKeyHandlers();
-		editor.onEscape?.();
-
-		expect(clear).toHaveBeenCalledTimes(1);
-		expect(pauseLoop).not.toHaveBeenCalled();
-		expect(spies.abort).not.toHaveBeenCalled();
-	});
-
-	it("silences a still-audible vocalizer on Esc instead of opening the tree selector (#4521)", () => {
-		const clear = vi.spyOn(vocalizer, "clear").mockImplementation(() => {});
-		const isSpeaking = vi.spyOn(vocalizer, "isSpeaking").mockReturnValue(true);
-		const { ctx, editor, spies } = createContext();
-		const controller = new InputController(ctx);
-
-		controller.setupKeyHandlers();
-		editor.onEscape?.();
-
-		expect(clear).toHaveBeenCalledTimes(1);
-		expect(ctx.showTreeSelector).not.toHaveBeenCalled();
-		expect(ctx.showUserMessageSelector).not.toHaveBeenCalled();
-		expect(spies.resetDisplay).not.toHaveBeenCalled();
-
-		// A second Esc after silence must NOT immediately fire the double-Esc
-		// gesture — the first press consumed the arm.
-		isSpeaking.mockReturnValue(false);
-		editor.onEscape?.();
-		expect(ctx.showTreeSelector).not.toHaveBeenCalled();
 	});
 });
 

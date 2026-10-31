@@ -1,12 +1,11 @@
 # Autonomous Memory
 
-omp supports five memory modes. Memory is disabled by default; select one backend via `/settings` or `config.yml`:
+omp supports four memory modes. Memory is disabled by default; select one backend via `/settings` or `config.yml`:
 
 | `memory.backend` | Storage and behavior                                                   | Guide                                                   |
 | ---------------- | ---------------------------------------------------------------------- | ------------------------------------------------------- |
 | `off`            | No memory backend                                                      | —                                                       |
 | `local`          | Project-scoped summaries and lessons generated from persisted sessions | This page                                               |
-| `hindsight`      | Remote, bank-scoped Hindsight memory                                   | [Hindsight](#hindsight-remote-backend)                  |
 | `mnemopi`        | Local Mnemopi SQLite memory                                            | [Mnemopi memory backend](./mnemosyne-memory-backend.md) |
 | `sharpshooter`   | Friction-gated project decision files (architecture/product/style), consolidated in the background | —                           |
 
@@ -41,7 +40,7 @@ The agent can read memory files directly using `memory://` URLs with the `read` 
 
 The `memory://<memory-id>` form returns the full stored row rather than the clipped recall preview (recall content that exceeds the preview cap ends with a trailing `…`); agents are instructed to read it before any `memory_edit update`.
 
-The `memory://root[/…]` rows are file-backed and only exist with `memory.backend: local`, which populates the on-disk memory root via the consolidation pipeline. Under `hindsight` or `mnemopi` the root is never written, so those URLs do not resolve — use `recall`/`reflect` (and `read memory://<memory-id>` on `mnemopi`) instead.
+The `memory://root[/…]` rows are file-backed and only exist with `memory.backend: local`, which populates the on-disk memory root via the consolidation pipeline. Under `mnemopi` the root is never written, so those URLs do not resolve — use `recall`/`reflect` (and `read memory://<memory-id>`) instead.
 
 ### `/memory` slash command
 
@@ -54,16 +53,10 @@ The `memory://root[/…]` rows are file-backed and only exist with `memory.backe
 | `sync`                | Run memory consolidation now                              |
 | `clear` / `reset`     | Delete active backend memory data/artifacts               |
 | `enqueue` / `rebuild` | Force consolidation/retention work for the active backend |
-| `mm …`                | Hindsight mental-model maintenance (`list`/`show`/`refresh`/`history`/`seed`/`delete`/`reload`); unsupported in ACP mode |
 
 ### Capturing lessons
 
-Enable `autolearn.enabled` to make the `learn` tool available:
-
-```yaml
-autolearn:
-  enabled: true
-```
+The `learn` tool is available whenever a memory backend is active (`local` or `mnemopi`).
 
 With the local backend active, `learn` saves explicit durable lessons to the project's `learned.md`. Lessons are newest-first, deduplicated, secret-redacted, capped at 100 entries, and injected starting with the next session; a `learn` call does not mutate the active session's prompt-cache prefix. Each lesson's content is capped at 2,000 characters and optional context at 400 characters. Structured memory search, `recall`, `retain`, `reflect`, and `memory_edit` are not available for the local backend.
 
@@ -128,30 +121,6 @@ If the requested memory role is not configured, memory model resolution falls ba
 | `memories.phase1InputTokenLimit`      | `4000`  | Per-session extraction input cap                                                                                                         |
 | `memories.fallbackTokenLimit`         | `16000` | Model token budget used when the model has no finite declared context window                                                             |
 | `memories.summaryInjectionTokenLimit` | `5000`  | Shared approximate token cap for the summary and captured lessons injected into the system prompt                                        |
-
-## Hindsight remote backend
-
-Hindsight requires a reachable [Hindsight](https://hindsight.vectorize.io/) server. The default endpoint is `http://localhost:8888`; set a token when the server requires authentication:
-
-```yaml
-memory:
-  backend: hindsight
-hindsight:
-  apiUrl: http://localhost:8888
-  apiToken: ${HINDSIGHT_API_TOKEN}
-```
-
-`HINDSIGHT_*` environment variables override `hindsight.*` settings, which override built-in defaults. See the [complete Hindsight environment-variable table](./environment-variables.md#hindsight-memory-backend) for all 18 supported overrides, accepted values, parsing rules, precedence, and defaults.
-
-By default, Hindsight uses `per-project-tagged` scoping: writes go to a shared bank with a project tag, while recall includes project-tagged and untagged global memories. `per-project` isolates each working-directory project in its own bank; `global` uses one shared bank. An explicit `hindsight.bankId` selects the bank base. Changes to the bank ID, prefix, or scoping rebuild the primary session state so later operations use the new scope.
-
-Both project-scoped modes name the project the same way: take the repository's primary checkout root (so every linked worktree of one repository resolves to the same directory), then lowercase its basename. A checkout at `~/code/General` therefore tags `project:general`. Tags are matched literally, so this fold is what keeps one repository in one memory scope no matter how the path is capitalised.
-
-The primary session recalls on its first model turn (`hindsight.autoRecall: true`) and automatically retains completed conversation turns every three user turns by default. `/memory enqueue` flushes queued tool retains and forces retention of the current session. At agent end, the primary state schedules cadence-based retention and flushes the retain queue; session disposal drains that queue before releasing the state. Request failures and configured timeouts are logged and leave the coding session usable. Subagents alias the parent's client, bank, and scope for explicit `recall`, `retain`, and `reflect` calls, but do not run their own automatic recall or retention.
-
-Recall is injected as background context, not instructions, and recalled memory is also available as extra context during compaction. Selecting Hindsight exposes `recall`, `retain`, and `reflect`; `memory_edit` is not available because upstream Hindsight memories are not edited through this backend.
-
-`/memory view`, `/memory stats`, `/memory diagnose`, and `/memory enqueue` operate through the active Hindsight state. `/memory clear` first drains pending retains, then clears only the local session state and recall cache. It **does not delete the server-side bank**; delete that bank with the Hindsight UI or API.
 
 ## Key files
 

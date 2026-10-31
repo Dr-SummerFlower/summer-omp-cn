@@ -1013,13 +1013,12 @@ describe("ACP agent", () => {
 	});
 
 	it("pushes config_option_update when the model changes internally", async () => {
-		// Internal callers (prewalk hand-offs, retry-fallback, model cycling)
-		// change AgentSession's model directly without going through the ACP
-		// setSessionConfigOption surface. Once the session-lifetime subscription
-		// is installed, those changes must surface to clients as
-		// `config_option_update` — otherwise a client's model indicator (e.g.
-		// Zed's status bar) goes stale the moment prewalk hands off to a
-		// cheaper model mid-session.
+		// Internal callers (retry-fallback, model cycling) change AgentSession's
+		// model directly without going through the ACP setSessionConfigOption
+		// surface. Once the session-lifetime subscription is installed, those
+		// changes must surface to clients as `config_option_update` — otherwise
+		// a client's model indicator (e.g. Zed's status bar) goes stale the
+		// moment the model changes mid-session.
 		const harness = await createHarness();
 		vi.useFakeTimers();
 		const created = await harness.agent.newSession({ cwd: harness.cwdA, mcpServers: [] });
@@ -1089,51 +1088,6 @@ describe("ACP agent", () => {
 		expect(modelOption?.currentValue).toBe(`${TEST_MODELS[1]!.provider}/${TEST_MODELS[1]!.id}`);
 
 		vi.useRealTimers();
-		harness.abortController.abort();
-		await Bun.sleep(0);
-	});
-
-	it("lists role selectors for ACP mobile voice settings", async () => {
-		const harness = await createHarness();
-
-		const result = (await harness.agent.extMethod("speech.models.list", {})) as Record<string, unknown> & {
-			speechToText: { models: Array<{ value: string }> };
-			textToSpeech: { models: Array<{ value: string; voices: unknown[] }>; voices: unknown[] };
-		};
-
-		expect(result).toMatchObject({
-			settings: {
-				speechToTextModel: "modelRoles.dictation",
-				textToSpeechModel: "modelRoles.speech",
-				textToSpeechVoice: "tts.localVoice",
-				speechVoice: "speech.voice",
-			},
-			defaults: {
-				speechToTextModel: "local/parakeet-tdt-0.6b-v3",
-				textToSpeechModel: "local/kokoro",
-				voice: "af_heart",
-			},
-			speechToText: {
-				setting: "modelRoles.dictation",
-				defaultValue: "local/parakeet-tdt-0.6b-v3",
-			},
-			textToSpeech: {
-				modelSetting: "modelRoles.speech",
-				voiceSetting: "tts.localVoice",
-				speechVoiceSetting: "speech.voice",
-				defaultModel: "local/kokoro",
-				defaultVoice: "af_heart",
-			},
-		});
-		expect(result.speechToText.models.map(model => model.value)).toEqual([
-			"local/whisper-base",
-			"local/whisper-small",
-			"local/whisper-large-v3-turbo",
-			"local/parakeet-tdt-0.6b-v3",
-		]);
-		expect(result.textToSpeech.models.map(model => model.value)).toEqual(["local/kokoro"]);
-		expect(result.textToSpeech.models[0]?.voices).toEqual(result.textToSpeech.voices);
-
 		harness.abortController.abort();
 		await Bun.sleep(0);
 	});

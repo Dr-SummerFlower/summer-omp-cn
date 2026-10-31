@@ -47,7 +47,7 @@ Behavior details:
 - `--copy`, `clipboard`, and `copy` arguments are explicitly rejected with a warning to use `/dump`.
 - Export embeds session header/entries/leaf plus current `systemPrompt` and tool descriptions from agent state.
 - Subagent transcripts stored next to the session file (`<session>/<AgentId>.jsonl`, recursively for nested spawns) are embedded as `subSessions` (`collectSubSessions` in `src/export/html/index.ts`; disable with `includeSubSessions: false` in `ExportOptions`). In the page, agent ids in task tool cards open a breadcrumbed sub-session overlay.
-- Tool calls render through the `<omp-tool-view>` web component — the React per-tool renderers shared with collab-web (`packages/collab-web/src/tool-render/`), prebuilt into `src/export/html/tool-views.generated.js` by `bun run gen:tool-views`.
+- Tool calls render through the `<omp-tool-view>` web component, prebuilt and vendored at `src/export/html/vendor/tool-views.generated.js`.
 - No session entries are appended during export.
 
 Caveat:
@@ -174,7 +174,7 @@ keeping the conversation you can see.
   abort it first.
 - Closes every cached provider-session state entry (server-side conversation /
   prompt-cache handles) and reports how many were pruned.
-- Mints a fresh provider session id and re-keys hindsight and mnemopi memory to
+- Mints a fresh provider session id and re-keys mnemopi memory to
   it, and invalidates the append-only context so the next turn re-sends the full
   local transcript to the provider.
 - Leaves the local transcript, session file, and session identity unchanged, so
@@ -199,7 +199,7 @@ command aborts it and waits for it to stop before resetting.
   state, checkpoint/rewind and deferred tool state, and session-stop
   continuation state. It also cancels this agent's queued continuation work and
   async bash/task jobs.
-- Rotates provider-side session state, re-primes advisors, invalidates
+- Rotates provider-side session state, invalidates
   append-only model context, and resets memory promotion so the next turn
   rebuilds from the base system prompt and current project instructions.
 - Retains the session id, title, cwd, model, settings, active plan path, and
@@ -331,15 +331,15 @@ This is startup-only behavior; there is no interactive `/continue` slash command
 1. Emit `session_before_switch` with `reason: "resume"` and `targetSessionFile` (cancellable).
 2. Disconnect the agent event subscription, abort in-flight work, and run the optional pre-switch reconciler.
 3. Flush pending bash/session writes and capture rollback state: session manager state; agent messages and all queues; model/thinking/service tiers; tools and prompts; provider/cache ids; memory promotion; and checkpoint rewind state.
-4. Clear agent and next-turn queues. For a different file, drain/detach advisor recorders.
+4. Clear agent and next-turn queues.
 5. `sessionManager.setSessionFile(sessionPath)`, update provider-cache/session ids and memory keys, build the display context, and rehydrate checkpoint state.
 6. Emit `session_switch` with `reason: "resume"`.
-7. Replace agent messages, reset advisor state, and synchronize todos. Close cached provider sessions for a different file, or for a same-file reload whose replay messages changed.
+7. Replace agent messages and synchronize todos. Close cached provider sessions for a different file, or for a same-file reload whose replay messages changed.
 8. Restore an available persisted model. If the loaded branch ended with an interrupted turn, append its synthetic abort message and rebuild context.
 9. Restore configured/effective thinking and per-family service tiers, falling back to current settings when the target branch has no corresponding entries.
 10. For a different transcript, reset memory context; for any conversation rewrite, clear session-scoped tool state.
 11. Reconnect agent events, run the optional session-switch reconciler (interactive mode uses it to re-enter persisted modes such as plan), and best-effort refresh the workspace-root system-prompt block. Reconciler/prompt-refresh errors are logged rather than rolling back the committed switch.
-12. Restore target advisor cost state, finish the bash transition, notify session-change callbacks when the session id changed, and return `true`.
+12. Finish the bash transition, notify session-change callbacks when the session id changed, and return `true`.
 `switchSession()` returns `false` when a before-switch hook cancels or cwd policy rejects the transition. A cross-project switch without a cwd-change callback is rejected rather than silently adopting the target cwd; callback rejection is also cancellation. The interactive selector checks this result and leaves the existing session/UI unchanged.
 
 If a throwing step in the guarded transition fails, `switchSession()` restores the captured session, agent queues/messages, tools/prompts, model/thinking/service-tier, provider/cache, memory, and checkpoint state; it reconnects the prior agent subscription and re-runs mode reconciliation before rethrowing.

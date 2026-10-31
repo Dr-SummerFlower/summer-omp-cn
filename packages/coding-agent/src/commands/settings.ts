@@ -12,7 +12,7 @@ export const cfgShareServerUrl = register({
 	default: DEFAULT_SHARE_URL,
 	ui: {
 		tab: "interaction",
-		group: "Collab",
+		group: "Share",
 		label: t("settings.item.share.serverUrl.label"),
 		description: t("settings.item.share.serverUrl.description"),
 	},
@@ -25,7 +25,7 @@ export const cfgShareStore = register({
 	default: "blob",
 	ui: {
 		tab: "interaction",
-		group: "Collab",
+		group: "Share",
 		label: t("settings.item.share.store.label"),
 		description: t("settings.item.share.store.description"),
 		options: [
@@ -49,7 +49,7 @@ export const cfgShareRedactSecrets = register({
 	default: true,
 	ui: {
 		tab: "interaction",
-		group: "Collab",
+		group: "Share",
 		label: t("settings.item.share.redactSecrets.label"),
 		description: t("settings.item.share.redactSecrets.description"),
 	},

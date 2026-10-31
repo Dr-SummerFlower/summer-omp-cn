@@ -1,11 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
 import type { AssistantMessage } from "@oh-my-pi/pi-ai";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
-import {
-	PRINT_MODE_ADVISOR_DRAIN_TIMEOUT_MS,
-	PRINT_MODE_ERROR_ADVISOR_DRAIN_TIMEOUT_MS,
-	runPrintMode,
-} from "@oh-my-pi/pi-coding-agent/modes/print-mode";
+import { runPrintMode } from "@oh-my-pi/pi-coding-agent/modes/print-mode";
 import type { PlanModeState } from "@oh-my-pi/pi-coding-agent/plan-mode/state";
 import type { AgentSession, AgentSessionEvent } from "@oh-my-pi/pi-coding-agent/session/agent-session";
 import { CREDENTIAL_DISABLED_NOTICE_SOURCE } from "@oh-my-pi/pi-coding-agent/session/credential-disabled-notice";
@@ -286,115 +282,6 @@ describe("print mode working indicator", () => {
 
 		expect(stderrOutput.join("")).toBe(`Working...\nWarning: ${signedOut}\n`);
 		expect(stdoutOutput.join("")).toBe("final answer\n");
-	});
-
-	it("flushes late JSON advisor events after catch-up before disposing", async () => {
-		const message = makeAssistantMessage("advisor-aware answer");
-		const messages: AssistantMessage[] = [];
-		const { promise: catchup, resolve: resolveCatchup } = Promise.withResolvers<void>();
-		const { promise: catchupStarted, resolve: markCatchupStarted } = Promise.withResolvers<void>();
-		let disposed = false;
-		let catchupTimeoutMs: number | undefined;
-		let subscriber: ((event: AgentSessionEvent) => void) | undefined;
-		const session = {
-			state: { messages },
-			getLastAssistantMessage: () => messages.findLast(message => message.role === "assistant"),
-			sessionManager: {
-				getHeader: () => undefined,
-				buildSessionContext: () => ({ messages: [] }),
-				getEntries: () => [],
-				onPersistenceError: () => () => {},
-			},
-			settings: Settings.isolated(),
-			extensionRunner: undefined,
-			subscribe: (listener: (event: AgentSessionEvent) => void) => {
-				subscriber = listener;
-				return () => {};
-			},
-			prompt: async () => {
-				messages.push(message);
-				return true;
-			},
-			prepareForHeadlessAdvisorDrain: () => {},
-			waitForAdvisorCatchup: async (timeoutMs: number) => {
-				catchupTimeoutMs = timeoutMs;
-				markCatchupStarted();
-				await catchup;
-				subscriber?.({
-					type: "message_end",
-					message: {
-						role: "custom",
-						customType: "advisor",
-						content: "late advisor review",
-						display: true,
-						attribution: "agent",
-						timestamp: Date.now(),
-					},
-				});
-			},
-			dispose: async () => {
-				disposed = true;
-			},
-		} as unknown as AgentSession;
-
-		const run = runPrintMode(session, { mode: "json", initialMessage: "hello" });
-		await catchupStarted;
-		expect(disposed).toBe(false);
-		resolveCatchup();
-		await run;
-
-		expect(disposed).toBe(true);
-		expect(catchupTimeoutMs).toBe(PRINT_MODE_ADVISOR_DRAIN_TIMEOUT_MS);
-		expect(stdoutOutput.join("")).toContain("late advisor review");
-		expect(stdoutEvents.at(-1)).toBe("flush");
-	});
-
-	it("waits for advisor catch-up before returning a terminal failure", async () => {
-		const message = makeAssistantMessage("");
-		message.stopReason = "error";
-		message.errorMessage = "primary request failed";
-		const messages: AssistantMessage[] = [];
-		const { promise: catchup, resolve: resolveCatchup } = Promise.withResolvers<void>();
-		const { promise: catchupStarted, resolve: markCatchupStarted } = Promise.withResolvers<void>();
-		let disposed = false;
-		let catchupTimeoutMs: number | undefined;
-		const session = {
-			state: { messages },
-			getLastAssistantMessage: () => messages.findLast(message => message.role === "assistant"),
-			sessionManager: {
-				getHeader: () => undefined,
-				buildSessionContext: () => ({ messages: [] }),
-				getEntries: () => [],
-				onPersistenceError: () => () => {},
-			},
-			settings: Settings.isolated(),
-			extensionRunner: undefined,
-			subscribe: () => () => {},
-			prompt: async () => {
-				messages.push(message);
-				return true;
-			},
-			setTextOutputCommitted: () => {},
-			prepareForHeadlessAdvisorDrain: () => {},
-			waitForAdvisorCatchup: async (timeoutMs: number) => {
-				catchupTimeoutMs = timeoutMs;
-				markCatchupStarted();
-				await catchup;
-			},
-			dispose: async () => {
-				disposed = true;
-			},
-		} as unknown as AgentSession;
-
-		const run = runPrintMode(session, { mode: "text", initialMessage: "hello" });
-		await catchupStarted;
-		expect(disposed).toBe(false);
-		resolveCatchup();
-
-		expect(await run).toBe(1);
-		expect(disposed).toBe(true);
-		expect(catchupTimeoutMs).toBe(PRINT_MODE_ERROR_ADVISOR_DRAIN_TIMEOUT_MS);
-		expect(stderrOutput.join("")).toContain("primary request failed");
 	});
 
 	it("returns exit code 1 for a terminal failure in JSON mode without writing to stderr", async () => {

@@ -59,17 +59,6 @@ export const BUILTIN_CONTROL_SLASH_COMMANDS: ReadonlyArray<SlashCommandSpec> = [
 		},
 	},
 	{
-		name: "live",
-		icon: "voice",
-		get description() {
-			return t("slash.live.description");
-		},
-		handleTui: async (_command, runtime) => {
-			clearSubmittedText(runtime);
-			await runtime.ctx.handleLiveCommand();
-		},
-	},
-	{
 		name: "record",
 		icon: "export",
 		get description() {

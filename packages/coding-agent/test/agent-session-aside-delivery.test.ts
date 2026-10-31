@@ -14,7 +14,6 @@ import { AgentSession } from "@oh-my-pi/pi-coding-agent/session/agent-session";
 import { AuthStorage } from "@oh-my-pi/pi-coding-agent/session/auth-storage";
 import { IrcBridge, type IrcBridgeHost } from "@oh-my-pi/pi-coding-agent/session/irc-bridge";
 import { convertToLlm, USER_INTERRUPT_LABEL } from "@oh-my-pi/pi-coding-agent/session/messages";
-import { SessionAdvisors } from "@oh-my-pi/pi-coding-agent/session/session-advisors";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { EventBus } from "@oh-my-pi/pi-coding-agent/utils/event-bus";
 import * as imageLoading from "@oh-my-pi/pi-coding-agent/utils/image-loading";
@@ -1084,96 +1083,6 @@ describe("AgentSession aside delivery", () => {
 			expect(JSON.stringify(session.agent.state.messages)).not.toContain("IDLE_GENERATION_ASIDE");
 		} finally {
 			normalizeSpy.mockRestore();
-		}
-	});
-
-	it("does not wake a stranded aside into an agent disconnected by an in-flight newSession()", async () => {
-		// Regression: #disconnectFromAgent() runs at the very top of newSession(), well before
-		// #sessionGeneration bumps (which happens only after agent.reset() and
-		// sessionManager.newSession() complete). A user aside's normalization that resolves in
-		// that gap sees an unchanged generation and a non-streaming agent, so
-		// #resumeStrandedIrcAsides used to wake a fresh agent.prompt() on the disconnected agent,
-		// racing the transition's own reset.
-		const modelRegistry = new ModelRegistry(authStorage);
-		const started = Promise.withResolvers<void>();
-		let callCount = 0;
-		const mock = createMockModel({
-			provider: "openai",
-			id: "gpt-test",
-			responses: [
-				() => {
-					started.resolve();
-					callCount++;
-					return { content: ["working"], delayMs: 60_000 };
-				},
-				() => {
-					callCount++;
-					return { content: ["woken reply"] };
-				},
-			],
-		});
-		const agent = new Agent({
-			getApiKey: () => "test-key",
-			initialState: { model: mock.model, systemPrompt: ["Test"], tools: [], messages: [] },
-			convertToLlm,
-			streamFn: mock.stream,
-		});
-		const settings = Settings.isolated({ "compaction.enabled": false, "todo.enabled": false });
-		settings.setModelRole("default", `${mock.model.provider}/${mock.model.id}`);
-		session = new AgentSession({
-			agent,
-			sessionManager: SessionManager.inMemory(tempDir.path()),
-			settings,
-			modelRegistry,
-			toolRegistry: new Map(),
-		});
-
-		const run = session.prompt("go");
-		await started.promise;
-
-		const advisorsGateReached = Promise.withResolvers<void>();
-		const releaseAdvisorsGate = Promise.withResolvers<void>();
-		const originalDrainAndDetachRecorders = SessionAdvisors.prototype.drainAndDetachRecorders;
-		const advisorsSpy = spyOn(SessionAdvisors.prototype, "drainAndDetachRecorders").mockImplementation(
-			async function (this: SessionAdvisors) {
-				advisorsGateReached.resolve();
-				await releaseAdvisorsGate.promise;
-				return originalDrainAndDetachRecorders.call(this);
-			},
-		);
-		const normalizeStarted = Promise.withResolvers<void>();
-		const releaseNormalize = Promise.withResolvers<void>();
-		const normalizeSpy = spyOn(imageLoading, "normalizeModelContextImages").mockImplementation(async images => {
-			normalizeStarted.resolve();
-			await releaseNormalize.promise;
-			return images;
-		});
-
-		try {
-			const asidePromise = session.sendUserMessage("DISCONNECTED_ASIDE", { deliverAs: "aside" });
-			await normalizeStarted.promise;
-
-			const newSessionPromise = session.newSession();
-			// #disconnectFromAgent()/abort() have run; agent.reset() and the generation bump have not.
-			await advisorsGateReached.promise;
-
-			releaseNormalize.resolve();
-			await asidePromise;
-			// Flush any fire-and-forget microtask chain a stray #wakeForIrc call would have started
-			// (agent.prompt() is invoked asynchronously, not synchronously, from #wakeForIrc).
-			for (let i = 0; i < 5; i++) await Promise.resolve();
-
-			expect(callCount).toBe(1);
-
-			releaseAdvisorsGate.resolve();
-			expect(await newSessionPromise).toBe(true);
-			await run.catch(() => {});
-			await session.waitForIdle();
-
-			expect(JSON.stringify(session.agent.state.messages)).not.toContain("DISCONNECTED_ASIDE");
-		} finally {
-			normalizeSpy.mockRestore();
-			advisorsSpy.mockRestore();
 		}
 	});
 

@@ -4,43 +4,22 @@ import type { Model, PASTE_CODE_LOGIN_PROVIDERS as PasteCodeLoginProviders, Usag
 import type { getOAuthProviders as GetOAuthProviders } from "@oh-my-pi/pi-ai/oauth";
 import type { OAuthProvider } from "@oh-my-pi/pi-ai/oauth/types";
 import { t } from "@oh-my-pi/pi-i18n";
-import * as vcs from "@oh-my-pi/pi-natives/vcs";
 import type { Component, OverlayHandle } from "@oh-my-pi/pi-tui";
 import { Loader, Spacer, Text } from "@oh-my-pi/pi-tui";
 import { formatKeyHint } from "@oh-my-pi/pi-tui/app-keybindings";
 import { appKey, editorKey } from "@oh-my-pi/pi-tui/chrome/keybinding-hints";
-import {
-	getAgentDbPath,
-	getAgentDir,
-	getProjectDir,
-	normalizePathForComparison,
-	sanitizeText,
-} from "@oh-my-pi/pi-utils";
-import {
-	ADVISOR_DEFAULT_TOOL_NAMES,
-	discoverAdvisorConfigs,
-	loadWatchdogConfigFile,
-	resolveAdvisorConfigEditPath,
-	saveWatchdogConfigFile,
-} from "../../advisor";
+import { getAgentDbPath, getProjectDir, normalizePathForComparison, sanitizeText } from "@oh-my-pi/pi-utils";
+import { shortenPath } from "@oh-my-pi/pi-tui/render/render-utils";
 import { reset as resetCapabilities } from "../../capability";
-import type { AdvisorConfigScope } from "@oh-my-pi/pi-tui/overlays/advisor-config";
 import { showGitOverlay } from "../../cli/git-tui";
 import { formatLoginIdentity } from "../../cli/oauth-terminal";
-import { resolveAdvisorRoleSelection, resolveModelRoleValue } from "../../config/model-resolver";
+import { resolveModelRoleValue } from "../../config/model-resolver";
 import { formatModelSelectorValue } from "@oh-my-pi/pi-tui/overlays/model-selector";
 import { getRoleInfo } from "../../config/model-roles";
 import { settings } from "../../config/settings";
 import { createSettingsHost } from "../../config/settings-ui";
 import { createPluginSettingsHost } from "../../extensibility/plugins/settings-host";
 import { clearPluginRootsAndCaches, resolveActiveProjectRegistryPath } from "../../discovery/helpers";
-import {
-	getInstalledPluginsRegistryPath,
-	getMarketplacesCacheDir,
-	getMarketplacesRegistryPath,
-	getPluginsCacheDir,
-	MarketplaceManager,
-} from "../../extensibility/plugins/marketplace";
 import { getAvailableThemes, getSymbolTheme, previewTheme, theme } from "@oh-my-pi/pi-tui/theme";
 import type { AgentHubOpenOptions, InteractiveModeContext } from "../../modes/types";
 import type { SessionOAuthAccountList } from "../../session/agent-session-types";
@@ -79,18 +58,13 @@ import {
 import type { ToolSession } from "../../tools";
 import { AskTool, type AskToolInput } from "../../tools/ask";
 import { type AskToolDetails } from "@oh-my-pi/pi-tui/tools/ask";
-import { sanitizeDisplayWarnings, shortenPath } from "@oh-my-pi/pi-tui/render/render-utils";
 import { ToolAbortError } from "../../tools/tool-errors";
 import { captureBrowserSession } from "../../utils/browser-session";
 import { copyToClipboard } from "../../utils/clipboard";
 import { openPath } from "../../utils/open";
 import { setSessionTerminalTitle } from "../../utils/title-generator";
 import { getAssistantMessageLinkTargets } from "@oh-my-pi/pi-tui/prompt/interactive-context-helpers";
-import { type AdvisorConfigDeps, AdvisorConfigOverlayComponent } from "@oh-my-pi/pi-tui/overlays/advisor-config";
 import { createAgentsHubDeps } from "../agents-hub-deps";
-import { getEditorCommand, openInEditor } from "../../utils/external-editor";
-import { collapseSharedUsageReports } from "@oh-my-pi/pi-tui/overlays/usage-display";
-import { limitMatchesActiveAccount } from "../../slash-commands/helpers/active-oauth-account";
 import { AgentHubOverlayComponent } from "@oh-my-pi/pi-tui/overlays/agent-hub";
 import { createAgentHubRuntime } from "../agent-hub-runtime";
 import { AgentsHubComponent } from "@oh-my-pi/pi-tui/overlays/agents-hub";
@@ -108,7 +82,6 @@ import type {
 import { createModelBrowserSource } from "../model-browser-source";
 import type { ModelPickerComponent as ModelPickerComponentType } from "@oh-my-pi/pi-tui/overlays/model-picker";
 import type { OAuthSelectorComponent as OAuthSelectorComponentType } from "@oh-my-pi/pi-tui/overlays/oauth-selector";
-import { PluginSelectorComponent } from "@oh-my-pi/pi-tui/overlays/plugin-selector";
 import { type ResetUsageAccount, ResetUsageSelectorComponent } from "@oh-my-pi/pi-tui/overlays/reset-usage-selector";
 import { type BranchVariantPath, RewindSelectorComponent } from "@oh-my-pi/pi-tui/overlays/rewind-selector";
 import { SessionAccountSelectorComponent } from "@oh-my-pi/pi-tui/overlays/session-account-selector";
@@ -392,114 +365,6 @@ export class SelectorController {
 			onClose: done,
 		});
 		const overlayHandle = this.#showFullscreenMenu(dashboard);
-	}
-
-	showAdvisorConfigure(): void {
-		const cwd = this.ctx.sessionManager.getCwd();
-		const agentDir = getAgentDir() ?? getProjectDir();
-		const initialScope: AdvisorConfigScope = "project";
-		void (async () => {
-			// "Project" scope edits the repo-root WATCHDOG.yml (the project-level file
-			// discovery walks), not the launch subdir — `getProjectDir()` is only cwd.
-			let projectDir = cwd;
-			try {
-				projectDir = vcs.repo(cwd)?.root() ?? cwd;
-			} catch {
-				projectDir = cwd;
-			}
-			const dirs = { projectDir, agentDir };
-			const initialDoc = await loadWatchdogConfigFile(await resolveAdvisorConfigEditPath(initialScope, dirs));
-			if (initialDoc.warnings?.length) {
-				this.ctx.showWarning(
-					t("tui.advisorConfig.warnings", { warnings: sanitizeDisplayWarnings(initialDoc.warnings).join("; ") }),
-				);
-			}
-			// Fullscreen editor on the alternate screen (the /settings idiom): the
-			// overlay holds the alt buffer + mouse tracking; the transcript stays put.
-			const done = () => {
-				overlayHandle?.hide();
-				this.focusActiveEditorArea();
-				this.ctx.ui.requestRender();
-			};
-			// Label the seeded implicit-default row with the actual advisor-role model
-			// (NOT the first live advisor, which may be a named advisor from another scope).
-			const advisorRoleSel = resolveAdvisorRoleSelection(
-				this.ctx.settings,
-				this.ctx.session.modelRegistry.getAvailable(),
-			);
-			const defaultAdvisorModel = advisorRoleSel?.model;
-			const deps: AdvisorConfigDeps = {
-				getAvailableModels: () => this.ctx.session.modelRegistry.getAvailable(),
-				browserSource: createModelBrowserSource(this.ctx.settings),
-				defaultToolNames: ADVISOR_DEFAULT_TOOL_NAMES,
-				externalEditor: text => {
-					const command = getEditorCommand();
-					return command ? openInEditor(command, text) : Promise.resolve(null);
-				},
-				scopedModels: this.ctx.session.scopedModels,
-				availableToolNames: this.ctx.session.getAdvisorAvailableToolNames(),
-				defaultModelLabel: defaultAdvisorModel
-					? `${defaultAdvisorModel.provider}/${defaultAdvisorModel.id}`
-					: undefined,
-			};
-			const overlay = new AdvisorConfigOverlayComponent(this.ctx.ui, deps, initialScope, initialDoc, {
-				loadDoc: async scope => loadWatchdogConfigFile(await resolveAdvisorConfigEditPath(scope, dirs)),
-				save: async (scope, doc) => {
-					await saveWatchdogConfigFile(await resolveAdvisorConfigEditPath(scope, dirs), doc);
-					// Re-discover the merged roster (project + user) so the live advisors
-					// reflect cross-level precedence, not just the edited file.
-					const discovered = await discoverAdvisorConfigs(cwd, agentDir);
-					const count = this.ctx.session.applyAdvisorConfigs(
-						discovered.advisors,
-						discovered.sharedInstructions,
-						discovered.sharedMaxNotesPerUpdate,
-					);
-					this.ctx.statusLine.invalidate();
-					if (discovered.warnings.length > 0) {
-						this.ctx.showWarning(
-							t("tui.advisorConfig.warnings", {
-								warnings: sanitizeDisplayWarnings(discovered.warnings).join("; "),
-							}),
-						);
-					}
-					this.ctx.showStatus(
-						count > 0
-							? count === 1
-								? t("tui.advisorConfig.saved.one", { scope, count })
-								: t("tui.advisorConfig.saved.many", { scope, count })
-							: t("tui.advisorConfig.savedInactive", { scope }),
-					);
-					this.ctx.ui.requestRender();
-				},
-				close: done,
-				requestRender: () => this.ctx.ui.requestRender(),
-				notify: message => this.ctx.showStatus(message),
-				// Scope switches happen inside the overlay; the initial file's warnings
-				// were already shown above, so only newly activated files arrive here.
-				warn: message => this.ctx.showWarning(message),
-				getAdvisorStats: () => this.ctx.session.getAdvisorStats().advisors,
-				getUsageReports: async () => {
-					const reports = await this.ctx.session.fetchUsageReports?.();
-					return reports ? collapseSharedUsageReports(reports) : null;
-				},
-				getQuotaLimitFilter: (provider, sessionId) => {
-					const identity = this.ctx.session.modelRegistry.authStorage.oauth.identity(
-						provider,
-						sessionId ?? this.ctx.session.sessionId,
-					);
-					return identity ? (report, limit) => limitMatchesActiveAccount(report, limit, identity) : undefined;
-				},
-			});
-			const overlayHandle = this.ctx.ui.showOverlay(overlay, {
-				anchor: "bottom-center",
-				width: "100%",
-				maxHeight: "100%",
-				margin: 0,
-				fullscreen: true,
-			});
-			this.ctx.ui.setFocus(overlay);
-			this.ctx.ui.requestRender();
-		})();
 	}
 
 	showHistorySearch(): void {
@@ -1035,93 +900,6 @@ export class SelectorController {
 		if (succeeded) {
 			this.#showModelHub({ initialProviderId: providerId });
 		}
-	}
-
-	async showPluginSelector(mode: "install" | "uninstall" = "install"): Promise<void> {
-		const mgr = new MarketplaceManager({
-			marketplacesRegistryPath: getMarketplacesRegistryPath(),
-			installedRegistryPath: getInstalledPluginsRegistryPath(),
-			projectInstalledRegistryPath: (await resolveActiveProjectRegistryPath(getProjectDir())) ?? undefined,
-			marketplacesCacheDir: getMarketplacesCacheDir(),
-			pluginsCacheDir: getPluginsCacheDir(),
-			clearPluginRootsCache: clearPluginRootsAndCaches,
-		});
-
-		const [marketplaces, installed] = await Promise.all([mgr.listMarketplaces(), mgr.listInstalledPlugins()]);
-		const installedIds = new Set(installed.map(p => p.id));
-
-		if (mode === "uninstall") {
-			// Show only installed plugins for uninstall
-			const items = installed.map(p => {
-				const entry = p.entries[0];
-				const atIdx = p.id.lastIndexOf("@");
-				const pluginName = atIdx > 0 ? p.id.slice(0, atIdx) : p.id;
-				const mkt = atIdx > 0 ? p.id.slice(atIdx + 1) : "unknown";
-				return {
-					plugin: { name: pluginName, version: entry?.version, description: undefined as string | undefined },
-					marketplace: mkt,
-					scope: p.scope,
-				};
-			});
-			this.showSelector(done => {
-				const selector = new PluginSelectorComponent(marketplaces.length, items, new Set(), {
-					onSelect: async (name, marketplace, scope) => {
-						done();
-						const pluginId = `${name}@${marketplace}`;
-						this.ctx.showStatus(t("tui.pluginPicker.uninstalling", { plugin: pluginId }));
-						this.ctx.ui.requestRender();
-						try {
-							await mgr.uninstallPlugin(pluginId, scope);
-							this.ctx.showStatus(t("slash.marketplace.uninstalled", { name: pluginId }));
-						} catch (err) {
-							this.ctx.showStatus(t("tui.pluginPicker.uninstallFailed", { reason: String(err) }));
-						}
-						this.ctx.ui.requestRender();
-					},
-					onCancel: () => {
-						done();
-						this.ctx.ui.requestRender();
-					},
-				});
-				return { component: selector, focus: selector.getSelectList() };
-			});
-			return;
-		}
-
-		// Install mode: show all available plugins from all marketplaces
-		const allPlugins: Array<{
-			plugin: { name: string; version?: string; description?: string };
-			marketplace: string;
-		}> = [];
-		for (const mkt of marketplaces) {
-			const plugins = await mgr.listAvailablePlugins(mkt.name);
-			for (const plugin of plugins) {
-				allPlugins.push({ plugin, marketplace: mkt.name });
-			}
-		}
-
-		this.showSelector(done => {
-			const selector = new PluginSelectorComponent(marketplaces.length, allPlugins, installedIds, {
-				onSelect: async (name, marketplace) => {
-					done();
-					this.ctx.showStatus(t("tui.pluginPicker.installing", { name, marketplace }));
-					this.ctx.ui.requestRender();
-					try {
-						const force = installedIds.has(`${name}@${marketplace}`);
-						await mgr.installPlugin(name, marketplace, { force });
-						this.ctx.showStatus(t("slash.marketplace.installed", { name, marketplace }));
-					} catch (err) {
-						this.ctx.showStatus(t("tui.pluginPicker.installFailed", { reason: String(err) }));
-					}
-					this.ctx.ui.requestRender();
-				},
-				onCancel: () => {
-					done();
-					this.ctx.ui.requestRender();
-				},
-			});
-			return { component: selector, focus: selector.getSelectList() };
-		});
 	}
 
 	showUserMessageSelector(): void {
@@ -2265,8 +2043,6 @@ export class SelectorController {
 		const hub = new AgentHubOverlayComponent({
 			...createAgentHubRuntime({
 				settings: this.ctx.settings,
-				registry: this.ctx.collabGuest?.agentRegistry,
-				remote: this.ctx.collabGuest?.hubRemote,
 				sessionFile: this.ctx.sessionManager.getSessionFile() ?? null,
 			}),
 			observers,
@@ -2275,7 +2051,6 @@ export class SelectorController {
 			initialSection: options?.initialSection,
 			onDone: done,
 			requestRender: () => this.ctx.ui.requestRender(),
-			remote: this.ctx.collabGuest?.hubRemote,
 			ui: this.ctx.ui,
 			getTool: name => this.ctx.session.getToolByName(name),
 			isBuiltInTool: name => this.ctx.session.hasBuiltInTool(name),

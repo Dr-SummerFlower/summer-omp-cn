@@ -1,8 +1,7 @@
 import { type } from "@oh-my-pi/omptype";
 import type { AgentTool, AgentToolResult } from "@oh-my-pi/pi-agent-core";
 import { logger, prompt, untilAborted } from "@oh-my-pi/pi-utils";
-import { isHindsightConfigured, loadHindsightConfig } from "../hindsight/config";
-import { formatCurrentTime, formatMemories } from "../hindsight/content";
+import { formatCurrentTime } from "../mnemopi/content";
 import recallDescription from "../prompts/tools/recall.md" with { type: "text" };
 import { sessionMemoryToolRefs } from "../memory-backend/tool-names";
 import type { ToolSession } from ".";
@@ -34,8 +33,7 @@ export class MemoryRecallTool implements AgentTool<typeof memoryRecallSchema> {
 
 	static createIf(session: ToolSession): MemoryRecallTool | null {
 		const backend = cfgMemoryBackend.get(session.settings);
-		if (backend !== "hindsight" && backend !== "mnemopi") return null;
-		if (backend === "hindsight" && !isHindsightConfigured(loadHindsightConfig(session.settings))) return null;
+		if (backend !== "mnemopi") return null;
 		return new MemoryRecallTool(session);
 	}
 
@@ -72,41 +70,7 @@ export class MemoryRecallTool implements AgentTool<typeof memoryRecallSchema> {
 				}
 			}
 
-			const state = this.session.getHindsightSessionState?.();
-			if (!state) {
-				throw new Error(t("tui.ca.tools.memoryRecall.hindsightBackendIsNotInitialisedFor"));
-			}
-
-			try {
-				const response = await state.client.recall(state.bankId, params.query, {
-					budget: state.config.recallBudget,
-					maxTokens: state.config.recallMaxTokens,
-					types: state.config.recallTypes.length > 0 ? state.config.recallTypes : undefined,
-					tags: state.recallTags,
-					tagsMatch: state.recallTagsMatch,
-				});
-				const results = response.results ?? [];
-				if (results.length === 0) {
-					return {
-						content: [{ type: "text", text: "No relevant memories found." }],
-						details: {},
-						useless: true,
-					};
-				}
-				const formatted = formatMemories(results);
-				return {
-					content: [
-						{
-							type: "text",
-							text: `Found ${results.length} relevant ${results.length === 1 ? "memory" : "memories"} (as of ${formatCurrentTime()} UTC):\n\n${formatted}`,
-						},
-					],
-					details: {},
-				};
-			} catch (err) {
-				logger.warn("recall failed", { bankId: state.bankId, error: String(err) });
-				throw err instanceof Error ? err : new Error(String(err));
-			}
+			throw new Error("Recall is only available with memory.backend=mnemopi.");
 		});
 	}
 }

@@ -104,13 +104,10 @@ See [providers](./providers.md) and [models](./models.md) for model resolution.
 | `--print-thoughts` | Include thinking blocks in print-mode text output. |
 | `--external-thinking` | Use a private scratchpad while disabling supported GPT/Claude/Gemini reasoning. Use at your own risk: providers have flagged this request shape as abuse. |
 
-#### Prewalk and plan modes
+#### Plan modes
 
 | Flag | Description |
 | --- | --- |
-| `--prewalk` | Switch to a fast/cheap model at the first edit/write after the plan's todo list exists (default off; see `prewalk.enabled`). |
-| `--no-prewalk` | Disable prewalk even if `prewalk.enabled` is set. |
-| `--prewalk-into <id>` | Target model for prewalk (default the `smol` role). |
 | `--plan-yolo` | Force read-only plan mode at start, auto-approve the plan on the model's first resolve call, then switch to `--plan-yolo-into` to implement it. |
 | `--plan-yolo-into <id>` | Target model for plan-yolo execution (default the `smol` role). |
 
@@ -124,7 +121,6 @@ See [providers](./providers.md) and [models](./models.md) for model resolution.
 | `--no-pty` | Disable PTY-based interactive bash execution. |
 | `--approval-mode <mode>` | Override `tools.approvalMode` for this session (`always-ask`, `write`, or `yolo`). See [approval mode](./approval-mode.md). |
 | `--auto-approve`, `--yolo` | Auto-approve all tool calls (skip approval prompts). |
-| `--advisor` | Enable the advisor runtime (passively reviews each turn and injects notes). See [advisor / watchdog](./advisor-watchdog.md). |
 | `--max-time <duration>` | Stop the session after this duration (e.g. `600`, `10m`, `1h`). |
 
 #### Extensions, hooks, skills, and rules
@@ -188,9 +184,6 @@ Related flags for headless runs:
 - `--no-title` — skip title auto-generation (also `PI_NO_TITLE`).
 - `--max-time <duration>` — bound the run.
 
-The [advisor / watchdog](./advisor-watchdog.md#headless-runs) doc describes
-print-mode disposal semantics when the advisor runtime is enabled.
-
 ### Output modes (`--mode`)
 
 | Mode | Description |
@@ -215,26 +208,19 @@ Run `omp <command> --help` for each command's own flags and examples.
 | `auth-gateway` | Run an auth-gateway forward proxy backed by the configured broker. | [auth broker / gateway](./auth-broker-gateway.md) |
 | `agents` | Manage bundled task agents. | [task agent discovery](./task-agent-discovery.md) |
 | `bench` | Benchmark models: TTFT/prefill vs decode throughput with p50/p95 across chat, prefill, generation, and prompt-cache workloads, rendered in a live dashboard (`--prefill-bytes` sizes the synthetic prefill input). `--detailed` runs single-user, `--par`-way parallel (aggregate tok/s and scaling), and prefill phases per model. | |
-| `browser-relay` | Run the local CDP relay used by Eval's browser API to drive your own Chrome tabs. | [computer use](./computer-use.md) |
-| `cleanse` | Detect and fix project diagnostics with weighted parallel subagents. | |
+| `browser-relay` | Run the local CDP relay used by Eval's browser API to drive your own Chrome tabs. | |
 | `commit` | Generate a commit message and update changelogs. | |
 | `completions` | Print a shell completion script (bash, zsh, or fish). | |
 | `compress` | Rewrite a text file into the dense prompt register, reporting what it drops. | |
 | `config` | Manage configuration settings. | [config usage](./config-usage.md), [settings](./settings.md) |
-| `dry-balance` | Dry-run OAuth account balancing across random session ids. | |
 | `gc` | Run storage garbage collection. | |
 | `grep` | Test the grep tool from the CLI. (The [`grep` tool](./tools/grep.md) is a separate agent tool.) | |
 | `gallery` | Preview tool renderers across streaming, in-progress, success, and failure states. | |
 | `git` | Interactive fullscreen git UI: split diff viewer, staging sidebar, and commit composer. | |
-| `grievances` | View, clean, or push reported tool issues (auto-QA grievances). | |
-| `if-bench` | Benchmark instruction following and working memory: one cached thread of glyph array actions with a cat-sound directive that moves through the prompt. | |
-| `images`, `img` | Inspect, diagnose, probe, and purge image publication backends. | |
 | `install` | Install or link an extension package (alias of `plugin install` / `plugin link`). | [extensions](./extensions.md) |
-| `join` | Join a shared collab session (same as `/join`). | [collab](./collab.md) |
 | `models` | List, search, and refresh available models. | [models](./models.md) |
 | `plugin` | Manage plugins (install, uninstall, list, etc.). | [extensions](./extensions.md), [marketplace](./marketplace.md) |
 | `ps` | List and control daemon-supervised background processes (logs, stop, kill, restart). | |
-| `say` | Synthesize text with the local TTS engine and play it through the speakers. | [tts tool](./tools/tts.md) |
 | `share` | Share a saved session via an encrypted link (same as the `/share` slash command). | [session operations](./session-operations-export-share-fork-resume.md) |
 | `setup` | Run onboarding setup or install dependencies for optional features. | |
 | `shell` | Interactive shell console. | |
@@ -250,7 +236,7 @@ Run `omp <command> --help` for each command's own flags and examples.
 | `worktree`, `wt` | List or clear agent-managed git worktrees (`~/.omp/wt`). | |
 | `search`, `q`, `web-search` | Test web search providers from the CLI. | [web_search tool](./tools/web_search.md) |
 
-> `install`, `join`, `browser-relay`, `auth-gateway`, and `tiny-models` are also
-> reachable through related mechanisms (the `plugin` command, the `/join` slash
-> command, and so on). The table lists each as it is registered in
+> `install`, `browser-relay`, `auth-gateway`, and `tiny-models` are also
+> reachable through related mechanisms (the `plugin` command and so on). The
+> table lists each as it is registered in
 > `packages/coding-agent/src/cli-commands.ts`.

@@ -24,7 +24,7 @@ The agent/root locations respect profiles, `PI_CONFIG_DIR`, and—only for the d
 
 Additional rule inside each `.env` file: every `OMP_*` key is mirrored to its `PI_*` alias, and that mirrored value replaces a same-file `PI_*` value. This mirroring applies to parsed dotenv files, not arbitrary variables inherited from the parent process.
 
-Variables declared on a setting definition (see [settings precedence](./settings.md#precedence)) are parsed by the setting's type unless noted otherwise. Boolean ones (`PI_PY`, `PI_JS`, `PI_INTENT_TRACING`, `PI_AUTO_QA`, `HINDSIGHT_AUTO_RECALL`, …) follow `parseFlag`: an empty value is ignored, so the setting applies; `1`, `y`, `true`, `yes`, and `on` (all-lowercase or all-uppercase) mean true; any other non-empty value means false.
+Variables declared on a setting definition (see [settings precedence](./settings.md#precedence)) are parsed by the setting's type unless noted otherwise. Boolean ones (`PI_PY`, `PI_JS`, `PI_INTENT_TRACING`, …) follow `parseFlag`: an empty value is ignored, so the setting applies; `1`, `y`, `true`, `yes`, and `on` (all-lowercase or all-uppercase) mean true; any other non-empty value means false.
 
 ---
 
@@ -471,42 +471,7 @@ Python subprocess filtering denies common API keys and allows safe base variable
 | `PI_DISABLE_UUTILS_BUILTINS` | Non-empty except `0`/`false` disables the bash tool's uutils built-ins; `shell.env.PI_DISABLE_UUTILS_BUILTINS` wins                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | `OMP_NO_WEBP`                | `1` or `true` (case-insensitive) disables WebP in image-resize format selection                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | `MNEMOPI_EMBEDDING_MODEL`    | Embedding-model fallback for `mnemopi.embeddingModel`: used when that setting is unset, `null`, or blank; otherwise the setting wins                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| `PI_AUTO_QA`                 | Boolean flag with highest precedence for the automatic tool-issue report injection/recording; any non-empty value other than `1`/`y`/`true`/`yes`/`on` disables it; unset or empty consults the `dev.autoqa` setting                                                                                                                                                                                                                                                                                                                                                       |
-| `PI_AUTO_QA_PUSH`            | `1`/`true` bypasses the consent dialog and forces tool-issue push recording in headless/non-interactive environments                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| `PI_AUTO_QA_PUSH_URL`        | Endpoint override for auto QA grievance push; wins over the `dev.autoqaPush.endpoint` setting                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | `PI_BROWSER_RELAY`           | `0`/`1` kill switch for the browser relay; overrides the `browser.relay` setting (relay auto-starts when Eval's browser API needs it)                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-
-### Hindsight memory backend
-
-Each supported environment variable overrides the corresponding `hindsight.*` setting, which in
-turn overrides its built-in default. String values are trimmed and a blank value is ignored.
-Boolean values follow the setting-backed flag rules above: an empty value is ignored; `1`, `y`,
-`true`, `yes`, and `on` (all-lowercase or all-uppercase) mean true; any other value means false.
-Integer values use the base-10 `parseInt` prefix (`5000ms` reads as `5000`, `2.5` as `2`);
-empty and non-numeric values are ignored, and the parsed integer is not clamped. Enum values
-must match one of the listed lowercase values (surrounding whitespace is ignored); invalid values
-are ignored.
-
-| Variable                           | Setting overridden              | Accepted value / built-in default                                                 |
-| ---------------------------------- | ------------------------------- | --------------------------------------------------------------------------------- |
-| `HINDSIGHT_API_URL`                | `hindsight.apiUrl`              | Non-empty string; default `http://localhost:8888`                                 |
-| `HINDSIGHT_API_TOKEN`              | `hindsight.apiToken`            | Non-empty string; unset by default                                                |
-| `HINDSIGHT_BANK_ID`                | `hindsight.bankId`              | Non-empty string; unset by default, so the selected scoping mode derives the bank |
-| `HINDSIGHT_BANK_MISSION`           | `hindsight.bankMission`         | Non-empty string; default empty string                                            |
-| `HINDSIGHT_RETAIN_MODE`            | `hindsight.retainMode`          | `full-session` or `last-turn`; default `full-session`                             |
-| `HINDSIGHT_RECALL_BUDGET`          | `hindsight.recallBudget`        | `low`, `mid`, or `high`; default `mid`                                            |
-| `HINDSIGHT_AUTO_RECALL`            | `hindsight.autoRecall`          | Boolean; default `true`                                                           |
-| `HINDSIGHT_AUTO_RETAIN`            | `hindsight.autoRetain`          | Boolean; default `true`                                                           |
-| `HINDSIGHT_SCOPING`                | `hindsight.scoping`             | `global`, `per-project`, or `per-project-tagged`; default `per-project-tagged`    |
-| `HINDSIGHT_DEBUG`                  | `hindsight.debug`               | Boolean; default `false`                                                          |
-| `HINDSIGHT_RECALL_MAX_TOKENS`      | `hindsight.recallMaxTokens`     | Integer; default `1024`                                                           |
-| `HINDSIGHT_RECALL_CONTEXT_TURNS`   | `hindsight.recallContextTurns`  | Integer; default `1`                                                              |
-| `HINDSIGHT_RECALL_MAX_QUERY_CHARS` | `hindsight.recallMaxQueryChars` | Integer; default `800`                                                            |
-| `HINDSIGHT_RETAIN_EVERY_N_TURNS`   | `hindsight.retainEveryNTurns`   | Integer; default `3`                                                              |
-| `HINDSIGHT_REQUEST_TIMEOUT_MS`     | `hindsight.requestTimeoutMs`    | Integer milliseconds; default `30000`                                             |
-| `HINDSIGHT_REFLECT_TIMEOUT_MS`     | `hindsight.reflectTimeoutMs`    | Integer milliseconds; default `120000`                                            |
-| `HINDSIGHT_RECALL_TIMEOUT_MS`      | `hindsight.recallTimeoutMs`     | Integer milliseconds; default `30000`                                             |
-| `HINDSIGHT_RETAIN_TIMEOUT_MS`      | `hindsight.retainTimeoutMs`     | Integer milliseconds; default `60000`                                             |
 
 `PI_NO_PTY` is also set internally when CLI `--no-pty` is used.
 
@@ -524,7 +489,6 @@ These affect where coding-agent stores data and which process-local settings ove
 | `PI_CODING_AGENT_DIR`                               | Full agent-directory override for the default profile only; named profiles ignore it                                       |
 | `PI_CODING_AGENT_SESSION_DIR`                       | Initial session-directory override consumed by launch argument parsing                                                     |
 | `PI_CONFIG_FILES`                                   | Platform path-list of settings overlays (`:` on Unix, `;` on Windows); loaded in order before explicit `--config` overlays |
-| `OMP_AUTORESEARCH_DB_DIR`                           | Directory override for per-project autoresearch DB and project-artifact roots                                              |
 | `XDG_DATA_HOME`, `XDG_STATE_HOME`, `XDG_CACHE_HOME` | On macOS/Linux, redirect corresponding OMP paths only when the target `omp` root (or named-profile root) already exists    |
 | `PWD`                                               | Used when matching canonical current working directory in path helpers                                                     |
 | `OMP_WORKTREE_DIR`                                  | Agent-managed worktrees directory override (default `~/.omp/wt`); must be absolute or `~`-relative, relative paths are ignored; wins over the `worktree.base` setting                      |
@@ -614,30 +578,6 @@ These are read as runtime signals; they are usually set by the terminal/OS rathe
 
 ---
 
-## 11) OpenTelemetry export
-
-OMP initializes OTLP export only when at least one signal has an endpoint. Set `telemetry.otlpExportEnabled: false` (`/settings` → Providers → Privacy) to skip export even when endpoints are configured. `OTEL_SDK_DISABLED=true` also disables initialization.
-
-| Variable group                                                                                                  | Behavior                                                                                        |
-| --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `OTEL_EXPORTER_OTLP_ENDPOINT`                                                                                   | Common endpoint fallback                                                                        |
-| `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`, `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT`, `OTEL_EXPORTER_OTLP_METRICS_ENDPOINT` | Per-signal endpoint; wins over the common endpoint                                              |
-| `OTEL_EXPORTER_OTLP_HEADERS`                                                                                    | Common OTLP request headers, as a `key=value,key2=value2` list with percent-encoded values       |
-| `OTEL_EXPORTER_OTLP_TRACES_HEADERS`, `OTEL_EXPORTER_OTLP_LOGS_HEADERS`, `OTEL_EXPORTER_OTLP_METRICS_HEADERS`    | Per-signal request headers; merged per key over the common headers, which they override          |
-| `OTEL_TRACES_EXPORTER`, `OTEL_LOGS_EXPORTER`, `OTEL_METRICS_EXPORTER`                                           | A list containing `none` disables that signal                                                   |
-| `OTEL_EXPORTER_OTLP_PROTOCOL` and per-signal `..._PROTOCOL` variants                                            | Only `http/protobuf` is enabled by this runtime; another explicit protocol disables that signal |
-| `OTEL_SERVICE_NAME`, `OTEL_RESOURCE_ATTRIBUTES`                                                                 | OpenTelemetry resource metadata                                                                 |
-| `OTEL_LOG_LEVEL`                                                                                                | Minimum exported OMP log level                                                                  |
-
-Header values are percent-decoded, so encode spaces and the `,`/`=` delimiters:
-
-```bash
-export OTEL_EXPORTER_OTLP_TRACES_ENDPOINT="http://localhost:8000/v1/traces"
-export OTEL_EXPORTER_OTLP_TRACES_HEADERS="authorization=Bearer%20$LAMINAR_PROJECT_API_KEY"
-```
-
----
-
 ## Security-sensitive variables
 
 Treat these as secrets; do not log or commit them:
@@ -646,6 +586,5 @@ Treat these as secrets; do not log or commit them:
 - Cloud credentials (`AWS_*`, `GOOGLE_APPLICATION_CREDENTIALS` path may expose service-account material)
 - Search/provider auth vars (`EXA_API_KEY`, `BRAVE_API_KEY`, `PERPLEXITY_API_KEY`, Anthropic search keys)
 - Foundry mTLS material (`CLAUDE_CODE_CLIENT_CERT`, `CLAUDE_CODE_CLIENT_KEY`, `NODE_EXTRA_CA_CERTS` when it points to private CA bundles)
-- OTLP exporter headers (`OTEL_EXPORTER_OTLP_HEADERS` and the per-signal `..._{TRACES,LOGS,METRICS}_HEADERS` variants) — they carry ingest bearer tokens/project keys
 
 Python runtime also explicitly strips many common key vars before spawning kernel subprocesses (`packages/coding-agent/src/eval/py/runtime.ts`).

@@ -67,9 +67,6 @@ import {
 } from "@oh-my-pi/pi-utils";
 import chalk from "@oh-my-pi/pi-utils/chalk";
 import { restartArgv } from "../cli/flag-tables";
-import type { CollabGuestLink } from "../collab/guest";
-import { CollabController } from "../collab/controller";
-import type { CollabHost } from "../collab/host";
 import { formatKeyHint, KeybindingsManager } from "@oh-my-pi/pi-tui/app-keybindings";
 import { appKey, editorKey } from "@oh-my-pi/pi-tui/chrome/keybinding-hints";
 import { formatModelString, type ResolvedModelRoleValue } from "../config/model-resolver";
@@ -91,7 +88,7 @@ import type { FileSlashCommand } from "../extensibility/slash-commands";
 import { loadSlashCommands } from "../extensibility/slash-commands";
 import type { Goal } from "@oh-my-pi/pi-tui/tools/goal";
 import type { GoalModeState } from "../goals/state";
-import { rebindMemoryBackendForCwd } from "../hindsight/backend";
+import { rebindMemoryBackendForCwd } from "../memory-backend/cwd-rebind";
 import { copyLocalArtifacts, resolveLocalRoot } from "../internal-urls";
 import { LSP_STARTUP_EVENT_CHANNEL, type LspStartupEvent } from "../lsp/startup-events";
 import type { MCPManager } from "../mcp";
@@ -128,8 +125,6 @@ import {
 import type { CompactMode } from "../session/compact-modes";
 import type { ForeignSessionSource } from "../session/foreign-session-store";
 import { HistoryStorage } from "../session/history-storage";
-import { syncTextPrediction, textPredictionBackend } from "../predict/client";
-import { setWordPredictionHost } from "@oh-my-pi/pi-tui/prompt/word-completion";
 import { USER_INTERRUPT_LABEL } from "../session/messages";
 import { resolveMarkdownLinkTargets } from "../internal-urls/hyperlink-targets";
 import { modelMentionDisplayName } from "@oh-my-pi/pi-tui/prompt/model-mention-syntax";
@@ -141,8 +136,6 @@ import type { ShakeMode } from "../session/shake-types";
 import { BUILTIN_SLASH_COMMAND_RESERVED_NAMES, buildTuiBuiltinSlashCommands } from "../slash-commands/builtin-registry";
 import { buildStaticInlineHint } from "../slash-commands/builtin-completions";
 import { formatCoarseDuration } from "@oh-my-pi/pi-tui/chrome/format";
-import { type DictationTarget, MicCursor, type SttCallbacks, STTController, type SttState } from "../stt";
-import type { SpaceHoldHandler } from "@oh-my-pi/pi-tui/space-hold";
 import { resolveCliEntryCmd } from "../subprocess/worker-client";
 import { discoverTitleSystemPromptFile, resolvePromptInput } from "../system-prompt";
 import { labelEchoesHandle } from "../task/label";
@@ -166,7 +159,6 @@ import {
 	TRUNCATE_LENGTHS,
 	truncateToWidth,
 } from "@oh-my-pi/pi-tui/render/render-utils";
-import { setAutoQaConsentHandler } from "../tools/report-tool-issue";
 import { type CfgApproval, type CfgChangeRequest, setCfgApprovalHost } from "../internal-urls/cfg-protocol";
 import {
 	createTodoHudStateData,
@@ -183,7 +175,6 @@ import {
 	setActiveTodoDescriptionsProvider,
 	todoMatchesAnyDescription,
 } from "@oh-my-pi/pi-tui/tools/todo";
-import { vocalizer } from "../tts/vocalizer";
 import { applyHyperlinkSetting, fileHyperlink } from "@oh-my-pi/pi-tui/render/hyperlink";
 import { renderTreeList } from "@oh-my-pi/pi-tui/render/tree-list";
 import { formatStartupChangelogSummary, type StartupChangelogSelection } from "../utils/changelog";
@@ -250,12 +241,10 @@ import { setMagicKeywords } from "@oh-my-pi/pi-tui/prompt/magic-keywords";
 import { MAGIC_KEYWORDS } from "./magic-keywords";
 import { sharedComposerCache } from "@oh-my-pi/pi-tui/prompt/composer-cache";
 import { BtwController } from "./controllers/btw-controller";
-import { CleanseCommandController } from "./controllers/cleanse-command-controller";
 import { CommandController } from "./controllers/command-controller";
 import { EventController } from "./controllers/event-controller";
 import { ExtensionUiController } from "./controllers/extension-ui-controller";
 import { InputController } from "./controllers/input-controller";
-import { LiveCommandController } from "./controllers/live-command-controller";
 import { MCPCommandController } from "./controllers/mcp-command-controller";
 import { OmfgController } from "./controllers/omfg-controller";
 import { SelectorController } from "./controllers/selector-controller";
@@ -278,10 +267,7 @@ import type { LoopConditionConfig, LoopLimitRuntime } from "@oh-my-pi/pi-tui/sta
 import { OAuthManualInputManager } from "./oauth-manual-input";
 import { resolveComposerHint } from "@oh-my-pi/pi-tui/prompt/composer-hints";
 import { hintUsage } from "../utils/usage-counter";
-import {
-	getRunningSubagentBadgeAgentIds,
-	getRunningSubagentBadgeRegistry,
-} from "@oh-my-pi/pi-tui/overlays/running-subagent-badge";
+import { getRunningSubagentBadgeAgentIds } from "@oh-my-pi/pi-tui/overlays/running-subagent-badge";
 import {
 	type ObservableSession,
 	type SessionObserverChangeKind,
@@ -371,10 +357,7 @@ import { cfgCycleOrder, cfgModelRoles } from "../config/model-settings";
 import { cfgGoalContinuationModes, cfgGoalEnabled } from "../goals/settings";
 import { cfgPlanDefaultOnStartup, cfgPlanEnabled } from "../plan-mode/settings";
 import { cfgStreamRedactPatterns } from "../stream/settings";
-import { cfgSttEnabled } from "../stt/settings";
 import { combine, type SettingValueOf } from "../config/registry";
-import { cfgAdvisorEnabled, cfgAdvisorMaxNotesPerUpdate } from "../advisor/settings";
-import { cfgTierAdvisor } from "../session/settings";
 import {
 	cfgCompactionEnabled,
 	cfgCompactionIdleEnabled,
@@ -432,9 +415,6 @@ const cfgLiveUiSettings = combine({
 	"statusLine.compactThinkingLevel": cfgStatusLineCompactThinkingLevel,
 	"statusLine.contextLine": cfgStatusLineContextLine,
 	"git.enabled": cfgGitEnabled,
-	"advisor.enabled": cfgAdvisorEnabled,
-	"advisor.maxNotesPerUpdate": cfgAdvisorMaxNotesPerUpdate,
-	"tier.advisor": cfgTierAdvisor,
 });
 type LiveUiSettings = SettingValueOf<typeof cfgLiveUiSettings>;
 
@@ -1069,7 +1049,6 @@ export class InteractiveMode implements InteractiveModeContext {
 	subagentContainer: Container;
 	btwContainer: Container;
 	omfgContainer: Container;
-	cleanseContainer: Container;
 	errorBannerContainer: Container;
 	modelCycleContainer: Container;
 	deferredCommandContainer: Container;
@@ -1346,11 +1325,6 @@ export class InteractiveMode implements InteractiveModeContext {
 	fileSlashCommands: Set<string> = new Set();
 	skillCommands: Map<string, Skill> = new Map();
 	oauthManualInput: OAuthManualInputManager = new OAuthManualInputManager();
-	/** Owns hosting: manual `/collab`, `collab.autoStart`, and room rotation on session switch. */
-	readonly collabController: CollabController;
-	/** Owned room; use {@link collabController}.host for current-session reuse and links. */
-	collabHost?: CollabHost;
-	collabGuest?: CollabGuestLink;
 	#streamPublisher: StreamPublisher | undefined;
 	#recorder: SessionRecorder | undefined;
 	#recorderStarting = false;
@@ -1416,10 +1390,8 @@ export class InteractiveMode implements InteractiveModeContext {
 	readonly #btwController: BtwController;
 	readonly #tanCommandController: TanCommandController;
 	readonly #omfgController: OmfgController;
-	readonly #cleanseController: CleanseCommandController;
 	readonly #commandController: CommandController;
 	readonly #todoCommandController: TodoCommandController;
-	readonly #liveCommandController: LiveCommandController;
 	readonly #eventController: EventController;
 	get eventController(): EventController {
 		return this.#eventController;
@@ -1527,8 +1499,6 @@ export class InteractiveMode implements InteractiveModeContext {
 		this.pendingTools.clear();
 	}
 	readonly #uiHelpers: UiHelpers;
-	#sttController: STTController | undefined;
-	#micCursor: MicCursor | undefined;
 	#resizeHandler?: () => void;
 	#observerRegistry: SessionObserverRegistry;
 	/** Click override for the pinned jump-list density; undefined follows `display.pinnedAgents`. */
@@ -1670,7 +1640,6 @@ export class InteractiveMode implements InteractiveModeContext {
 		this.subagentContainer = new AnchoredLiveContainer();
 		this.btwContainer = new AnchoredLiveContainer();
 		this.omfgContainer = new AnchoredLiveContainer();
-		this.cleanseContainer = new AnchoredLiveContainer();
 		this.errorBannerContainer = new AnchoredLiveContainer();
 		this.modelCycleContainer = new AnchoredLiveContainer();
 		this.deferredCommandContainer = new AnchoredLiveContainer();
@@ -1701,13 +1670,10 @@ export class InteractiveMode implements InteractiveModeContext {
 			this.#syncEditorMaxHeight();
 		};
 		process.stdout.on("resize", this.#resizeHandler);
-		setWordPredictionHost(textPredictionBackend);
 		try {
 			this.historyStorage = HistoryStorage.open();
 			this.editor.setHistoryStorage(this.historyStorage);
 			this.historyStorage.setSessionResolver(() => this.sessionManager.getSessionId());
-			// The prediction daemon learns from history.db; nudge it once each prompt is durable.
-			this.historyStorage.setAddListener(syncTextPrediction);
 		} catch (error) {
 			logger.warn("History storage unavailable", { error: String(error) });
 		}
@@ -1772,16 +1738,13 @@ export class InteractiveMode implements InteractiveModeContext {
 		this.#btwController = new BtwController(this);
 		this.#tanCommandController = new TanCommandController(this);
 		this.#omfgController = new OmfgController(this);
-		this.#cleanseController = new CleanseCommandController(this);
 		this.#extensionUiController = new ExtensionUiController(this);
 		this.#eventController = new EventController(this);
 		this.#commandController = new CommandController(this);
 		this.#todoCommandController = new TodoCommandController(this);
-		this.#liveCommandController = new LiveCommandController(this);
 		this.#selectorController = new SelectorController(this);
 		this.#focusController = new SessionFocusController(this);
 		this.#inputController = new InputController(this);
-		this.collabController = new CollabController(this);
 		this.session.setPromptDropped?.(prompt => this.#restoreDroppedPrompt(prompt));
 		this.#observerRegistry = new SessionObserverRegistry();
 	}
@@ -1909,13 +1872,6 @@ export class InteractiveMode implements InteractiveModeContext {
 		// FIRST and its dispose() would otherwise persist the generic "dispose".
 		this.#cleanupUnsubscribe = postmortem.register("session-teardown", reason => this.#signalTeardown!(reason));
 
-		// Wire the report_tool_issue consent gate to the Yes/No dialog popup.
-		// The handler is process-global — subagent tools (which can't reach
-		// `showHookSelector` on their own) resolve through this exact closure.
-		// `Settings.instance` is the disk-backed singleton; passing it explicitly
-		// guarantees the decision persists even when the prompt is triggered
-		// from a subagent whose own `Settings` is an in-memory snapshot.
-		setAutoQaConsentHandler(() => this.#promptAutoQaConsent(), Settings.instance);
 		// Same wiring for cfg:// writes: every settings change the agent makes is
 		// confirmed here, and `/save` persists to disk. Subagents and headless
 		// sessions are refused by the handler before reaching this host. Changes
@@ -1992,7 +1948,6 @@ export class InteractiveMode implements InteractiveModeContext {
 				this.subagentContainer,
 				this.btwContainer,
 				this.omfgContainer,
-				this.cleanseContainer,
 				this.errorBannerContainer,
 				this.modelCycleContainer,
 				this.deferredCommandContainer,
@@ -2020,7 +1975,6 @@ export class InteractiveMode implements InteractiveModeContext {
 					new HudPillsRow(this),
 					this.btwContainer,
 					this.omfgContainer,
-					this.cleanseContainer,
 					this.errorBannerContainer,
 					this.modelCycleContainer,
 					this.deferredCommandContainer,
@@ -2191,16 +2145,11 @@ export class InteractiveMode implements InteractiveModeContext {
 		// Host the session before extension hooks run: a dialog raised from a
 		// `session_start` hook is then retained for the first writer that joins.
 		// The relay connection proceeds in the background and never blocks init.
-		// The owning caller keeps guest mutations gated through its full outer
-		// startup; early dialog answers do not require that readiness signal.
-		if (options.autoStartCollab === true) this.collabController.autoStart();
-
 		// Initialize hooks with TUI-based UI context
 		await logger.time("InteractiveMode.init:hooks", () => this.initHooksAndCustomTools());
 
 		// Restore mode from session (e.g. plan mode on resume)
 		this.session.setSessionBeforeSwitchReconciler?.(async () => {
-			await this.#liveCommandController.stop();
 			await this.#quiesceVibeForSessionSwitch();
 		});
 		this.session.setSessionSwitchReconciler?.(() => this.#reconcileModeFromSession({ preserveActiveGoal: true }));
@@ -3420,12 +3369,6 @@ export class InteractiveMode implements InteractiveModeContext {
 			this.ui.requestRender();
 		}
 		if (any("statusLine.sessionAccent")) this.#handleSessionAccentInputsChanged();
-		// Advisor runtime start/stop has no session event; repaint its status segment.
-		if (any("advisor.enabled", "advisor.maxNotesPerUpdate", "tier.advisor")) {
-			this.statusLine.invalidate();
-			this.ui.requestRender();
-		}
-
 		if (rebuildChat) this.rebuildChatFromMessages();
 		if (rebuildChat || resetDisplay) this.ui.resetDisplay();
 	}
@@ -3534,9 +3477,9 @@ export class InteractiveMode implements InteractiveModeContext {
 		this.ui.requestRender();
 	}
 
-	/** Refresh the running-subagents status badge from the active local or collab registry. */
+	/** Refresh the running-subagents status badge from the active local registry. */
 	syncRunningSubagentBadge(options: { requestRender?: boolean } = {}): void {
-		const registry = getRunningSubagentBadgeRegistry(this.collabGuest, AgentRegistry.global());
+		const registry = AgentRegistry.global();
 		if (this.#agentRegistrySubscriptionTarget !== registry) {
 			this.#agentRegistryUnsubscribe?.();
 			this.#agentRegistrySubscriptionTarget = registry;
@@ -6406,67 +6349,6 @@ export class InteractiveMode implements InteractiveModeContext {
 	}
 
 	/**
-	 * Pool of consent-prompt variants. Each entry is `[headline, reassurance]`;
-	 * the second line always promises the same scope (tool name + confusion
-	 * details, never personal data) so users learn what they're consenting to
-	 * even as the top line rotates.
-	 *
-	 * Kept in-module rather than i18n'd because the whole charm is the tone
-	 * — translations would need to preserve it deliberately, not auto-render.
-	 */
-	static #AUTOQA_CONSENT_PROMPTS: ReadonlyArray<readonly [string, string]> = [
-		[
-			"🧾 Your agent drafted a strongly worded letter to one of its tools.",
-			"Mail it to the devs? Just the tool name + the grievance, nothing personal.",
-		],
-		[
-			"🕵️ Your agent caught a tool acting suspicious.",
-			"Tip off the devs? Tool name + the evidence, no personal info.",
-		],
-		[
-			"👻 Your agent swears one of its tools is haunted.",
-			"Call in the devs for an exorcism? Tool name + the spooky bit, nothing personal.",
-		],
-		["🫖 Your agent has tea about a tool.", "Spill it to the devs? Tool name + the tea, never anything personal."],
-		[
-			"🦆 Your agent explained a tool to its rubber duck. The duck is also confused.",
-			"Escalate past the duck to the devs? Tool name + the confusion, no personal info.",
-		],
-		[
-			"📟 Your agent is asking to speak to a tool's manager.",
-			"Put the call through to the devs? Tool name + the complaint, nothing personal.",
-		],
-		[
-			"🧂 Your agent is extremely salty about a tool.",
-			"Let it salt the devs' inbox? Tool name + what soured it, no personal info.",
-		],
-		[
-			"🐛 Your agent found a bug. A real one. In a tool.",
-			"Hand the specimen to the devs? Tool name + where it crawled out, nothing personal.",
-		],
-		[
-			"🍿 Your agent just watched a tool pull a plot twist nobody asked for.",
-			"Send the devs a spoiler? Tool name + what happened, never anything personal.",
-		],
-		[
-			"📉 Your agent's opinion of a tool just crashed.",
-			"Send the post-mortem to the devs? Tool name + what tanked it, no personal info.",
-		],
-	];
-
-	/**
-	 * Show the report_tool_issue consent popup and return the user's decision.
-	 * Invoked by the process-global consent handler the tool dispatches to;
-	 * subagent invocations bubble up here through the shared module state.
-	 */
-	async #promptAutoQaConsent(): Promise<boolean | null> {
-		const pool = InteractiveMode.#AUTOQA_CONSENT_PROMPTS;
-		const [headline, body] = pool[Math.floor(Math.random() * pool.length)];
-		const choice = await this.showHookSelector(`${headline}\n${body}`, ["Yes", "No"]);
-		return choice === "Yes";
-	}
-
-	/**
 	 * Ask the user to approve one `cfg://` settings change. Dismissing the dialog denies it;
 	 * leaving it unanswered for {@link CFG_APPROVAL_TIMEOUT_MS} (any keypress restarts the
 	 * countdown) drops it as `timeout`.
@@ -6507,21 +6389,14 @@ export class InteractiveMode implements InteractiveModeContext {
 		if (this.loadingAnimation) {
 			this.#stopLoadingAnimation(false);
 		}
-		this.#micCursor?.dispose();
-		this.#micCursor = undefined;
 		// Stop the shared tool-spinner ticker: a live block missed by per-component
 		// stopAnimation would otherwise keep an 80ms interval pinning the process.
 		stopSharedSpinnerTicker();
-		this.#liveCommandController.dispose();
 		this.#clearJudgmentBatchProgress();
 		this.#downloadActivityHud.dispose();
 		this.#cancelTodoAutoClearTimer();
 		this.#cancelObserverUiSyncTimer();
 		this.#cancelGoalContinuation();
-		if (this.#sttController) {
-			this.#sttController.dispose();
-			this.#sttController = undefined;
-		}
 		this.#extensionUiController.clearExtensionTerminalInputListeners();
 		this.#extensionUiController.clearHookWidgets();
 		this.#extensionUiController.disposeComposerShapes();
@@ -6548,7 +6423,6 @@ export class InteractiveMode implements InteractiveModeContext {
 		}
 		// Clear the process-global consent handler so it doesn't outlive this
 		// InteractiveMode instance (e.g. test harnesses, headless re-init).
-		setAutoQaConsentHandler(null, null);
 		setCfgApprovalHost(null);
 		this.#hideSessionInfo();
 		if (this.#ownsStartedUi) {
@@ -6601,7 +6475,7 @@ export class InteractiveMode implements InteractiveModeContext {
 		const detail = error instanceof Error ? error.message : String(error);
 		// Arm the escape hatch only once dispose() has begun: its promise is
 		// memoized, so a retry can only re-fail. A failure BEFORE dispose (a
-		// transient BTW/live-command flush) leaves the session undisposed and
+		// transient BTW flush) leaves the session undisposed and
 		// the teardown genuinely retryable, so it must not force-quit.
 		this.#teardownFailed = this.session.isDisposed;
 		const actionLabel = action === "close" ? t("tui.session.actionClose") : t("tui.session.actionRestart");
@@ -6698,13 +6572,8 @@ export class InteractiveMode implements InteractiveModeContext {
 			this.#streamPublisher = undefined;
 			await this.#recorder?.stop();
 			this.#recorder = undefined;
-			// Guests get goodbye and the registry entry disappears before the
-			// session is disposed, under the same still-closing progress notice.
-			await this.collabController.shutdown("host exited");
-			await this.#liveCommandController.stop();
 			await this.#btwController.dispose();
 			this.#omfgController.dispose();
-			this.#cleanseController.dispose();
 			this.#focusController.dispose();
 
 			// Persist the draft and dispose the session through the shared teardown
@@ -7282,7 +7151,7 @@ export class InteractiveMode implements InteractiveModeContext {
 	 * dispatched by the editor to `InputController.handleRetry`.
 	 */
 	syncRetryHintRow(): void {
-		const show = !this.collabGuest && !this.viewSession.isStreaming && this.viewSession.hasAbortedToolCallTail;
+		const show = !this.viewSession.isStreaming && this.viewSession.hasAbortedToolCallTail;
 		if (this.#retryHintRow) {
 			const mounted = this.statusContainer.children.includes(this.#retryHintRow);
 			if (mounted && show) return;
@@ -7339,10 +7208,6 @@ export class InteractiveMode implements InteractiveModeContext {
 		return this.#commandController.handleDumpCommand();
 	}
 
-	handleAdvisorDumpCommand(isRaw?: boolean) {
-		return this.#commandController.handleAdvisorDumpCommand(isRaw);
-	}
-
 	handleDebugTranscriptCommand(): Promise<void> {
 		return this.#commandController.handleDebugTranscriptCommand();
 	}
@@ -7357,10 +7222,6 @@ export class InteractiveMode implements InteractiveModeContext {
 
 	handleSessionCommand(): Promise<void> {
 		return this.#commandController.handleSessionCommand();
-	}
-
-	handleAdvisorStatusCommand(): Promise<void> {
-		return this.#commandController.handleAdvisorStatusCommand();
 	}
 
 	handleJobsCommand(): Promise<void> {
@@ -7397,7 +7258,6 @@ export class InteractiveMode implements InteractiveModeContext {
 		this.#clearJudgmentBatchProgress(true);
 		await this.#btwController.dispose();
 		this.#omfgController.dispose();
-		this.#cleanseController.dispose();
 		this.#extensionUiController.clearExtensionTerminalInputListeners();
 		this.clearPinnedError();
 		this.#hidePlanReview();
@@ -7427,7 +7287,6 @@ export class InteractiveMode implements InteractiveModeContext {
 		if (this.#vibeSessionTransitionBlocked()) return;
 		await this.#btwController.dispose();
 		this.#omfgController.dispose();
-		this.#cleanseController.dispose();
 		await this.#commandController.handleForkCommand();
 	}
 
@@ -7451,61 +7310,6 @@ export class InteractiveMode implements InteractiveModeContext {
 
 	handleMemoryCommand(text: string): Promise<void> {
 		return this.#commandController.handleMemoryCommand(text);
-	}
-
-	async handleSTTToggle(): Promise<void> {
-		await this.#readySTTController()?.toggle(this.editor, this.#dictationCallbacks(this.editor));
-	}
-
-	dictationSpaceHold(target: DictationTarget): SpaceHoldHandler {
-		return {
-			enabled: () => cfgSttEnabled.get(settings),
-			onStart: () => void this.#readySTTController()?.start(target, this.#dictationCallbacks(target)),
-			onEnd: () => void this.#sttController?.stop(),
-		};
-	}
-
-	/** The speech-to-text controller, created on first use; undefined (after a warning) while live mode
-	 *  or a disabled STT rules dictation out. */
-	#readySTTController(): STTController | undefined {
-		if (this.#liveCommandController.active) {
-			this.showWarning(t("tui.stt.endLiveFirst"));
-			return undefined;
-		}
-		if (!cfgSttEnabled.get(settings)) {
-			this.showWarning(t("tui.stt.disabled"));
-			return undefined;
-		}
-		this.#sttController ??= new STTController({
-			settings: this.settings,
-			registry: this.session.modelRegistry,
-			getSessionId: () => this.session.sessionId,
-		});
-		return this.#sttController;
-	}
-
-	/** Callbacks for a capture dictating into `target`: the mic glyph replaces its cursor while the
-	 *  capture runs. */
-	#dictationCallbacks(target: DictationTarget): SttCallbacks {
-		return {
-			showWarning: (msg: string) => this.showWarning(msg),
-			showStatus: (msg: string) => this.showStatus(msg),
-			onStateChange: (state: SttState) => {
-				// Duck assistant speech while the user is talking (push-to-talk); restore after.
-				if (state === "recording") vocalizer.duck();
-				else vocalizer.unduck();
-				if (state === "recording") {
-					this.#micCursor?.dispose();
-					this.#micCursor = new MicCursor(this.ui, target);
-				} else if (state === "transcribing") {
-					this.#micCursor?.showTranscribing();
-				} else {
-					this.#micCursor?.dispose();
-					this.#micCursor = undefined;
-				}
-				this.ui.requestRender();
-			},
-		};
 	}
 
 	/** Start a `/record` screen capture, or stop the running one and report where it was saved. */
@@ -7539,15 +7343,6 @@ export class InteractiveMode implements InteractiveModeContext {
 		}
 		this.statusLine.setRecording(true);
 		this.showStatus(t("tui.record.recording", { path: this.#recorder.path }));
-	}
-
-	/** Start or stop the Codex-backed realtime voice surface. */
-	async handleLiveCommand(): Promise<void> {
-		if (this.#sttController && this.#sttController.state !== "idle") {
-			this.showWarning(t("tui.stt.finishCaptureFirst"));
-			return;
-		}
-		await this.#liveCommandController.handleCommand();
 	}
 
 	async showDebugSelector(): Promise<void> {
@@ -7618,10 +7413,6 @@ export class InteractiveMode implements InteractiveModeContext {
 		this.#selectorController.showUsageDashboard(reports);
 	}
 
-	showAdvisorConfigure(): void {
-		this.#selectorController.showAdvisorConfigure();
-	}
-
 	showHistorySearch(): void {
 		this.#selectorController.showHistorySearch();
 	}
@@ -7643,10 +7434,6 @@ export class InteractiveMode implements InteractiveModeContext {
 
 	switchSessionModel(model: Model, thinkingLevel?: ConfiguredThinkingLevel): Promise<void> {
 		return this.#selectorController.switchSessionModel(model, thinkingLevel);
-	}
-
-	showPluginSelector(mode?: "install" | "uninstall"): void {
-		void this.#selectorController.showPluginSelector(mode);
 	}
 
 	showUserMessageSelector(): void {
@@ -7807,7 +7594,6 @@ export class InteractiveMode implements InteractiveModeContext {
 			}
 			await this.#btwController.dispose();
 			this.#omfgController.dispose();
-			this.#cleanseController.dispose();
 			await this.renderInitialMessages({ clearTerminalHistory: true });
 			this.updateEditorBorderColor();
 			this.showStatus(
@@ -7830,18 +7616,6 @@ export class InteractiveMode implements InteractiveModeContext {
 
 	handleOmfgEscape(): boolean {
 		return this.#omfgController.handleEscape();
-	}
-
-	handleCleanseCommand(args: string): Promise<void> {
-		return this.#cleanseController.start(args);
-	}
-
-	hasActiveCleanse(): boolean {
-		return this.#cleanseController.hasActiveRun();
-	}
-
-	handleCleanseEscape(): boolean {
-		return this.#cleanseController.handleEscape();
 	}
 
 	cycleThinkingLevel(): void {

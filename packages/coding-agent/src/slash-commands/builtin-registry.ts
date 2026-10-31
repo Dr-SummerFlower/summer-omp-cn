@@ -1,9 +1,8 @@
 import { clearSubmittedText } from "./helpers/draft";
 import type { AutocompleteItem } from "@oh-my-pi/pi-tui";
-import { COLLAB_GUEST_ALLOWED_COMMANDS } from "../collab/guest";
 import { getLanguage, normalizeLanguage, setLanguage, t } from "@oh-my-pi/pi-i18n";
 import { cfgLanguage } from "../modes/settings";
-import { BUILTIN_COLLABORATION_SLASH_COMMANDS } from "./builtin-collaboration";
+import { BUILTIN_UTILITY_SLASH_COMMANDS } from "./builtin-utility";
 import {
 	buildArgumentCompletions,
 	buildDirectoryArgumentCompletions,
@@ -17,7 +16,6 @@ import { BUILTIN_LIFECYCLE_SLASH_COMMANDS } from "./builtin-lifecycle";
 import { BUILTIN_MARKETPLACE_SLASH_COMMANDS, reloadTuiPluginState } from "./builtin-marketplace";
 import { BUILTIN_MODE_SLASH_COMMANDS } from "./builtin-modes";
 import { BUILTIN_SESSION_SLASH_COMMANDS } from "./builtin-session";
-import { BUILTIN_SKILLS_SLASH_COMMANDS } from "./builtin-skills";
 import { parseSlashCommand } from "./helpers/parse";
 import type {
 	BuiltinSlashCommand,
@@ -89,11 +87,10 @@ const BUILTIN_LANGUAGE_SLASH_COMMAND: SlashCommandSpec = {
 const BUILTIN_SLASH_COMMAND_REGISTRY: ReadonlyArray<SlashCommandSpec> = [
 	...BUILTIN_MODE_SLASH_COMMANDS,
 	BUILTIN_LANGUAGE_SLASH_COMMAND,
-	...BUILTIN_COLLABORATION_SLASH_COMMANDS,
+	...BUILTIN_UTILITY_SLASH_COMMANDS,
 	...BUILTIN_SESSION_SLASH_COMMANDS,
 	...BUILTIN_LIFECYCLE_SLASH_COMMANDS,
 	...BUILTIN_MARKETPLACE_SLASH_COMMANDS,
-	...BUILTIN_SKILLS_SLASH_COMMANDS,
 	...BUILTIN_CONTROL_SLASH_COMMANDS,
 ];
 
@@ -196,13 +193,6 @@ export async function executeBuiltinSlashCommand(
 	if (!command) return false;
 	if (parsed.args.length > 0 && !command.allowArgs) {
 		return false;
-	}
-	// Collab guests run a read-mostly replica: session-mutating builtins are
-	// host-only; the allowlist covers purely local/read-only commands.
-	if (runtime.ctx.collabGuest && !COLLAB_GUEST_ALLOWED_COMMANDS[command.name]) {
-		runtime.ctx.showStatus(`/${command.name} is host-only during a collab session`);
-		clearSubmittedText(runtime);
-		return true;
 	}
 	if (command.handleTui) {
 		const result = await command.handleTui(parsed, runtime);

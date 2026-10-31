@@ -4,7 +4,10 @@
 	"description": "面向中文用户的终端 AI 编程代理，提供简体中文界面、供应商配置、模型思考等级和提示等本地化体验",
 	"homepage": "https://omp.sh",
 	"license": "MIT",
-	"author": { "name": "Stencil Labs, Inc.", "url": "https://stencil.so" },
+	"author": {
+		"name": "Stencil Labs, Inc.",
+		"url": "https://stencil.so"
+	},
 	"workspaces": {
 		"packages": [
 			"packages/*",
@@ -76,11 +79,6 @@
 		"dev": "bun --cwd=packages/coding-agent src/cli.ts",
 		"dev:timing": "PI_TIMING=x bun --cwd=packages/coding-agent --preload ../utils/src/module-timer.ts src/cli.ts",
 		"stats": "bun --cwd=packages/coding-agent src/cli.ts stats",
-		"collab:web:dev": "bun --cwd=packages/collab-web run dev",
-		"collab:relay": "bun --cwd=packages/collab-web run relay",
-		"collab:mock-host": "bun --cwd=packages/collab-web run mock-host",
-		"collab:web:build": "bun --cwd=packages/collab-web run build",
-		"meta": "bun --cwd=packages/metaharness run dev",
 		"claude:trace": "bun scripts/claude-trace.ts",
 		"build": "bun run --workspaces --if-present build",
 		"build:native": "bun --cwd=packages/natives run build",
@@ -124,7 +122,6 @@
 		"ci:release:checksums": "bun scripts/ci-release-checksums.ts",
 		"ci:release:publish": "bun scripts/ci-release-publish.ts",
 		"ci:release:publish-native-leaf": "bun scripts/ci-release-publish.ts --native-leaf",
-		"bench:gen-fixtures": "bun --cwd=packages/typescript-edit-benchmark run src/generate.ts --typescript-dir /tmp/typescript-source --count-per-type 8",
 		"stats:sync": "python3 scripts/session-stats/sync.py",
 		"stats:tools": "python3 scripts/session-stats/analyze.py tools",
 		"stats:edits": "python3 scripts/session-stats/analyze.py edits",
@@ -149,7 +146,6 @@
 		"lint:py": "ruff check python && ruff format --check python",
 		"fix:py": "ruff check --fix python && ruff format python",
 		"prepublishOnly": "bun run check",
-		"prepare": "bun run gen:tool-views",
 		"publish": "bun run prepublishOnly && npm publish -ws --access public",
 		"publish:dry": "bun run prepublishOnly && npm publish -ws --access public --dry-run",
 		"release": "bun scripts/release.ts",
@@ -161,7 +157,6 @@
 		"gen:stats:reset": "bun --cwd=packages/stats run gen:stats:reset",
 		"gen:changelog": "bun scripts/rewrite-changelog.ts",
 		"gen:nix": "bun scripts/gen-nix-bun.ts",
-		"gen:tool-views": "bun --cwd=packages/collab-web run gen:tool-views",
 		"gen:bundle": "bun --cwd=packages/coding-agent run gen:bundle",
 		"gen:native": "bun --cwd=packages/natives run gen:native",
 		"gen:native:reset": "bun --cwd=packages/natives run gen:native:reset",

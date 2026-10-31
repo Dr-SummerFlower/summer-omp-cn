@@ -14,7 +14,6 @@ import { removeSyncWithRetries } from "@oh-my-pi/pi-utils";
 import { getAgentDir, setAgentDir } from "@oh-my-pi/pi-utils/dirs";
 import { cleanupTempHome } from "./helpers/temp-home-cleanup";
 
-import { cfgAutolearnEnabled } from "@oh-my-pi/pi-coding-agent/autolearn/settings";
 import { cfgSkillsCustomDirectories } from "@oh-my-pi/pi-coding-agent/extensibility/settings";
 
 function createIsolatedSkillsSettings(extensions: string[] = []): Settings {
@@ -280,7 +279,6 @@ This skill is added after session creation.
 		const managedAgentDir = path.join(tempHomeDir, ".omp", "agent");
 		setAgentDir(managedAgentDir);
 		const settings = createIsolatedSkillsSettings();
-		cfgAutolearnEnabled.set(settings, true);
 		const { session } = await createAgentSession({
 			cwd: tempDir,
 			agentDir: managedAgentDir,

@@ -122,7 +122,7 @@ Hook events are strongly typed in `types.ts`.
 - `tool_call` (pre-execution) → can return `{ block?: boolean; reason?: string; input?: Record<string, unknown>; additionalContext?: string }`. A non-blocking handler that returns `input` replaces the arguments the tool executes with (the raw execution input, not the normalized `event.input` view); ignored when `block` is true. Distinct non-empty `additionalContext` values from all non-blocking handlers carry trusted handler-authored instructions delivered after the tool results and before the next provider request, with developer/system priority where the transport supports it; raw tool output and other untrusted data must stay in the tool result.
 - `tool_result` (post-execution) → can return `{ content?; details?; isError?; additionalContext?: string }`. Context is delivered outside tool output on both success and failure; check `event.isError` when guidance applies to only one outcome. Overrides merge per field across handlers, so a later return that omits a field (including a context-only return) never erases an earlier handler's value for it.
 
-This is the hook subsystem’s core pre/post interception model. Eval prelude invocations such as `browser.open(...)`, direct `BrowserTab` helpers, `tab.run(...)`, direct `computer` helpers, and `computer.run(fnOrCode, options)` are host bridge calls, not AgentTool calls, so they do not emit `tool_call` or `tool_result`.
+This is the hook subsystem’s core pre/post interception model. Eval prelude invocations such as `browser.open(...)`, direct `BrowserTab` helpers, and `tab.run(...)` are host bridge calls, not AgentTool calls, so they do not emit `tool_call` or `tool_result`.
 
 ```text
 Hook tool interception flow

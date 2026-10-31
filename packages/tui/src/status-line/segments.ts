@@ -499,12 +499,6 @@ const modeSegment: StatusLineSegment = {
 			};
 		}
 
-		const prewalk = ctx.prewalk;
-		if (prewalk?.enabled) {
-			const content = withIcon(theme.icon.prewalk, "Prewalk");
-			return { content: accentFg(ctx, "accent", content), visible: true };
-		}
-
 		const goal = ctx.goalMode;
 		if (goal && (goal.enabled || goal.paused)) {
 			return renderGoalMode(ctx, goal);
@@ -540,7 +534,6 @@ const modeSegment: StatusLineSegment = {
 				? segView([span(t("tui.statusLine.segments.planPaused"), "warning")], "plan", "warning")
 				: segView([span("Plan", accentToken(ctx, "accent"))], "plan");
 		}
-		if (ctx.prewalk?.enabled) return segView([span("Prewalk", accentToken(ctx, "accent"))], "prewalk");
 		const goal = ctx.goalMode;
 		if (goal && (goal.enabled || goal.paused)) return describeGoalMode(ctx, goal);
 		if (ctx.vibeMode?.enabled) return segView([span("Vibe", accentToken(ctx, "accent"))], "agents");
@@ -1029,22 +1022,6 @@ const sessionNameSegment: StatusLineSegment = {
 	},
 };
 
-const collabSegment: StatusLineSegment = {
-	id: "collab",
-	render(ctx) {
-		if (!ctx.collab) return { content: "", visible: false };
-		const participants = `${ctx.collab.participantCount}`;
-		const label = ctx.collab.role === "host" ? `⇄ collab:${participants}` : `⇄ collab guest:${participants}`;
-		return { content: accentFg(ctx, "accent", label), visible: true };
-	},
-	describe(ctx) {
-		if (!ctx.collab) return null;
-		const participants = `${ctx.collab.participantCount}`;
-		const label = ctx.collab.role === "host" ? `collab:${participants}` : `collab guest:${participants}`;
-		return segView([span(label, accentToken(ctx, "accent"))], "collab");
-	},
-};
-
 const streamSegment: StatusLineSegment = {
 	id: "stream",
 	render(ctx) {
@@ -1292,7 +1269,6 @@ export const SEGMENTS: Record<StatusLineSegmentId, StatusLineSegment> = {
 	cache_hit: cacheHitSegment,
 	session_name: sessionNameSegment,
 	usage: usageSegment,
-	collab: collabSegment,
 	stream: streamSegment,
 	vim: vimSegment,
 };

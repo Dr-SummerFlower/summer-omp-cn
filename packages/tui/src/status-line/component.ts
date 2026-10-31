@@ -46,7 +46,6 @@ import { getContextMeterThresholds, getContextUsageLevel, getContextUsageTone } 
 import { isNativeRendering } from "../native/state";
 import { getSeparator } from "./separators";
 import type {
-	CollabStatus,
 	ComposerFacts,
 	ComposerFactsSource,
 	EffectiveStatusLineSettings,
@@ -674,7 +673,6 @@ export class StatusLineComponent<TSession extends StatusLineSession = StatusLine
 	 * dependency graph; interactive-mode wires it to VibeSessionRegistry.
 	 */
 	#vibeWorkerTokenRate: (() => number | null) | null = null;
-	#collabStatus: CollabStatus | null = null;
 	#streamStatus: { viewers: number } | null = null;
 	#recording = false;
 	#focusedAgentId: string | undefined;
@@ -895,7 +893,7 @@ export class StatusLineComponent<TSession extends StatusLineSession = StatusLine
 	 */
 	setSubagentHubHint(_hint: string | undefined): void {}
 
-	/** Active subagent count as currently displayed (collab state mirroring). */
+	/** Active subagent count as currently displayed. */
 	get subagentCount(): number {
 		return this.#subagentCount;
 	}
@@ -918,7 +916,7 @@ export class StatusLineComponent<TSession extends StatusLineSession = StatusLine
 	/**
 	 * Reset the currently-attached session's active-time accumulators so
 	 * the `time_spent` segment starts from zero. Called from `/clear`,
-	 * fresh-session, and joined-collab paths; both the completed
+	 * fresh-session paths; both the completed
 	 * accumulator and any in-flight window are dropped, so a reset
 	 * mid-turn ignores the running window (the matching `markActivityEnd`
 	 * will see an idle meter and no-op).
@@ -1077,19 +1075,6 @@ export class StatusLineComponent<TSession extends StatusLineSession = StatusLine
 	 */
 	setVibeWorkerTokenRateProvider(provider: (() => number | null) | undefined): void {
 		this.#vibeWorkerTokenRate = provider ?? null;
-		this.#invalidateStatusLineRenderCache();
-	}
-
-	setCollabStatus(status: CollabStatus | null): void {
-		if (
-			!this.#collabStatus?.stateOverride &&
-			!status?.stateOverride &&
-			this.#collabStatus?.role === status?.role &&
-			this.#collabStatus?.participantCount === status?.participantCount
-		) {
-			return;
-		}
-		this.#collabStatus = status;
 		this.#invalidateStatusLineRenderCache();
 	}
 
@@ -2232,7 +2217,7 @@ export class StatusLineComponent<TSession extends StatusLineSession = StatusLine
 	 * last assistant's real prompt-token count — so the bar matches the provider
 	 * and the `/context` panel — and reports `null` while that count is unknown
 	 * (right after compaction, before the next response). Exposed (non-private)
-	 * for unit tests and the collab host's state broadcast.
+	 * for unit tests.
 	 */
 	getCachedContextBreakdown(): { usedTokens: number; contextWindow: number } {
 		const messages = this.session.messages ?? EMPTY_MESSAGES;
@@ -2325,20 +2310,12 @@ export class StatusLineComponent<TSession extends StatusLineSession = StatusLine
 
 		let contextWindow = state.model?.contextWindow ?? this.session.model?.contextWindow ?? 0;
 		const breakdown = this.getCachedContextBreakdown();
-		let contextTokens = breakdown.usedTokens;
+		const contextTokens = breakdown.usedTokens;
 		contextWindow = breakdown.contextWindow || contextWindow;
-		let contextPercent: number | null =
+		const contextPercent: number | null =
 			contextWindow > 0 && !this.#contextUsageCache?.percentUnknown
 				? (breakdown.usedTokens / contextWindow) * 100
 				: null;
-		// Collab guest: context comes from the host's state frames — the local
-		// replica does no accounting of its own.
-		const collabState = this.#collabStatus?.stateOverride;
-		if (collabState?.contextUsage) {
-			contextWindow = collabState.contextUsage.contextWindow || contextWindow;
-			contextTokens = collabState.contextUsage.tokens ?? contextTokens;
-			contextPercent = collabState.contextUsage.percent ?? contextPercent;
-		}
 
 		const shouldResolveActiveRepo = this.#gitEnabled() && (includePath || includeGit || includePr);
 		const projectDir = getProjectDir();
@@ -2373,15 +2350,10 @@ export class StatusLineComponent<TSession extends StatusLineSession = StatusLine
 			hookStatuses: this.#sortedHookStatuses,
 			planMode: this.#planModeStatus,
 			loopMode: this.#loopModeStatus,
-			prewalk:
-				typeof this.session.getPrewalkState === "function" && this.session.getPrewalkState()
-					? { enabled: true }
-					: null,
 			goalMode: this.#goalModeStatus,
 			goalStatusInFooter: this.#goalModeStatus ? this.host.goalStatusInFooter(this.session) : false,
 			vibeMode: this.#vibeModeStatus,
 			vim: this.#vimStatus,
-			collab: this.#collabStatus,
 			stream: this.#streamStatus,
 			recording: this.#recording,
 			usageStats,
@@ -2911,7 +2883,7 @@ export class StatusLineComponent<TSession extends StatusLineSession = StatusLine
 				// Preserve the current working directory as long as possible. The
 				// previous right-to-left pop could collapse a normal-width bar to
 				// just the model segment, hiding the path before less-critical left
-				// segments such as model/mode/collab were removed.
+				// segments such as model/mode were removed.
 				for (let i = leftSegIds.length - 1; i >= 0; i--) {
 					if (leftSegIds[i] !== "path") return i;
 				}

@@ -3,20 +3,18 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { type } from "@oh-my-pi/omptype";
-import type { AgentTool, StreamFn } from "@oh-my-pi/pi-agent-core";
+import type { AgentTool } from "@oh-my-pi/pi-agent-core";
 import type { Model, ToolResultMessage } from "@oh-my-pi/pi-ai";
 import { createMockModel } from "@oh-my-pi/pi-ai/providers/mock";
 import { getBundledModel } from "@oh-my-pi/pi-catalog/models";
 import { ModelRegistry } from "@oh-my-pi/pi-coding-agent/config/model-registry";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
-import type { CursorExecHandlers } from "@oh-my-pi/pi-coding-agent/cursor";
 import {
 	EXTENSION_HANDLER_TIMEOUT_MS,
 	testSetExtensionHandlerTimeoutMs,
 } from "@oh-my-pi/pi-coding-agent/extensibility/extensions/runner";
 import { ExtensionToolWrapper } from "@oh-my-pi/pi-coding-agent/extensibility/extensions/wrapper";
 import type { MCPManager } from "@oh-my-pi/pi-coding-agent/mcp/manager";
-import * as memoryBackendModule from "@oh-my-pi/pi-coding-agent/memory-backend";
 import { initializeExtensions } from "@oh-my-pi/pi-coding-agent/modes/runtime-init";
 import {
 	type CreateAgentSessionOptions,
@@ -25,7 +23,6 @@ import {
 	discoverAuthStorage,
 	type ExtensionFactory,
 } from "@oh-my-pi/pi-coding-agent/sdk";
-import type { AgentSession } from "@oh-my-pi/pi-coding-agent/session/agent-session";
 import { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { VIBE_TOOL_NAMES } from "@oh-my-pi/pi-coding-agent/tools/vibe";
 import { resetYieldTurnState } from "@oh-my-pi/pi-coding-agent/tools/yield";
@@ -1975,40 +1972,6 @@ describe("createAgentSession defaultInactive tool activation", () => {
 		}
 	});
 
-	it("does not register the xAI TTS tool unless enabled", async () => {
-		const tempDir = makeTempDir();
-
-		const { session } = await createAgentSession({
-			...baseOptions(tempDir),
-		});
-
-		try {
-			expect(session.getToolByName("tts")).toBeUndefined();
-			expect(session.getAllToolNames()).not.toContain("tts");
-			expect(session.getActiveToolNames()).not.toContain("tts");
-		} finally {
-			await session.dispose();
-		}
-	});
-
-	it("registers the xAI TTS tool when enabled", async () => {
-		const tempDir = makeTempDir();
-
-		const { session } = await createAgentSession({
-			...baseOptions(tempDir),
-			settings: Settings.isolated({ "speechgen.enabled": true }),
-		});
-
-		try {
-			expect(session.getToolByName("tts")).toBeDefined();
-			// tts is a discoverable custom tool → mounted as an xd:// device, not top-level.
-			expect(session.getXdevToolEntries().map(entry => entry.name)).toContain("tts");
-			expect(session.getActiveToolNames()).not.toContain("tts");
-		} finally {
-			await session.dispose();
-		}
-	});
-
 	it("keeps the stable MCP tool-name collision winner during SDK startup and warns", async () => {
 		const tempDir = makeTempDir();
 		const warn = vi.spyOn(logger, "warn").mockImplementation(() => {});
@@ -2049,10 +2012,9 @@ describe("createAgentSession defaultInactive tool activation", () => {
 		const configuredSettings = () =>
 			Settings.isolated({
 				modelRoles: { image: "openai/gpt-image-1" },
-				"generate_image.enabled": true,
-				"speechgen.enabled": true,
-				"memory.backend": "hindsight",
-				"autolearn.enabled": true,
+				"memory.backend": "mnemopi",
+				"mnemopi.noEmbeddings": true,
+				"mnemopi.llmMode": "none",
 			});
 
 		const inheritedManager = {
@@ -2096,8 +2058,6 @@ describe("createAgentSession defaultInactive tool activation", () => {
 			expect(restricted.getAllToolNames()).toEqual(["read", "lsp", "yield"]);
 			expect(restricted.getActiveToolNames()).toEqual(["read", "lsp", "yield"]);
 			for (const name of [
-				"generate_image",
-				"tts",
 				"recall",
 				"retain",
 				"reflect",
@@ -2122,29 +2082,24 @@ describe("createAgentSession defaultInactive tool activation", () => {
 			settings: configuredSettings(),
 			extensions: [toolActivationExtension],
 			customTools: [sdkCustomTool],
-			toolNames: ["read", "generate_image"],
+			toolNames: ["read"],
 			requireYieldTool: true,
 			restrictToolNames: false,
 		});
 
 		try {
 			const activeToolNames = normal.getActiveToolNames();
-			expect(activeToolNames).toEqual(
-				expect.arrayContaining(["read", "yield", "generate_image", "learn", "manage_skill", "write"]),
-			);
+			expect(activeToolNames).toEqual(expect.arrayContaining(["read", "yield", "write"]));
 			// Explicit and force-included tools stay top-level. Ambient custom and
 			// extension capabilities mount through the device-only write transport.
 			const mountedNames = normal.getXdevToolEntries().map(entry => entry.name);
-			expect(mountedNames).toEqual(expect.arrayContaining(["tts", "default_active_tool", "sdk_custom_tool"]));
-			expect(activeToolNames).not.toContain("tts");
+			expect(mountedNames).toEqual(expect.arrayContaining(["default_active_tool", "sdk_custom_tool"]));
 			expect(activeToolNames).not.toContain("default_active_tool");
 			expect(activeToolNames).not.toContain("sdk_custom_tool");
 			expect(normal.getAllToolNames()).toEqual(
 				expect.arrayContaining([
-					"generate_image",
 					"read",
 					"yield",
-					"tts",
 					"default_active_tool",
 					"sdk_custom_tool",
 					"recall",
@@ -2175,28 +2130,6 @@ describe("createAgentSession defaultInactive tool activation", () => {
 		}
 	});
 
-	it("renders report-issue guidance only for unrestricted sessions", async () => {
-		const normalDir = makeTempDir();
-		const restrictedDir = makeTempDir();
-		const { session: normal } = await createAgentSession({
-			...baseOptions(normalDir),
-			settings: Settings.isolated({ "dev.autoqa": true }),
-		});
-		const { session: restricted } = await createAgentSession({
-			...baseOptions(restrictedDir),
-			settings: Settings.isolated({ "dev.autoqa": true }),
-			toolNames: ["read"],
-			restrictToolNames: true,
-		});
-
-		try {
-			expect(normal.systemPrompt.join("\n")).toContain("xd://report_issue");
-			expect(restricted.systemPrompt.join("\n")).not.toContain("xd://report_issue");
-		} finally {
-			await Promise.all([normal.dispose(), restricted.dispose()]);
-		}
-	});
-
 	it("ignores an inherited MCP manager when MCP is disabled", async () => {
 		const tempDir = makeTempDir();
 		const inheritedManager = {
@@ -2217,37 +2150,6 @@ describe("createAgentSession defaultInactive tool activation", () => {
 		}
 	});
 
-	// Hashline `edit` stays in the registry on Cursor so the model can still
-	// call it as MCP. Native StrReplace arrives as `editToolCall` and is
-	// materialized via exec read/write; `pi_edit` still uses the replace-mode
-	// instance from `getEditReplaceTool`. The roster is built once at creation.
-	// These two cover both directions of that wiring: the granted session must
-	// still reach a replace-mode instance for `pi_edit` (whose `old_string` /
-	// `new_string` args do not validate against the default `hashline` schema),
-	// and the restricted one must still be refused.
-	//
-	// The handlers are internal to the session; `streamFn` is where they are
-	// handed to the provider, which is the externally observable seam.
-	const captureCursorExecHandlers = async (session: AgentSession, cursorModel: Model): Promise<CursorExecHandlers> => {
-		let handlers: CursorExecHandlers | undefined;
-		const streamFn: StreamFn = (_model, _context, options) => {
-			// The session installs the concrete class; the provider option is
-			// typed as the wire-level interface, whose `piEdit` answers a proto
-			// result rather than the tool result the class returns.
-			handlers = options?.cursorExecHandlers as CursorExecHandlers | undefined;
-			throw new Error("captured");
-		};
-		vi.spyOn(session.agent, "streamFn").mockImplementation(streamFn);
-
-		await session.setModel(cursorModel);
-		// Not wrapped in a catch: `prompt` resolves even when the turn fails (the
-		// loop records the stream error), so a rejection here is a genuine setup
-		// failure and must surface rather than be mistaken for the capture.
-		await session.prompt("hi");
-		if (!handlers) throw new Error("no exec handlers reached the provider");
-		return handlers;
-	};
-
 	// `setModel` and `prompt` both refuse a provider with no configured auth.
 	// Granted on the suite's isolated storage rather than through the provider's
 	// env var — an env mutation would outlive this file — and removed after,
@@ -2260,207 +2162,6 @@ describe("createAgentSession defaultInactive tool activation", () => {
 			for (const provider of providers) modelRegistry.authStorage.keys.removeRuntime(provider);
 		}
 	};
-
-	it("answers a native pi_edit after a session switches onto Cursor", async () => {
-		const tempDir = makeTempDir();
-		const cursorModel = getBundledModel("cursor", "composer-1.5");
-		if (!cursorModel) throw new Error("expected bundled Cursor model");
-		const target = path.join(tempDir, "sample.txt");
-		fs.writeFileSync(target, "alpha\nbeta\n");
-
-		await withProviderAuth(["cursor"], async () => {
-			const { session } = await createAgentSession(baseOptions(tempDir));
-			try {
-				const handlers = await captureCursorExecHandlers(session, cursorModel);
-				const result = await handlers.piEdit({
-					toolCallId: "sdk-switch-1",
-					args: { path: target, edits: [{ oldText: "beta", newText: "gamma" }] },
-				} as never);
-
-				expect(result.isError).toBeFalsy();
-				expect(fs.readFileSync(target, "utf8")).toBe("alpha\ngamma\n");
-			} finally {
-				await session.dispose();
-			}
-		});
-	});
-
-	it("keeps hashline edit advertised when the session starts on Cursor", async () => {
-		const tempDir = makeTempDir();
-		const cursorModel = getBundledModel("cursor", "composer-1.5");
-		if (!cursorModel) throw new Error("expected bundled Cursor model");
-
-		await withProviderAuth(["cursor"], async () => {
-			const { session } = await createAgentSession({
-				...baseOptions(tempDir),
-				model: cursorModel,
-			});
-			try {
-				expect(session.getActiveToolNames()).toContain("edit");
-			} finally {
-				await session.dispose();
-			}
-		});
-	});
-
-	it("refuses a native pi_edit after a read-only session switches onto Cursor", async () => {
-		// The bridge instance is constructed, not looked up, so building it for
-		// a roster that was never granted `edit` would hand a read-only session
-		// a mutating tool the native frames reach regardless of the advertised
-		// catalog (issue #5680). Making the construction provider-independent
-		// must not widen it.
-		const tempDir = makeTempDir();
-		const cursorModel = getBundledModel("cursor", "composer-1.5");
-		if (!cursorModel) throw new Error("expected bundled Cursor model");
-		const target = path.join(tempDir, "sample.txt");
-		fs.writeFileSync(target, "alpha\nbeta\n");
-
-		await withProviderAuth(["cursor"], async () => {
-			const { session } = await createAgentSession({ ...baseOptions(tempDir), toolNames: ["read"] });
-			try {
-				const handlers = await captureCursorExecHandlers(session, cursorModel);
-				const result = await handlers.piEdit({
-					toolCallId: "sdk-switch-2",
-					args: { path: target, edits: [{ oldText: "beta", newText: "gamma" }] },
-				} as never);
-
-				expect(result.isError).toBe(true);
-				expect(fs.readFileSync(target, "utf8")).toBe("alpha\nbeta\n");
-			} finally {
-				await session.dispose();
-			}
-		});
-	});
-
-	it("revokes native Cursor mutations when runtime write is deactivated", async () => {
-		const tempDir = makeTempDir();
-		const cursorModel = getBundledModel("cursor", "composer-1.5");
-		if (!cursorModel) throw new Error("expected bundled Cursor model");
-		const allowedTarget = path.join(tempDir, "allowed.txt");
-		const revokedTarget = path.join(tempDir, "revoked.txt");
-		const transportTarget = path.join(tempDir, "transport-only.txt");
-		fs.writeFileSync(allowedTarget, "remove me");
-		fs.writeFileSync(revokedTarget, "keep me");
-		fs.writeFileSync(transportTarget, "keep me too");
-
-		await withProviderAuth(["cursor"], async () => {
-			const { session } = await createAgentSession({ ...baseOptions(tempDir), toolNames: ["read"] });
-			try {
-				const handlers = await captureCursorExecHandlers(session, cursorModel);
-				await session.setActiveToolsByName(["read", "write"]);
-				const fullWriteDescription = session.getToolByName("write")?.description;
-				expect(fullWriteDescription).toBeDefined();
-
-				const allowed = await handlers.delete({
-					toolCallId: "sdk-write-active",
-					path: allowedTarget,
-				} as never);
-				expect(allowed.isError).toBe(false);
-				expect(fs.existsSync(allowedTarget)).toBe(false);
-
-				await session.setActiveToolsByName(["read"]);
-				expect(session.getActiveToolNames()).not.toContain("write");
-				const revoked = await handlers.delete({
-					toolCallId: "sdk-write-revoked",
-					path: revokedTarget,
-				} as never);
-				expect(revoked.isError).toBe(true);
-				expect(fs.existsSync(revokedTarget)).toBe(true);
-
-				session.setPlanModeState({ enabled: true, planFilePath: "local://PLAN.md" });
-				await session.setActiveToolsByName(["read", "write"]);
-				expect(session.getActiveToolNames()).toContain("write");
-				expect(session.getToolByName("write")?.description).not.toBe(fullWriteDescription);
-				const transportOnly = await handlers.delete({
-					toolCallId: "sdk-write-transport-only",
-					path: transportTarget,
-				} as never);
-				expect(transportOnly.isError).toBe(true);
-				expect(fs.existsSync(transportTarget)).toBe(true);
-			} finally {
-				await session.dispose();
-			}
-		});
-	});
-
-	it("revokes native Cursor mutations before a removal rebuild commits", async () => {
-		const tempDir = makeTempDir();
-		const cursorModel = getBundledModel("cursor", "composer-1.5");
-		if (!cursorModel) throw new Error("expected bundled Cursor model");
-		const target = path.join(tempDir, "revoked-during-rebuild.txt");
-		fs.writeFileSync(target, "keep me");
-		const rebuildStarted = Promise.withResolvers<void>();
-		const releaseRebuild = Promise.withResolvers<void>();
-
-		await withProviderAuth(["cursor"], async () => {
-			const { session } = await createAgentSession(baseOptions(tempDir));
-			let deactivation: Promise<void> | undefined;
-			try {
-				const handlers = await captureCursorExecHandlers(session, cursorModel);
-				vi.spyOn(memoryBackendModule, "resolveMemoryBackend").mockResolvedValue({
-					buildDeveloperInstructions: async () => {
-						rebuildStarted.resolve();
-						await releaseRebuild.promise;
-						return undefined;
-					},
-				} as never);
-
-				deactivation = session.setActiveToolsByName(["read"]);
-				try {
-					await rebuildStarted.promise;
-					expect(session.getActiveToolNames()).toContain("write");
-					const revoked = await handlers.delete({
-						toolCallId: "sdk-write-revoked-during-rebuild",
-						path: target,
-					} as never);
-					expect(revoked.isError).toBe(true);
-					expect(fs.existsSync(target)).toBe(true);
-				} finally {
-					releaseRebuild.resolve();
-				}
-				await deactivation;
-				expect(session.getActiveToolNames()).not.toContain("write");
-			} finally {
-				releaseRebuild.resolve();
-				await deactivation?.catch(() => undefined);
-				await session.dispose();
-			}
-		});
-	});
-
-	it("resolves bridge frame paths through the session's live cwd", async () => {
-		// The bridge is built once, at session creation, while the session's cwd
-		// moves under it (`/cd`, resume, branch restore). The path-confining
-		// frames — the native `delete`, and a `download_path` resource read —
-		// resolve a relative path against whichever cwd the bridge was handed, so
-		// a startup snapshot means acting on the workspace the session has left
-		// while reporting success for the path the server named.
-		const tempDir = makeTempDir();
-		const movedDir = makeTempDir();
-		const cursorModel = getBundledModel("cursor", "composer-1.5");
-		if (!cursorModel) throw new Error("expected bundled Cursor model");
-		const staleTarget = path.join(tempDir, "obsolete.txt");
-		const liveTarget = path.join(movedDir, "obsolete.txt");
-		fs.writeFileSync(staleTarget, "preserve me");
-		fs.writeFileSync(liveTarget, "remove me");
-
-		await withProviderAuth(["cursor"], async () => {
-			const sessionManager = SessionManager.inMemory();
-			const { session } = await createAgentSession({ ...baseOptions(tempDir), sessionManager });
-			try {
-				const handlers = await captureCursorExecHandlers(session, cursorModel);
-				await sessionManager.moveTo(movedDir);
-
-				const result = await handlers.delete({ toolCallId: "sdk-cwd-1", path: "obsolete.txt" } as never);
-
-				expect(result.isError).toBe(false);
-				expect(fs.existsSync(liveTarget)).toBe(false);
-				expect(fs.existsSync(staleTarget)).toBe(true);
-			} finally {
-				await session.dispose();
-			}
-		});
-	});
 
 	it("does not execute an unadvertised edit call through the fallback resolver", async () => {
 		// One resolver serves two roles: the session's device resolver is passed
@@ -2581,83 +2282,6 @@ describe("createAgentSession defaultInactive tool activation", () => {
 				expect(result?.isError).toBeFalsy();
 				expect(JSON.stringify(result?.content)).toContain("bank contents");
 				expect(executed).toBe(1);
-			} finally {
-				await session.dispose();
-			}
-		});
-	});
-
-	it("runs advisor tools through the approval gate", async () => {
-		// The advisor's tools are built straight from `BUILTIN_TOOLS`, outside
-		// the registry loop that wraps everything else. Its own loop and its
-		// Cursor exec bridge (`piWrite`/`piBash`) run those instances directly,
-		// so an unwrapped one executes whatever it is handed regardless of the
-		// user's `tools.approval.<tool>` policy — the gate lives in
-		// `ExtensionToolWrapper`, not in either caller.
-		const tempDir = makeTempDir();
-		const target = path.join(tempDir, "advisor-write.txt");
-
-		// An advisor only builds once a model resolves for it, and both the
-		// explicit override and the `advisor` role chain resolve against
-		// `modelRegistry.getAvailable()` — the models this machine holds auth
-		// for. Grant the suite's isolated storage a key and name the model
-		// outright, or the roster silently resolves to `no_model` wherever no
-		// provider is configured (CI) while passing on a developer box whose
-		// environment happens to carry provider keys.
-		await withProviderAuth(["openai"], async () => {
-			const { session } = await createAgentSession({
-				...baseOptions(tempDir),
-				settings: Settings.isolated({ "advisor.enabled": true, "tools.approval": { write: "deny" } }),
-			});
-			try {
-				// The default advisor roster is read-only (read/grep/glob); the
-				// reviewed hole needs one actually granted a mutating tool.
-				session.applyAdvisorConfigs([{ name: "writer", tools: ["write"], model: "gpt-4o-mini" }], undefined);
-				const advisor = session.getAdvisorAgent();
-				if (!advisor) throw new Error("expected an advisor agent");
-				const writeTool = advisor.state.tools?.find(tool => tool.name === "write");
-				if (!writeTool) throw new Error("expected the advisor to hold a write tool");
-
-				// The gate rejects rather than returning an error result — that throw
-				// IS the refusal, and it only happens when the instance is wrapped.
-				await expect(
-					writeTool.execute("advisor-w1", { path: target, content: "written" }, undefined, undefined, {
-						settings: session.settings,
-					} as never),
-				).rejects.toThrow(/blocked by user policy/);
-				expect(fs.existsSync(target)).toBe(false);
-			} finally {
-				await session.dispose();
-			}
-		});
-	});
-
-	it("keeps advisor write full-access when the primary has a device-only transport", async () => {
-		const tempDir = makeTempDir();
-		const target = path.join(tempDir, "advisor-full-write.txt");
-
-		await withProviderAuth(["openai"], async () => {
-			const { session } = await createAgentSession({
-				...baseOptions(tempDir),
-				settings: Settings.isolated({ "advisor.enabled": true, "tools.approval": { write: "allow" } }),
-				toolNames: ["read"],
-			});
-			try {
-				session.applyAdvisorConfigs([{ name: "writer", tools: ["write"], model: "gpt-4o-mini" }], undefined);
-				const advisor = session.getAdvisorAgent();
-				if (!advisor) throw new Error("expected an advisor agent");
-				const writeTool = advisor.state.tools?.find(tool => tool.name === "write");
-				if (!writeTool) throw new Error("expected the advisor to hold a write tool");
-
-				const result = await writeTool.execute(
-					"advisor-full-write",
-					{ path: target, content: "written\n" },
-					undefined,
-					undefined,
-					{ settings: session.settings } as never,
-				);
-				expect(result.isError).toBeUndefined();
-				expect(fs.readFileSync(target, "utf8")).toBe("written\n");
 			} finally {
 				await session.dispose();
 			}

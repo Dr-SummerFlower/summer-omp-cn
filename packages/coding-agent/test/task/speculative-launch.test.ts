@@ -16,7 +16,6 @@ import { AsyncJobManager } from "@oh-my-pi/pi-coding-agent/async/job-manager";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 import { AgentLifecycleManager } from "@oh-my-pi/pi-coding-agent/registry/agent-lifecycle";
 import { AgentRegistry } from "@oh-my-pi/pi-coding-agent/registry/agent-registry";
-import { createSpeculativeToolExecutionConfig } from "@oh-my-pi/pi-coding-agent/speculation/host";
 import { TaskTool } from "@oh-my-pi/pi-coding-agent/task";
 import * as discoveryModule from "@oh-my-pi/pi-coding-agent/task/discovery";
 import * as executorModule from "@oh-my-pi/pi-coding-agent/task/executor";
@@ -227,28 +226,5 @@ describe("task speculative launch", () => {
 
 		await spawn("Alpha").aborted.promise;
 		expect([...startedIds]).toEqual(["Alpha"]);
-	});
-});
-
-describe("speculative launch authorization", () => {
-	it("allows launches only under auto-allow approval without lifecycle handlers", async () => {
-		const launch = { tool: { name: "task", approval: "exec" as const }, toolCall, args: { context: "ctx" } };
-		const authorize = (approvalMode: string, handlers: boolean) => {
-			const settings = Settings.isolated({ "tools.approvalMode": approvalMode });
-			const session = {
-				cwd: "/tmp",
-				hasUI: false,
-				getSessionFile: () => null,
-				getSessionSpawns: () => "*",
-				settings,
-			};
-			return createSpeculativeToolExecutionConfig(settings, session, {
-				hasHandlers: event => handlers && event === "tool_call",
-			}).host?.authorizeLaunch?.(launch);
-		};
-
-		expect(await authorize("yolo", false)).toMatchObject({ allowed: true });
-		expect(await authorize("yolo", true)).toMatchObject({ allowed: false });
-		expect(await authorize("always-ask", false)).toMatchObject({ allowed: false });
 	});
 });

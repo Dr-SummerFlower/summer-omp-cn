@@ -555,14 +555,12 @@ export interface BuildSystemPromptOptions {
 	workspaceTree?: WorkspaceTree | Promise<WorkspaceTree>;
 	/** Active `memory.backend` id; undefined when memory is off. */
 	memoryBackend?: string;
-	/** Whether the read-only security:// resource namespace is active. */
-	securityEnabled?: boolean;
 	/** Whether the user approves `cfg://` writes for this session; gates advertising `cfg://`. */
 	settingsApproval?: boolean;
 	/**
 	 * Eval preludes advertised by this prompt. Each prelude's `guidance` is
 	 * appended as its own block after the rendered template, so custom templates
-	 * keep it; names also set the `browserEnabled`/`computerEnabled` template flags.
+	 * keep it; names also set the `browserEnabled` template flag.
 	 */
 	evalPreludes?: readonly Pick<EvalPreludeDefinition, "name" | "guidance">[];
 	/** Active model identifier (e.g. "anthropic/claude-opus-4") surfaced in the workstation block. */
@@ -583,8 +581,6 @@ export interface BuildSystemPromptOptions {
 	xdevTools?: Array<{ name: string; summary: string; dynamic?: boolean }>;
 	/** Full docs + JSON schema for every `xd://`-mounted tool, inlined into the protocol section so no discovery `read` is needed. */
 	xdevDocs?: string;
-	/** Whether Auto-QA grievance reporting is enabled; renders the `xd://report_issue` note. */
-	autoQaEnabled?: boolean;
 	/** Whether active `write` is restricted to xd:// dispatch and the plan artifact sandbox. */
 	writeTransportOnly?: boolean;
 }
@@ -656,7 +652,6 @@ export async function buildSystemPrompt(options: BuildSystemPromptOptions = {}):
 		scoutAvailable = true,
 		delegationBias = "eager",
 		memoryBackend,
-		securityEnabled = false,
 		settingsApproval = false,
 		evalPreludes = [],
 		model,
@@ -667,7 +662,6 @@ export async function buildSystemPrompt(options: BuildSystemPromptOptions = {}):
 		reactions = false,
 		xdevTools = [],
 		xdevDocs = "",
-		autoQaEnabled = false,
 		writeTransportOnly = false,
 		activeRepoContext: providedActiveRepoContext,
 	} = options;
@@ -931,7 +925,6 @@ export async function buildSystemPrompt(options: BuildSystemPromptOptions = {}):
 		skillUriAccess: hasSkillUriAccess,
 		ruleCount: rules?.length ?? 0,
 		memoryBackend,
-		securityEnabled,
 		settingsApproval,
 	};
 	const filteredSkills = (options.skillDescriptions ?? new SkillDescriptionCatalog()).render(
@@ -988,14 +981,12 @@ export async function buildSystemPrompt(options: BuildSystemPromptOptions = {}):
 		taskIrcEnabled,
 		secretsEnabled,
 		browserEnabled: evalPreludes.some(prelude => prelude.name === "browser"),
-		computerEnabled: evalPreludes.some(prelude => prelude.name === "computer"),
 		includeWorkspaceTree,
 		renderMermaid,
 		reactions,
 		xdevTools,
 		hasDynamicXdevTools: xdevTools.some(mounted => mounted.dynamic === true),
 		xdevDocs,
-		autoQaEnabled,
 		writeTransportOnly,
 	};
 	const selectedTemplate = resolvedCustomPrompt

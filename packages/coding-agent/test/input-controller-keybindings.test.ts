@@ -229,8 +229,6 @@ async function createContext() {
 		showTreeSelector: vi.fn(),
 		showUserMessageSelector: vi.fn(),
 		showSessionSelector: vi.fn(),
-		handleSTTToggle: vi.fn(),
-		dictationSpaceHold: vi.fn(),
 		showDebugSelector: vi.fn(),
 		showHistorySearch: vi.fn(),
 		toggleThinkingBlockVisibility: vi.fn(),
@@ -383,22 +381,6 @@ describe("InputController keybinding setup", () => {
 
 		expect(focusedRetry).toHaveBeenCalledTimes(1);
 		expect(spies.retry).not.toHaveBeenCalled();
-	});
-
-	it("keeps retry host-only for collab guests", async () => {
-		const { InputController, ctx, editor, spies } = await createContext();
-		const showStatus = ctx.showStatus as unknown as Mock<(message: string) => void>;
-		(ctx as unknown as { collabGuest: { readOnly: boolean } }).collabGuest = { readOnly: true };
-		const controller = new InputController(ctx);
-
-		controller.setupKeyHandlers();
-		editor.setText("guest draft");
-		editor.onRetry?.();
-		await Promise.resolve();
-
-		expect(spies.retry).not.toHaveBeenCalled();
-		expect(showStatus).toHaveBeenCalledWith("/retry is host-only during a collab session");
-		expect(editor.getText()).toBe("guest draft");
 	});
 
 	it("keeps the draft when there is nothing to retry", async () => {

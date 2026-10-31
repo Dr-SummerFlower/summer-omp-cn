@@ -766,8 +766,8 @@ export class SessionManager {
 	#draftOnlySessionCleanupArmed = false;
 
 	/**
-	 * Collab replication tap: invoked for every appended entry with the
-	 * in-memory (pre-blob-externalization) entry, so inline images survive.
+	 * Entry observer tap: invoked for every appended entry with the in-memory
+	 * (pre-blob-externalization) entry, so inline images survive.
 	 */
 	onEntryAppended?: (entry: SessionEntry) => void;
 
@@ -1519,7 +1519,7 @@ export class SessionManager {
 			try {
 				callback(entry);
 			} catch (err) {
-				logger.warn("collab entry hook failed", { error: String(err) });
+				logger.warn("Session entry observer failed", { error: String(err) });
 			}
 		}
 	}

@@ -298,8 +298,6 @@ export interface ParsedAgentFields {
 	autoloadSkills?: string[];
 	readSummarize?: boolean;
 	blocking?: boolean;
-	/** `true` = prewalk into the default target; string = prewalk into that model pattern. */
-	prewalk?: boolean | string;
 	/** `true` = advise with the default advisor-role model; string = advise with that model pattern. */
 	advisor?: boolean | string;
 }
@@ -367,12 +365,6 @@ export function parseAgentFields(frontmatter: Record<string, unknown>): ParsedAg
 	const model = parseModelList(frontmatter.model);
 	const blocking = parseBoolean(frontmatter.blocking);
 	const readSummarize = parseBoolean(frontmatter.readSummarize);
-	// prewalk: true → hand off to the default prewalk target; "<pattern>" → custom target.
-	let prewalk: boolean | string | undefined = parseBoolean(frontmatter.prewalk);
-	if (prewalk === undefined && typeof frontmatter.prewalk === "string") {
-		const trimmed = frontmatter.prewalk.trim();
-		if (trimmed) prewalk = trimmed;
-	}
 	// advisor: true → advise with the default advisor-role model; "<pattern>" → custom advisor model.
 	let advisor: boolean | string | undefined = parseBoolean(frontmatter.advisor);
 	if (advisor === undefined && typeof frontmatter.advisor === "string") {
@@ -393,7 +385,6 @@ export function parseAgentFields(frontmatter: Record<string, unknown>): ParsedAg
 		blocking,
 		autoloadSkills,
 		readSummarize,
-		prewalk,
 		advisor,
 	};
 }

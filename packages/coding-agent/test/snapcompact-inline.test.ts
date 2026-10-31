@@ -155,33 +155,24 @@ describe("SnapcompactInlineTransformer", () => {
 
 	it("applies option changes on the next request, re-rendering cached frames when the shape changes", async () => {
 		const options = withTestShape({ renderSystemPrompt: "none", renderToolResults: false });
-		const renderedFonts: string[] = [];
-		const transformer = new SnapcompactInlineTransformer(options, undefined, {
-			async framesFor(text, shape) {
-				renderedFonts.push(shape.font);
-				return Array.from({ length: snapcompact.frames(text, { shape }) }, () => ({
-					type: "image" as const,
-					data: "ZnJhbWU=",
-					mimeType: "image/png",
-				}));
-			},
-		});
+		const renderMany = spyOn(snapcompact, "renderMany");
+		const transformer = new SnapcompactInlineTransformer(options);
 		const context = makeContext();
 
 		expect(await transformer.transform(context, makeModel())).toBe(context);
-		expect(renderedFonts).toEqual([]);
+		expect(renderMany).not.toHaveBeenCalled();
 
 		options.renderToolResults = true;
 		expect(imageCount(await transformer.transform(context, makeModel()))).toBeGreaterThan(0);
-		expect(renderedFonts).toEqual(["6x12"]);
+		expect(renderMany.mock.calls.map(([, renderOptions]) => renderOptions?.shape?.font)).toEqual(["6x12"]);
 
 		// Same shape → served from the frame cache.
 		await transformer.transform(context, makeModel());
-		expect(renderedFonts).toEqual(["6x12"]);
+		expect(renderMany.mock.calls.map(([, renderOptions]) => renderOptions?.shape?.font)).toEqual(["6x12"]);
 
 		options.shape = "8x13-bw";
 		expect(imageCount(await transformer.transform(context, makeModel()))).toBeGreaterThan(0);
-		expect(renderedFonts).toEqual(["6x12", "8x13"]);
+		expect(renderMany.mock.calls.map(([, renderOptions]) => renderOptions?.shape?.font)).toEqual(["6x12", "8x13"]);
 	});
 
 	it("reports per-tool-result savings to the sink for each imaged result only", async () => {
@@ -241,18 +232,8 @@ describe("SnapcompactInlineTransformer", () => {
 
 	it("compacts text in mixed tool results while preserving every source image and the input context", async () => {
 		const options = withTestShape({ renderSystemPrompt: "all", renderToolResults: true });
-		const renderedTexts: string[] = [];
-		const transformer = new SnapcompactInlineTransformer(options, undefined, {
-			async framesFor(text, shape, maxFrames) {
-				renderedTexts.push(text);
-				const count = Math.min(snapcompact.frames(text, { shape }), maxFrames ?? Number.POSITIVE_INFINITY);
-				return Array.from({ length: count }, () => ({
-					type: "image" as const,
-					data: "ZnJhbWU=",
-					mimeType: "image/png",
-				}));
-			},
-		});
+		const renderMany = spyOn(snapcompact, "renderMany");
+		const transformer = new SnapcompactInlineTransformer(options);
 		const toolImage: ImageContent = {
 			type: "image",
 			data: "dG9vbC1pbWFnZS1ieXRlcw==",
@@ -320,6 +301,7 @@ describe("SnapcompactInlineTransformer", () => {
 			type: "text",
 			text: "[Original source image 1; corresponds to its marker in the compacted text.]",
 		});
+		const renderedTexts = renderMany.mock.calls.map(([text]) => String(text));
 		const mixedRenderedText = renderedTexts.find(text => text.includes("mixed result text tail"));
 		expect(mixedRenderedText).toContain("[Source image 1 was attached here in the original tool result.]");
 		expect(mixedRenderedText!.indexOf("[Source image 1")).toBeLessThan(

@@ -331,7 +331,7 @@ describe("learn tool (local backend)", () => {
 	});
 
 	function localSession(): ToolSession {
-		const settings = Settings.isolated({ "autolearn.enabled": true, "memory.backend": "local" });
+		const settings = Settings.isolated({ "memory.backend": "local" });
 		spyOn(settings, "getAgentDir").mockReturnValue(agentDir);
 		spyOn(settings, "getCwd").mockReturnValue(projCwd);
 		return {

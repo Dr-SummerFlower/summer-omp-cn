@@ -12,8 +12,8 @@ import {
 	prepareUserRetentionTranscript,
 	stripRetentionProtocolMarkers,
 	truncateRecallQuery,
-} from "../hindsight/content";
-import { extractMessages } from "../hindsight/transcript";
+} from "./content";
+import { extractMessages } from "./transcript";
 import type { MemoryPromptPreparation } from "../memory-backend/types";
 import { redactMemorySecrets, redactRememberWrite } from "../memory-backend/redact";
 import type { AgentSession, AgentSessionEvent } from "../session/agent-session";

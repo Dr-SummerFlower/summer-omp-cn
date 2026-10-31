@@ -3,9 +3,6 @@ import type { CompactionOutcome } from "@oh-my-pi/pi-agent-core/compaction";
 import type { AssistantMessage, ImageContent, Model, Usage, UsageReport } from "@oh-my-pi/pi-ai";
 import type { Component, Container, EditorTheme, Loader, TUI } from "@oh-my-pi/pi-tui";
 import type { StatusNotice } from "@oh-my-pi/pi-tui/chrome/status-notice";
-import type { CollabController } from "../collab/controller";
-import type { CollabGuestLink } from "../collab/guest";
-import type { CollabHost } from "../collab/host";
 import type { KeybindingsManager } from "@oh-my-pi/pi-tui/app-keybindings";
 import type { TrackSegment } from "@oh-my-pi/pi-tui/chrome/segment-track";
 import type { Settings } from "../config/settings";
@@ -29,8 +26,6 @@ import type { HistoryStorage } from "../session/history-storage";
 import type { SessionContext } from "../session/session-context";
 import type { SessionManager } from "../session/session-manager";
 import type { ShakeMode } from "../session/shake-types";
-import type { DictationTarget } from "../stt";
-import type { SpaceHoldHandler } from "@oh-my-pi/pi-tui/space-hold";
 import type { ConfiguredThinkingLevel } from "@oh-my-pi/pi-tui/thinking";
 import type { LspStartupServerInfo } from "../tools";
 import type { EventBus } from "../utils/event-bus";
@@ -87,8 +82,6 @@ export type SubmittedUserInput = {
 export interface InteractiveModeInitOptions {
 	suppressWelcomeIntro?: boolean;
 	clearInitialTerminalHistory?: boolean;
-	/** Opt into hosting when the caller owns outer startup readiness and shutdown. */
-	autoStartCollab?: boolean;
 	/** Recent-session rows loaded by the prepaint composer while runtime modules initialized. */
 	recentSessions?: Promise<RecentSession[] | undefined>;
 }
@@ -120,7 +113,6 @@ export interface InteractiveModeContext {
 	subagentContainer: Container;
 	btwContainer: Container;
 	omfgContainer: Container;
-	cleanseContainer: Container;
 	errorBannerContainer: Container;
 	modelCycleContainer: Container;
 	deferredCommandContainer: Container;
@@ -162,11 +154,6 @@ export interface InteractiveModeContext {
 	historyStorage?: HistoryStorage;
 	mcpManager?: MCPManager;
 	lspServers?: LspStartupServerInfo[];
-	/** Owns hosting: manual `/collab`, `collab.autoStart`, and room rotation on session switch. */
-	collabController: CollabController;
-	/** Owned room; use {@link collabController}.host for current-session reuse and links. */
-	collabHost?: CollabHost;
-	collabGuest?: CollabGuestLink;
 	eventController: EventController;
 	eventBus?: EventBus;
 	/** Root-scoped bus carrying this session tree's `task:subagent:*` frames. */
@@ -409,7 +396,7 @@ export interface InteractiveModeContext {
 	truncateTranscriptFromMessage(message: AgentMessage): boolean;
 	findLastAssistantMessage(): AssistantMessage | undefined;
 	extractAssistantText(message: AssistantMessage): string;
-	/** Refresh the running-subagents status badge from the active local or collab registry. */
+	/** Refresh the running-subagents status badge from the active local registry. */
 	syncRunningSubagentBadge(): void;
 	updateEditorBorderColor(): void;
 	rebuildChatFromMessages(options?: { reuseSettledComponents?: boolean }): void;
@@ -423,7 +410,6 @@ export interface InteractiveModeContext {
 	handleShareCommand(): Promise<void>;
 	handleTodoCommand(args: string): Promise<void>;
 	handleSessionCommand(): Promise<void>;
-	handleAdvisorStatusCommand(): Promise<void>;
 	handleJobsCommand(): Promise<void>;
 	handleUsageCommand(reports?: UsageReport[] | null): Promise<void>;
 	handleChangelogCommand(args?: string): Promise<void>;
@@ -431,7 +417,6 @@ export interface InteractiveModeContext {
 	handleToolsCommand(): void;
 	handleContextCommand(): void;
 	handleDumpCommand(): Promise<void>;
-	handleAdvisorDumpCommand(isRaw?: boolean): void;
 	handleDebugTranscriptCommand(): Promise<void>;
 	handleClearCommand(): Promise<void>;
 	handleFreshCommand(): Promise<void>;
@@ -455,12 +440,6 @@ export interface InteractiveModeContext {
 	withBtwSessionMove(operation: () => Promise<boolean>): Promise<boolean>;
 	handleRenameCommand(title: string): Promise<void>;
 	handleMemoryCommand(text: string): Promise<void>;
-	handleSTTToggle(): Promise<void>;
-	/** Space-bar push-to-talk into `target`: a recognized hold starts dictation and its release stops
-	 *  it. Gated on `stt.enabled`, so a disabled STT leaves the space bar typing normally. */
-	dictationSpaceHold(target: DictationTarget): SpaceHoldHandler;
-	/** Start or stop the Codex-backed realtime voice session. */
-	handleLiveCommand(): Promise<void>;
 	/** Start a `/record` screen capture, or stop the running one. */
 	toggleRecording(): Promise<void>;
 	executeCompaction(
@@ -477,7 +456,6 @@ export interface InteractiveModeContext {
 	showSettingsSelector(): void;
 	/** Open the fullscreen `/usage` dashboard overlay for the given reports. */
 	showUsageDashboard(reports: UsageReport[]): void;
-	showAdvisorConfigure(): void;
 	showHistorySearch(): void;
 	showExtensionsDashboard(): void;
 	showAgentsDashboard(): void;
@@ -486,7 +464,6 @@ export interface InteractiveModeContext {
 	showModelSelector(options?: { temporaryOnly?: boolean }): void;
 	/** Session-only switch to an already-resolved model (`/switch <selector>`); compacts first when over context. */
 	switchSessionModel(model: Model, thinkingLevel?: ConfiguredThinkingLevel): Promise<void>;
-	showPluginSelector(mode?: "install" | "uninstall"): void;
 	showUserMessageSelector(): void;
 	showCopySelector(): void;
 	showTreeSelector(): void;
@@ -543,9 +520,6 @@ export interface InteractiveModeContext {
 	handleOmfgCommand(complaint: string): Promise<void>;
 	hasActiveOmfg(): boolean;
 	handleOmfgEscape(): boolean;
-	handleCleanseCommand(args: string): Promise<void>;
-	hasActiveCleanse(): boolean;
-	handleCleanseEscape(): boolean;
 	cycleThinkingLevel(): void;
 	cycleRoleModel(direction?: "forward" | "backward"): Promise<void>;
 	toggleToolOutputExpansion(): void;

@@ -45,7 +45,7 @@
 1. `AskTool.createIf()` only registers the discoverable tool when `session.hasUI` is true; headless sessions never get it.
 2. `execute()` also requires `context.hasUI` and `context.ui`; if missing it aborts the context and throws `ToolAbortError("Ask tool requires interactive mode")`.
 3. It reads `ask.timeout` from settings, converts seconds to milliseconds (`0` disables timeout), and disables timeout entirely while plan mode is enabled.
-4. If `ask.notify` is not `off`, it sends a terminal notification: `Waiting for input`. When `speech.enabled` is true, it also sends all question text to the vocalizer before opening the dialog.
+4. If `ask.notify` is not `off`, it sends a terminal notification: `Waiting for input`.
 5. When the UI supplies `askDialog`, the tool opens one rich multi-question form. Rich options receive `header`, `description`, and `preview`; results may contain custom answers and notes with pasted images, or choose the dialog's `Chat about this` redirect.
 6. Otherwise it uses the selector/editor fallback for each question:
    - single-select list plus `Other (type your own)`
@@ -61,7 +61,7 @@
 - Single-select: one option or custom input.
 - Multi-select: toggled choices or custom input. In the fallback, `Done selecting` appears only when forward navigation is not active and at least one choice is selected.
 - Rich ask dialog: supports per-question headers, option previews, answer notes, pasted images in custom answers and notes, and a `Chat about this` redirect. Submitting a nonempty custom answer advances to the next question, or to review for a single multi-select question; existing checkbox selections are preserved. A single-select question still submits immediately when it is the only question.
-- Pasted images: the custom-answer and note prompts take images the same ways the main editor does and mark them `[Image #N, WxH]`; deleting a marker drops its image. Extensions calling `ui.askDialog` get this only with `acceptImages: true`; collab guests, RPC, and ACP stay text-only.
+- Pasted images: the custom-answer and note prompts take images the same ways the main editor does and mark them `[Image #N, WxH]`; deleting a marker drops its image. Extensions calling `ui.askDialog` get this only with `acceptImages: true`; RPC and ACP stay text-only.
 - Custom editor: paste followed by Enter submits the pasted text, including when they arrive together. Submission waits for an in-flight clipboard read; cancellation discards pending clipboard delivery.
 - Selector/editor fallback: supports labels/descriptions but not headers, previews, notes, images, or chat redirect.
 
@@ -71,7 +71,6 @@
   - Opens a selection dialog via `context.ui.select(...)`.
   - Opens a text editor dialog via `context.ui.editor(...)` for `Other`.
   - Sends a terminal notification unless `ask.notify=off`.
-  - Speaks the question text through the vocalizer when `speech.enabled=true`.
 - Session state
   - Reads plan-mode state to disable timeouts.
   - Calls `context.abort()` on headless use or user cancellation.

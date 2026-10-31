@@ -63,18 +63,6 @@ export const commands: CommandEntry[] = [
 		help: commandHelp.browserRelayHelp,
 	},
 	{
-		name: "cleanse",
-		load: () => import("./commands/cleanse").then(m => m.default),
-		help: commandHelp.cleanseHelp,
-	},
-	{
-		name: "collab",
-		// Keep implementation imports behind the command boundary: this table is
-		// also imported before profile bootstrap and by native-free worker entries.
-		load: () => import("./commands/collab").then(m => m.default),
-		help: commandHelp.collabHelp,
-	},
-	{
 		name: "commit",
 		load: () => import("./commands/commit").then(m => m.default),
 		help: commandHelp.commitHelp,
@@ -98,11 +86,6 @@ export const commands: CommandEntry[] = [
 		name: "config",
 		load: () => import("./commands/config").then(m => m.default),
 		help: commandHelp.configHelp,
-	},
-	{
-		name: "dry-balance",
-		load: () => import("./commands/dry-balance").then(m => m.default),
-		help: commandHelp.dryBalanceHelp,
 	},
 	{
 		name: "find",
@@ -130,30 +113,9 @@ export const commands: CommandEntry[] = [
 		help: commandHelp.gitHelp,
 	},
 	{
-		name: "grievances",
-		load: () => import("./commands/grievances").then(m => m.default),
-		help: commandHelp.grievancesHelp,
-	},
-	{
-		name: "images",
-		load: () => import("./commands/images").then(m => m.default),
-		aliases: ["img"],
-		help: commandHelp.imagesHelp,
-	},
-	{
-		name: "if-bench",
-		load: () => import("./commands/if-bench").then(m => m.default),
-		help: commandHelp.ifBenchHelp,
-	},
-	{
 		name: "install",
 		load: () => import("./commands/install").then(m => m.default),
 		help: commandHelp.installHelp,
-	},
-	{
-		name: "join",
-		load: () => import("./commands/join").then(m => m.default),
-		help: commandHelp.joinHelp,
 	},
 	{
 		name: "login",
@@ -172,24 +134,9 @@ export const commands: CommandEntry[] = [
 		help: commandHelp.pluginHelp,
 	},
 	{
-		name: "predict",
-		load: () => import("./commands/predict").then(m => m.default),
-		help: commandHelp.predictHelp,
-	},
-	{
 		name: "ps",
 		load: () => import("./commands/ps").then(m => m.default),
 		help: commandHelp.psHelp,
-	},
-	{
-		name: "say",
-		load: () => import("./commands/say").then(m => m.default),
-		help: commandHelp.sayHelp,
-	},
-	{
-		name: "clip",
-		load: () => import("./commands/clip").then(m => m.default),
-		help: commandHelp.clipHelp,
 	},
 	{
 		name: "play",
@@ -236,11 +183,6 @@ export const commands: CommandEntry[] = [
 		name: "stats",
 		load: () => import("./commands/stats").then(m => m.default),
 		help: commandHelp.statsHelp,
-	},
-	{
-		name: "stream",
-		load: () => import("./commands/stream").then(m => m.default),
-		help: commandHelp.streamHelp,
 	},
 	{
 		name: "update",
@@ -320,20 +262,20 @@ const RESERVED_TOP_LEVEL_WORDS: Record<string, string> = {
 	uninstall:
 		'`omp uninstall` is not a top-level command. Use `omp plugin uninstall <name@marketplace>` to remove a plugin, or run `omp launch uninstall` if you meant to send "uninstall" as a prompt.',
 	marketplace:
-		'`omp marketplace` is not a top-level command. Use `omp plugin marketplace <add|remove|update|list>` to manage marketplaces, or run `omp launch marketplace` if you meant to send "marketplace" as a prompt.',
+		'`omp marketplace` is not a top-level command. Plugin marketplaces are no longer supported; use `omp plugin install <package>` to install plugins, or run `omp launch marketplace` if you meant to send "marketplace" as a prompt.',
 	discover:
-		'`omp discover` is not a top-level command. Use `omp plugin discover [marketplace]` to browse available plugins, or run `omp launch discover` if you meant to send "discover" as a prompt.',
+		'`omp discover` is not a top-level command. Plugin marketplace browsing is no longer supported; run `omp launch discover` if you meant to send "discover" as a prompt.',
 	upgrade:
-		'`omp upgrade` is not a top-level command. Use `omp plugin upgrade [name@marketplace]` to upgrade plugins, or run `omp launch upgrade` if you meant to send "upgrade" as a prompt.',
+		'`omp upgrade` is not a top-level command. Use `omp plugin install <package> --force` to upgrade an installed plugin, or run `omp launch upgrade` if you meant to send "upgrade" as a prompt.',
 	enable:
 		'`omp enable` is not a top-level command. Use `omp plugin enable <name@marketplace>` to enable a plugin, or run `omp launch enable` if you meant to send "enable" as a prompt.',
 	disable:
 		'`omp disable` is not a top-level command. Use `omp plugin disable <name@marketplace>` to disable a plugin, or run `omp launch disable` if you meant to send "disable" as a prompt.',
 };
 
-// Sub-actions that make `omp marketplace <sub>` unambiguously a management
-// command even when multi-word (the reporter's `omp marketplace add xyz`,
-// #4845). Mirrors the switch in `handleMarketplace` (cli/plugin-cli.ts).
+// Sub-actions that make `omp marketplace <sub>` unambiguously a (removed)
+// management command even when multi-word (the reporter's `omp marketplace add
+// xyz`, #4845), so the hint fires instead of forwarding the argv to `launch`.
 const MARKETPLACE_SUBCOMMANDS: Record<string, true> = { add: true, remove: true, rm: true, update: true, list: true };
 
 /**

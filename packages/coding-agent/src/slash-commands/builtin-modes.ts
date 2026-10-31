@@ -13,11 +13,9 @@ import { describeLoopLimitRuntime } from "../modes/loop-limit";
 import type { InteractiveModeContext } from "../modes/types";
 import type { AgentSession } from "../session/agent-session";
 import { commandConsumed, errorMessage, usage } from "./helpers/parse";
-import { handleSecurityCommand } from "./helpers/security";
 import type { ParsedSlashCommand, SlashCommandSpec, TuiSlashCommandRuntime } from "./types";
 import { t } from "@oh-my-pi/pi-i18n";
 
-import { cfgComputerDisplay, cfgComputerEnabled, cfgComputerMaxHeight, cfgComputerMaxWidth } from "../tools/settings";
 import { cfgSkillful } from "../session/settings";
 import { formatSlowModeResetClock } from "../session/anthropic-slow-mode";
 import { cfgExtendedContext } from "../session/context-settings";
@@ -180,43 +178,6 @@ function applyExtendedContextCommand(settings: Settings, args: string): string |
 	return undefined;
 }
 
-/** Detailed, session-effective `/computer status` diagnostics. */
-function formatComputerUseStatus(session: AgentSession): string {
-	const enabled = cfgComputerEnabled.get(session.settings);
-	const active = session.getEvalPreludes().some(definition => definition.name === "computer");
-	const configured = {
-		display: cfgComputerDisplay.get(session.settings),
-		maxWidth: cfgComputerMaxWidth.get(session.settings),
-		maxHeight: cfgComputerMaxHeight.get(session.settings),
-	};
-	return [
-		enabled ? t("slash.computer.statusLine.enabled") : t("slash.computer.statusLine.disabled"),
-		active ? t("slash.computer.statusLine.preludeActive") : t("slash.computer.statusLine.preludeInactive"),
-		t("slash.computer.statusLine.configured", {
-			display: configured.display,
-			maxWidth: configured.maxWidth,
-			maxHeight: configured.maxHeight,
-		}),
-	].join(" · ");
-}
-
-/**
- * Apply a session-scoped computer-use toggle; the session's setting listener
- * reconciles the prompt without a mid-session cache-busting rebuild.
- * The override is never persisted to settings.json.
- */
-function applyComputerUseToggle(session: AgentSession, enable: boolean): string {
-	const previous = cfgComputerEnabled.get(session.settings);
-	cfgComputerEnabled.override(session.settings, enable);
-	if (enable && !session.getEvalPreludes().some(definition => definition.name === "computer")) {
-		cfgComputerEnabled.override(session.settings, previous);
-		return t("slash.computer.toggle.unavailable");
-	}
-	return enable
-		? t("slash.computer.toggle.enabled", { status: formatComputerUseStatus(session) })
-		: t("slash.computer.toggle.disabled");
-}
-
 const AUTOCOMPLETE_DETAIL_LIMIT = 48;
 
 function shortDetail(value: string, limit = AUTOCOMPLETE_DETAIL_LIMIT): string {
@@ -229,84 +190,6 @@ export function formatTokenCount(value: number): string {
 }
 
 export const BUILTIN_MODE_SLASH_COMMANDS: ReadonlyArray<SlashCommandSpec> = [
-	{
-		name: "security",
-		icon: "shield",
-		get description() {
-			return t("slash.security.description");
-		},
-		allowArgs: true,
-		acpInputHint: "<plan|scan|status|cancel|scans|show|import|export|validate|compare|disposition>",
-		subcommands: [
-			{
-				name: "plan",
-				get description() {
-					return t("slash.security.sub.plan.description");
-				},
-			},
-			{
-				name: "scan",
-				get description() {
-					return t("slash.security.sub.scan.description");
-				},
-			},
-			{
-				name: "status",
-				get description() {
-					return t("slash.security.sub.status.description");
-				},
-			},
-			{
-				name: "cancel",
-				get description() {
-					return t("slash.security.sub.cancel.description");
-				},
-			},
-			{
-				name: "scans",
-				get description() {
-					return t("slash.security.sub.scans.description");
-				},
-			},
-			{
-				name: "show",
-				get description() {
-					return t("slash.security.sub.show.description");
-				},
-			},
-			{
-				name: "import",
-				get description() {
-					return t("slash.security.sub.import.description");
-				},
-			},
-			{
-				name: "export",
-				get description() {
-					return t("slash.security.sub.export.description");
-				},
-			},
-			{
-				name: "validate",
-				get description() {
-					return t("slash.security.sub.validate.description");
-				},
-			},
-			{
-				name: "compare",
-				get description() {
-					return t("slash.security.sub.compare.description");
-				},
-			},
-			{
-				name: "disposition",
-				get description() {
-					return t("slash.security.sub.disposition.description");
-				},
-			},
-		],
-		handle: handleSecurityCommand,
-	},
 	{
 		name: "settings",
 		icon: "settings",
@@ -865,140 +748,6 @@ export const BUILTIN_MODE_SLASH_COMMANDS: ReadonlyArray<SlashCommandSpec> = [
 			refreshStatusLine(runtime.ctx);
 			runtime.ctx.showStatus(output ?? t("slash.extendedContext.usage"));
 			clearSubmittedText(runtime);
-		},
-	},
-	{
-		name: "computer",
-		icon: "computer",
-		get description() {
-			return t("slash.computer.description");
-		},
-		get acpDescription() {
-			return t("slash.computer.acpDescription");
-		},
-		acpInputHint: "[on|off|status]",
-		subcommands: [
-			{
-				name: "on",
-				get description() {
-					return t("slash.computer.on");
-				},
-			},
-			{
-				name: "off",
-				get description() {
-					return t("slash.computer.off");
-				},
-			},
-			{
-				name: "status",
-				get description() {
-					return t("slash.computer.status");
-				},
-			},
-		],
-		allowArgs: true,
-		getTuiAutocompleteDescription: runtime =>
-			t("slash.computer.autocomplete", {
-				status: cfgComputerEnabled.get(runtime.ctx.session.settings) ? t("common.state.on") : t("common.state.off"),
-			}),
-		handle: async (command, runtime) => {
-			const arg = command.args.trim().toLowerCase();
-			if (arg === "status") {
-				await runtime.output(formatComputerUseStatus(runtime.session));
-				return commandConsumed();
-			}
-			if (!arg || arg === "toggle" || arg === "on" || arg === "off") {
-				const enable = arg === "off" ? false : arg === "on" || !cfgComputerEnabled.get(runtime.session.settings);
-				await runtime.output(applyComputerUseToggle(runtime.session, enable));
-				return commandConsumed();
-			}
-			return usage(t("slash.computer.usage"), runtime);
-		},
-		handleTui: async (command, runtime) => {
-			const arg = command.args.trim().toLowerCase();
-			if (arg === "status") {
-				runtime.ctx.showStatus(formatComputerUseStatus(runtime.ctx.session));
-				clearSubmittedText(runtime);
-				return;
-			}
-			if (!arg || arg === "toggle" || arg === "on" || arg === "off") {
-				const enable =
-					arg === "off" ? false : arg === "on" || !cfgComputerEnabled.get(runtime.ctx.session.settings);
-				runtime.ctx.showStatus(applyComputerUseToggle(runtime.ctx.session, enable));
-				clearSubmittedText(runtime);
-				return;
-			}
-			runtime.ctx.showStatus(t("slash.computer.usage"));
-			clearSubmittedText(runtime);
-		},
-	},
-	{
-		name: "prewalk",
-		icon: "prewalk",
-		get description() {
-			return t("slash.prewalk.description");
-		},
-		allowArgs: true,
-		get acpDescription() {
-			return t("slash.prewalk.acpDescription");
-		},
-		acpInputHint: "[restart]",
-		subcommands: [
-			{
-				name: "restart",
-				get description() {
-					return t("slash.prewalk.sub.restart.description");
-				},
-			},
-		],
-		handle: async (command, runtime) => {
-			const arg = command.args.trim().toLowerCase();
-			if (arg && arg !== "restart") return usage(t("slash.prewalk.usage"), runtime);
-			const target = resolveSessionModelSelector("@smol", runtime.session, runtime.settings);
-			if (target.error || !target.model) {
-				return usage(target.error ?? t("slash.prewalk.smolNotFound"), runtime);
-			}
-			if (!runtime.session.modelRegistry.hasConfiguredAuth(target.model)) {
-				return usage(
-					t("slash.prewalk.noApiKey", { provider: target.model.provider, id: target.model.id }),
-					runtime,
-				);
-			}
-			if (arg === "restart") {
-				const source = resolveSessionModelSelector("@default", runtime.session, runtime.settings);
-				if (source.error || !source.model) {
-					return usage(source.error ?? t("slash.prewalk.defaultNotFound"), runtime);
-				}
-				if (!runtime.session.modelRegistry.hasConfiguredAuth(source.model)) {
-					return usage(
-						t("slash.prewalk.noApiKey", { provider: source.model.provider, id: source.model.id }),
-						runtime,
-					);
-				}
-				const result = await runtime.session.restartPrewalk(
-					source.model,
-					source.thinkingLevel,
-					target.model,
-					target.thinkingLevel,
-				);
-				if (result === "rejected") return commandConsumed();
-				const restartSource = `${source.model.provider}/${source.model.id}`;
-				await runtime.output(
-					result === "armed"
-						? t("slash.prewalk.restarted", {
-								source: restartSource,
-								target: `${target.model.provider}/${target.model.id}`,
-							})
-						: t("slash.prewalk.reset", { source: restartSource }),
-				);
-				return commandConsumed();
-			}
-			const armed = runtime.session.armPrewalk(target.model, target.thinkingLevel);
-			if (armed) {
-				await runtime.output(t("slash.prewalk.on", { target: `${target.model.provider}/${target.model.id}` }));
-			}
-			return commandConsumed();
 		},
 	},
 ];

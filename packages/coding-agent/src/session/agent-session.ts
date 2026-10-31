@@ -107,20 +107,13 @@ import {
 	withTimeout,
 	withFileLock,
 } from "@oh-my-pi/pi-utils";
-import type { AdvisorConfig } from "@oh-my-pi/pi-tui/overlays/advisor-config";
 import { formatUsageResetWindow } from "@oh-my-pi/pi-tui/overlays/usage-display";
-import { loadAdvisorTranscriptCosts } from "../advisor";
 import { ASYNC_JOB_MANAGER_SHUTDOWN_REASON, type AsyncJob, AsyncJobManager } from "../async";
 import { reset as resetCapabilities } from "../capability";
 import type { EffectiveExtensionRoots } from "../capability/types";
 import { shouldEnableAppendOnlyContext } from "../config/append-only-context-mode";
 import type { ModelRegistry } from "../config/model-registry";
-import {
-	DEFAULT_PREWALK_TARGET,
-	getModelMatchPreferences,
-	type ResolvedModelRoleValue,
-	resolveCliModel,
-} from "../config/model-resolver";
+import type { ResolvedModelRoleValue } from "../config/model-resolver";
 import { expandPromptTemplate, type PromptTemplate } from "../config/prompt-templates";
 import { buildServiceTierByFamily, isServiceTierForFamily, serviceTierSettingToTier } from "../config/service-tier";
 import { combine, type SettingsScope } from "../config/registry";
@@ -168,7 +161,6 @@ import { expandSlashCommand, type FileSlashCommand, loadSlashCommands } from "..
 import { normalizeToolEventInput, resolveToolEventInput } from "../extensibility/tool-event-input";
 import { GoalRuntime } from "../goals/runtime";
 import type { GoalModeState } from "../goals/state";
-import type { HindsightSessionState } from "../hindsight/state";
 import { InternalUrlRouter, type LocalProtocolOptions } from "../internal-urls";
 import { hasNativeJudge, journalJudgmentUsage, resolveJudge, sharedJudgmentCache } from "../judgment";
 import type { IrcMessage } from "@oh-my-pi/pi-tui/tools/irc";
@@ -230,8 +222,6 @@ import {
 	releaseTabsForOwner,
 } from "../tools/browser/tab-supervisor";
 import type { CheckpointState, CompletedRewindState } from "../tools/checkpoint";
-import { releaseComputerSessionsForOwner } from "../tools/computer/supervisor";
-import { isAutoQaEnabled } from "../tools/report-tool-issue";
 import {
 	buildResolveReminderMessage,
 	isPreviewResolutionToolCall,
@@ -271,7 +261,6 @@ import type {
 	FreshSessionResult,
 	HandoffResult,
 	ModelCycleResult,
-	Prewalk,
 	PromptOptions,
 	ResetSessionContextResult,
 	ResolvedRoleModel,
@@ -369,12 +358,7 @@ import {
 	VIBE_MODE_CONTEXT_MESSAGE_TYPE,
 } from "./messages";
 import { ModelControls, type ModelControlsHost } from "./model-controls";
-import {
-	isPrewalkPlanNudge,
-	PrewalkCoordinator,
-	type PrewalkCoordinatorHost,
-	type PrewalkRestartResult,
-} from "./prewalk";
+import { PlanYoloCoordinator, type PlanYoloCoordinatorHost } from "./plan-yolo";
 import {
 	isAdvisorCard,
 	isDisplayableQueuedMessage,
@@ -385,12 +369,6 @@ import {
 	toRestoredQueuedMessage,
 } from "./queued-messages";
 import type { ServingModel } from "./retry-fallback-chains";
-import {
-	type AdvisorStats,
-	type AdvisorStatusOverviewEntry,
-	SessionAdvisors,
-	type SessionAdvisorsHost,
-} from "./session-advisors";
 import type { BuildSessionContextOptions, SessionContext } from "./session-context";
 import { getRestorableSessionModels, isTranscriptEntry } from "./session-context";
 import type { CacheWarmer, CacheWarmingStatus } from "./cache-warmer";
@@ -398,12 +376,7 @@ import { isUserRequestEntry, transcriptEntryMessage, userTurnDraft } from "@oh-m
 import { formatSessionDumpText } from "./session-dump-format";
 import type { BranchSummaryEntry, NewSessionOptions } from "./session-entries";
 import { SessionHandoff, type SessionHandoffHost } from "./session-handoff";
-import {
-	COMPACTION_CHECK_NONE,
-	createCodexCompactionContext as createMaintenanceCodexCompactionContext,
-	SessionMaintenance,
-	type SessionMaintenanceHost,
-} from "./session-maintenance";
+import { COMPACTION_CHECK_NONE, SessionMaintenance, type SessionMaintenanceHost } from "./session-maintenance";
 import { cleanupEmptyMoveSession, copySessionArtifacts, type SessionManager } from "./session-manager";
 import { SessionMemory, type SessionMemoryHost } from "./session-memory";
 import { buildSessionMetadata } from "./session-metadata";
@@ -420,7 +393,6 @@ import { YieldQueue } from "./yield-queue";
 
 export * from "./agent-session-events";
 export * from "./agent-session-types";
-export type { AdvisorStats, AdvisorStatusOverviewEntry, PerAdvisorStat } from "./session-advisors";
 
 const SESSION_STOP_CONTINUATION_CAP = 8;
 
@@ -428,7 +400,6 @@ import { LoopGuards, type StreamGuardsHost, StreamingEditGuard } from "./stream-
 import { TodoTracker, type TodoTrackerHost } from "./todo-tracker";
 import { TtsrCoordinator, type TtsrCoordinatorHost } from "./ttsr-coordinator";
 
-import { cfgAdvisorEnabled, cfgAdvisorMaxNotesPerUpdate } from "../advisor/settings";
 import { cfgBrowserEnabled, cfgBrowserFreezeOnTurnEnd, cfgBrowserIdleCloseSec } from "../tools/browser/settings";
 import {
 	cfgClaudeResets,
@@ -439,7 +410,6 @@ import {
 	cfgDefaultThinkingLevel,
 	cfgExternalThinking,
 	cfgPowerSleepPrevention,
-	cfgPrewalkEnabled,
 	cfgProviderAppendOnlyContext,
 	cfgProvidersCacheWarming,
 	cfgProvidersCacheRetention,
@@ -447,7 +417,6 @@ import {
 	cfgRetryUsageAwareFallback,
 	cfgSampling,
 	cfgSkillful,
-	cfgTierAdvisor,
 	cfgTierAnthropic,
 	cfgTierGoogle,
 	cfgTierOpenai,
@@ -457,7 +426,7 @@ import { type AnthropicSlowModeController, anthropicSlowModeLanes } from "./anth
 import { cfgInterruptMode } from "../modes/settings";
 import { cfgFollowUpMode } from "../modes/settings";
 import { cfgSteeringMode } from "../modes/settings";
-import { cfgDisabledProviders, cfgModelRoles } from "../config/model-settings";
+import { cfgDisabledProviders } from "../config/model-settings";
 import { cfgEvalToolsEnabled } from "../eval/settings";
 import { cfgExtensions, type SkillsSettings } from "../extensibility/settings";
 import {
@@ -474,26 +443,12 @@ import {
 	cfgWorkspaceAdditionalDirectories,
 } from "./context-settings";
 import { cfgTitleRefreshOnReplan } from "../goals/settings";
-import {
-	cfgComputerEnabled,
-	cfgDevAutoqa,
-	cfgDevAutoqaConsent,
-	cfgTodoEnabled,
-	cfgToolsApproval,
-} from "../tools/settings";
+import { cfgTodoEnabled, cfgToolsApproval } from "../tools/settings";
 import { cfgTtsrJudge } from "../export/ttsr-settings";
 
-/** Advisor settings whose edit toggles or rebuilds a running advisor. */
-const cfgAdvisorRuntimeInputs = combine({
-	enabled: cfgAdvisorEnabled,
-	maxNotesPerUpdate: cfgAdvisorMaxNotesPerUpdate,
-	tier: cfgTierAdvisor,
-});
-/** Settings behind the session's extra workspace roots and the auto-QA prompt note. */
+/** Settings behind the session's extra workspace roots. */
 const cfgWorkspacePromptInputs = combine({
 	additionalDirectories: cfgWorkspaceAdditionalDirectories,
-	autoqa: cfgDevAutoqa,
-	autoqaConsent: cfgDevAutoqaConsent,
 });
 
 const PLAN_MODE_REMINDER_MAX = 3;
@@ -718,7 +673,7 @@ export class AgentSession implements SettingsScope {
 
 	readonly #models: ModelControls;
 	readonly #tools: SessionTools;
-	readonly #prewalk: PrewalkCoordinator;
+	readonly #planYolo: PlanYoloCoordinator;
 
 	readonly #providerBoundary: SessionProviderBoundary;
 	#promptTemplates: PromptTemplate[];
@@ -747,8 +702,6 @@ export class AgentSession implements SettingsScope {
 	#exitRecorded = false;
 	/** Last observed `workspace.additionalDirectories`, diffed on change to add/remove only settings-seeded roots. */
 	#settingsWorkspaceDirectories: readonly string[] = [];
-	/** Last observed auto-QA gate; the system prompt advertises `xd://report_issue` only while it holds. */
-	#autoQaEnabled = false;
 	/** Teardowns registered via {@link addDisposer} (including settings listeners bound to this session); drained on dispose. */
 	#disposers: Array<() => void> = [];
 	/** Last (enable, providerId) tuple resolved by `#syncAppendOnlyContext` — used to skip no-op invalidations. */
@@ -770,9 +723,6 @@ export class AgentSession implements SettingsScope {
 	#vibeModeState: VibeModeState | undefined;
 	#goalModeState: GoalModeState | undefined;
 	#goalRuntime: GoalRuntime;
-	readonly #advisors: SessionAdvisors;
-	/** Resolves once the resume-time advisor spend backfill settles. */
-	#advisorCostRestore: Promise<void> = Promise.resolve();
 	#goalTurnCounter = 0;
 	#planReferenceSent = false;
 	#planReferencePath = "local://PLAN.md";
@@ -861,8 +811,6 @@ export class AgentSession implements SettingsScope {
 	#providerSessionId: string | undefined;
 	#freshProviderSessionId: string | undefined;
 	#inheritedProviderPromptCacheKey: string | undefined;
-	#autolearnCaptureAbortController: AbortController | undefined;
-	#autolearnCaptureTask: Promise<void> | undefined;
 	#isDisposed = false;
 	#modelDiscoveryAbortController = new AbortController();
 	/** Process-wide by default (double-spend safety across sessions); injectable for tests. */
@@ -952,6 +900,13 @@ export class AgentSession implements SettingsScope {
 	readonly #loopGuards: LoopGuards;
 	#promptInFlightCount = 0;
 	#abortInProgress = false;
+	/**
+	 * Latch set by a deliberate user interrupt (Esc) and cleared by the next
+	 * user-initiated prompt or non-aside queue. While it holds, stranded asides and
+	 * follow-up-only auto-resume stay folded into context instead of starting a
+	 * fresh autonomous turn, so a user's stop is never silently undone.
+	 */
+	#autoResumeSuppressed = false;
 	/** Submissions accepted by prompt()/promptCustomMessage()/sendCustomMessage() that have not
 	 *  yet dispatched a turn, queued, or bailed. Preprocessing (manual-compaction wait, slash
 	 *  commands, image normalization, vision description) runs before #promptInFlightCount is
@@ -1018,7 +973,6 @@ export class AgentSession implements SettingsScope {
 	#synchronouslyTerminatedYieldToolCallIds = new Set<string>();
 	#providerSessionState = new Map<string, ProviderSessionState>();
 	readonly #cacheWarmer: CacheWarmer | undefined;
-	#hindsightSessionState: HindsightSessionState | undefined = undefined;
 	readonly #memory: SessionMemory;
 	readonly rawSseDebugBuffer: RawSseDebugBuffer;
 
@@ -1109,11 +1063,6 @@ export class AgentSession implements SettingsScope {
 		// so they neither auto-resume the run the user stopped (a non-empty steer queue
 		// otherwise bypasses the latch in #canAutoContinueForFollowUp) nor linger to
 		// flush at the next prompt. Real user steers/follow-ups are left untouched.
-		if (this.#advisors.autoResumeSuppressed && !this.isStreaming) {
-			for (const card of this.#extractQueuedAdvisorCards()) {
-				this.#preserveAdvisorCard(card);
-			}
-		}
 		this.#scheduleQueuedMessageDrain();
 		this.#resumeStrandedIrcAsides();
 	}
@@ -1150,12 +1099,10 @@ export class AgentSession implements SettingsScope {
 			this.#foldStrandedIrcAsidesIntoContext(records);
 			return;
 		}
-		if (this.#advisors.autoResumeSuppressed) {
-			// A user interrupt is still in effect (clearQueue({ forInterrupt: true }) already
-			// dropped these same records from the agent-core queues to keep the run the user
-			// stopped from auto-resuming). Only a real peer IRC message justifies waking a fresh
-			// turn here; extension/user asides fold into context like the plan-mode branch above,
-			// staying user-driven until the next deliberate prompt.
+		if (this.#autoResumeSuppressed) {
+			// A user interrupt is still in effect. Only a real peer IRC message justifies
+			// waking a fresh turn here; extension/user asides fold into context like the
+			// plan-mode branch above, staying user-driven until the next deliberate prompt.
 			const wake: AgentMessage[] = [];
 			const fold: AgentMessage[] = [];
 			for (const record of records) {
@@ -1310,40 +1257,6 @@ export class AgentSession implements SettingsScope {
 			});
 	}
 
-	/** Remove advisor concern/blocker cards from the agent-core steer/follow-up
-	 *  queues and return them. Used on a deliberate user interrupt so the post-abort
-	 *  stranded-message drain cannot auto-resume the run on an advisor card that was
-	 *  steered in just before the user stopped; real user follow-ups stay queued.
-	 *  Synchronous and await-free so it runs before the abort path polls the queue. */
-	#extractQueuedAdvisorCards(): CustomMessage[] {
-		const steering = this.agent.peekSteeringQueue();
-		const followUp = this.agent.peekFollowUpQueue();
-		const cards = [...steering, ...followUp].filter(isAdvisorCard);
-		if (cards.length === 0) return [];
-		this.agent.replaceQueues(
-			steering.filter(m => !isAdvisorCard(m)),
-			followUp.filter(m => !isAdvisorCard(m)),
-		);
-		this.#reconcileQueuedMessageDrain();
-		return cards;
-	}
-
-	/** Record a suppressed advisor concern as visible, persisted advice without
-	 *  triggering a turn. When the agent is idle (the normal post-interrupt case,
-	 *  including the post-prompt unwind window where the core loop has ended), emit
-	 *  message_start/message_end like #flushPendingIrcAsides so #handleAgentEvent
-	 *  renders it live (TUI/ACP) and persists it as a CustomMessageEntry. Only while
-	 *  an abort is still tearing a live turn down do we park it hidden, so abort's
-	 *  settle step replays it once idle — never appended into a live streamMessage. */
-	#preserveAdvisorCard(card: CustomMessage): void {
-		if (this.#abortInProgress && this.isStreaming) {
-			this.#pendingNextTurnMessages.push(card);
-			return;
-		}
-		this.agent.emitExternalEvent({ type: "message_start", message: card });
-		this.agent.emitExternalEvent({ type: "message_end", message: card });
-	}
-
 	#resetInFlight(): void {
 		this.#promptInFlightCount = 0;
 		this.yieldQueue.requestIdleFlush();
@@ -1379,23 +1292,6 @@ export class AgentSession implements SettingsScope {
 			this.agent.hasQueuedMessages();
 		const ircContinuation = canDrain && !this.#isDisposed && !this.#planModeState?.enabled && this.#irc.hasPending();
 		this.#emit(queuedContinuation || ircContinuation ? { ...pending, isTerminal: false } : pending);
-	}
-
-	/**
-	 * Arm prewalk outside the normal startup path so an explicit slash command starts immediately.
-	 */
-	armPrewalk(target: Model, thinkingLevel?: ConfiguredThinkingLevel): boolean {
-		return this.#prewalk.arm(target, thinkingLevel);
-	}
-
-	/** Restore a planning model and re-arm prewalk without partially applying a rejected restart. */
-	restartPrewalk(
-		source: Model,
-		sourceThinkingLevel: ConfiguredThinkingLevel | undefined,
-		target: Model,
-		targetThinkingLevel: ConfiguredThinkingLevel | undefined,
-	): Promise<PrewalkRestartResult> {
-		return this.#prewalk.restart(source, sourceThinkingLevel, target, targetThinkingLevel);
 	}
 
 	/** Validate the active plan artifact and shape an `xd://propose` result for review-mode hosts. */
@@ -1496,18 +1392,15 @@ export class AgentSession implements SettingsScope {
 			wakeForIrc: records => this.#wakeForIrc(records),
 		};
 		this.#irc = new IrcBridge(ircHost);
-		const prewalkHost: PrewalkCoordinatorHost = {
+		const planYoloHost: PlanYoloCoordinatorHost = {
 			agent: this.agent,
 			sessionManager: this.sessionManager,
 			settings: this.settings,
-			model: () => this.model,
-			configuredThinkingLevel: () => this.configuredThinkingLevel(),
 			emitNotice: (level, message, source) => this.emitNotice(level, message, source),
 			setModelTemporary: (model, thinkingLevel, options) => this.setModelTemporary(model, thinkingLevel, options),
 			setActiveToolsByName: names => this.setActiveToolsByName(names),
 			restoreNonMCPToolPresentation: (nonMCPToolNames, nonMCPMountedToolNames) =>
 				this.restoreNonMCPToolPresentation(nonMCPToolNames, nonMCPMountedToolNames),
-			getActiveToolNames: () => this.getActiveToolNames(),
 			getEnabledToolNames: () => this.getEnabledToolNames(),
 			getMountedXdevToolNames: () => this.getMountedXdevToolNames(),
 			hasBuiltInTool: name => this.hasBuiltInTool(name),
@@ -1515,13 +1408,9 @@ export class AgentSession implements SettingsScope {
 			setPlanModeState: state => this.setPlanModeState(state),
 			getPlanReferencePath: () => this.getPlanReferencePath(),
 			setPlanProposalHandler: handler => this.setPlanProposalHandler(handler),
-			waitForSessionMessagePersistence: message => this.#waitForSessionMessagePersistence(message),
 			localProtocolOptions: () => this.#localProtocolOptions(),
 		};
-		this.#prewalk = new PrewalkCoordinator(prewalkHost, {
-			prewalk: config.prewalk,
-			planYolo: config.planYolo,
-		});
+		this.#planYolo = new PlanYoloCoordinator(planYoloHost, config.planYolo);
 		const todoHost: TodoTrackerHost = {
 			agent: this.agent,
 			sessionManager: this.sessionManager,
@@ -1536,7 +1425,6 @@ export class AgentSession implements SettingsScope {
 			getEnabledToolNames: () => this.getEnabledToolNames(),
 			toolRegistry: () => this.#tools.registry,
 			planModeEnabled: () => this.#planModeState?.enabled === true,
-			prewalkWillHandoff: () => this.#prewalk.willHandoff,
 			consumeLastServedToolChoiceLabel: () => this.#toolChoiceQueue.consumeLastServedLabel(),
 		};
 		this.#todo = new TodoTracker(todoHost);
@@ -1675,8 +1563,6 @@ export class AgentSession implements SettingsScope {
 			addDisposer: dispose => this.addDisposer(dispose),
 			emitNotice: (level, message, source) => this.emitNotice(level, message, source),
 			memoryBackendSession: () => this,
-			getHindsightSessionState: () => this.getHindsightSessionState(),
-			setHindsightSessionState: state => this.setHindsightSessionState(state),
 			getMnemopiSessionState: () => this.getMnemopiSessionState(),
 			takeMnemopiSessionState: () => setMnemopiSessionState(this, undefined),
 			setBaseSystemPrompt: prompt => {
@@ -1739,9 +1625,7 @@ export class AgentSession implements SettingsScope {
 				await this.#applyRewind(rewindReport, messages, context);
 			}
 			this.#loopGuards.recordTurn(messages, context);
-			await this.#prewalk.advanceAtTurnEnd(messages, context);
 			if (context?.willContinue) this.#steerAnthropicWrapUp();
-			await this.#advisors.onPrimaryTurnEnd(messages, context?.willContinue, signal);
 			await this.#maintenance.maintainContextMidRun(messages, signal, context);
 		});
 		this.yieldQueue = new YieldQueue({
@@ -2009,68 +1893,6 @@ export class AgentSession implements SettingsScope {
 			};
 		});
 
-		const advisorsHost: SessionAdvisorsHost = {
-			agent: this.agent,
-			sessionManager: this.sessionManager,
-			settings: this.settings,
-			modelRegistry: this.#modelRegistry,
-			yieldQueue: this.yieldQueue,
-			obfuscator: () => this.#obfuscator,
-			providerSessionState: this.#providerSessionState,
-			preferWebsockets: () => this.preferWebsockets,
-			onPayload: this.#onPayload,
-			onResponse: this.#onResponse,
-			onSseEvent: this.#onSseEvent,
-			isDisposed: () => this.#isDisposed,
-			abortInProgress: () => this.#abortInProgress,
-			allowAgentInitiatedTurns: () => this.#allowAcpAgentInitiatedTurns,
-			planModeState: () => this.#planModeState,
-			clientBridge: () => this.#clientBridge,
-			emitSessionEvent: event => this.#emitSessionEvent(event),
-			emitNotice: (level, message, source) => this.emitNotice(level, message, source),
-			sendCustomMessage: (message, options) => this.sendCustomMessage(message, options),
-			extractQueuedAdvisorCards: () => this.#extractQueuedAdvisorCards(),
-			dropPendingAdvisorCards: () => {
-				this.#pendingNextTurnMessages = this.#pendingNextTurnMessages.filter(message => !isAdvisorCard(message));
-			},
-			preserveAdvisorCard: card => this.#preserveAdvisorCard(card),
-			hasPendingNextTurnMessages: () => this.#pendingNextTurnMessages.length > 0,
-			convertToLlmForSideRequest: messages => this.#convertToLlmForSideRequest(messages),
-			effectiveServiceTier: model => this.#models.effectiveServiceTier(model),
-			resolveContextPromotionTarget: (model, contextWindow, signal) =>
-				this.#maintenance.resolveContextPromotionTarget(model, contextWindow, signal),
-			resolveCompactionModelCandidates: (model, availableModels) =>
-				this.#maintenance.resolveCompactionModelCandidates(model, availableModels),
-			resolveRetryFallbackRole: (selector, model, roleHint) =>
-				this.#recovery.resolveRetryFallbackRole(selector, model, roleHint),
-			retryFallbackChainKeys: (selector, model, options) =>
-				this.#recovery.retryFallbackChainKeys(selector, model, options),
-			findRetryFallbackCandidates: (role, selector, model) =>
-				this.#recovery.findRetryFallbackCandidates(role, selector, model),
-			isRetryFallbackSelectorSuppressed: selector => this.#recovery.isRetryFallbackSelectorSuppressed(selector),
-			noteRetryFallbackCooldown: (selector, retryAfterMs, errorMessage) =>
-				this.#recovery.noteRetryFallbackCooldown(selector, retryAfterMs, errorMessage),
-			createCodexCompactionContext: createMaintenanceCodexCompactionContext,
-			sessionId: () => this.sessionId,
-		};
-		this.#advisors = new SessionAdvisors(advisorsHost, {
-			enabled: cfgAdvisorEnabled.get(this.settings),
-			tools: config.advisorTools,
-			createGrepTool: config.advisorCreateGrepTool,
-			createEditTool: config.advisorCreateEditTool,
-			getToolContext: config.advisorGetToolContext,
-			mcpResources: config.advisorMcpResources,
-			watchdogPrompt: config.advisorWatchdogPrompt,
-			sharedInstructions: config.advisorSharedInstructions,
-			sharedMaxNotesPerUpdate: config.advisorSharedMaxNotesPerUpdate,
-			contextPrompt: config.advisorContextPrompt,
-			memoryPrompt: config.advisorMemoryPrompt,
-			configs: config.advisorConfigs,
-			configWarnings: config.advisorConfigWarnings,
-			streamFn: config.advisorStreamFn,
-			transformProviderContext: config.transformProviderContext,
-		});
-
 		const maintenanceHost: SessionMaintenanceHost = {
 			agent: this.agent,
 			sessionManager: this.sessionManager,
@@ -2141,8 +1963,6 @@ export class AgentSession implements SettingsScope {
 				this.#todo.syncFromBranch();
 				this.#modelMentions.syncFromBranch();
 			},
-			resetAdvisorRuntimes: (reason?: string) => this.#advisors.resetAllRuntimes(reason),
-			rebaseAdvisorPrefix: reason => this.#advisors.rebaseDeliveredPrefixes(reason),
 			rebaseAfterCompaction: () => this.#stats.rebaseAfterCompaction(),
 			recordAnchoredHistoryRewrite: tokensRemoved => this.#stats.recordAnchoredHistoryRewrite(tokensRemoved),
 			getContextBreakdown: options => this.getContextBreakdown(options),
@@ -2197,14 +2017,12 @@ export class AgentSession implements SettingsScope {
 		this.#unsubscribeQueueChange = this.agent.onQueueChange(() => this.#emitQueueUpdateIfChanged());
 		// Re-evaluate append-only context mode when the setting changes at runtime.
 		cfgProviderAppendOnlyContext.listen(this, () => this.#syncAppendOnlyContext(this.model));
-		cfgModelRoles.listen(this, () => this.#advisors.reconcileModelRoles());
 		// Re-derive the active model's effective context window when the
 		// extended-context setting flips at runtime: the registry re-clamps (or
 		// restores) premium long-context windows, and the live model object must
 		// follow so compaction thresholds and context display react immediately.
 		cfgExtendedContext.listen(this, () => this.#reapplyExtendedContextPolicy());
 		cfgBrowserEnabled.listen(this, enabled => this.#reconcileEvalPreludeSetting("browser.enabled", enabled));
-		cfgComputerEnabled.listen(this, enabled => this.#reconcileEvalPreludeSetting("computer.enabled", enabled));
 		cfgBrowserIdleCloseSec.listen(this, seconds => {
 			const ownerId = this.sessionManager.getSessionId() ?? "";
 			// Any change invalidates the armed deadline: cancel first (its
@@ -2227,10 +2045,9 @@ export class AgentSession implements SettingsScope {
 		// fire-and-forget (before the session in the SDK path, right after it in
 		// the CLI path), so discovery-backed providers (e.g. GitHub Copilot, or a
 		// models.yml LiteLLM provider with a cold cache) may not be populated yet.
-		// Reactivate a `no_model` advisor (#9010), retract stale
-		// retry.fallbackChains warnings (#10048), and rebind the active model to
-		// its refreshed same-selector entry (#10488) once discovery settles.
-		void this.#retryInactiveAdvisorAfterModelDiscovery();
+		// Retract stale retry.fallbackChains warnings (#10048) and rebind the
+		// active model to its refreshed same-selector entry (#10488) once
+		// discovery settles.
 		void this.#revalidateFallbackChainsAfterModelDiscovery();
 		if (config.rebindModelAfterDiscovery) void this.#rebindActiveModelAfterModelDiscovery();
 		this.#watchWorkspaceAndPowerSettings();
@@ -2244,13 +2061,13 @@ export class AgentSession implements SettingsScope {
 	}
 
 	/**
-	 * `browser.enabled` / `computer.enabled` change the live eval preludes; the browser toggle also
-	 * re-filters its MCP tools first. An empty transcript rebuilds the system prompt to advertise
-	 * them; mid-session the cached prompt stays byte-stable and the next user prompt carries a
-	 * hidden prelude notice instead (see {@link SessionTools.takeEvalPreludeNotice}).
+	 * `browser.enabled` changes the live eval preludes; it also re-filters its MCP tools first.
+	 * An empty transcript rebuilds the system prompt to advertise them; mid-session the cached
+	 * prompt stays byte-stable and the next user prompt carries a hidden prelude notice instead
+	 * (see {@link SessionTools.takeEvalPreludeNotice}).
 	 * A failed browser switch-on reverts to off.
 	 */
-	async #reconcileEvalPreludeSetting(path: "browser.enabled" | "computer.enabled", enabled: boolean): Promise<void> {
+	async #reconcileEvalPreludeSetting(path: "browser.enabled", enabled: boolean): Promise<void> {
 		try {
 			if (path === "browser.enabled" && this.#reconcileBrowserMcpFilter) {
 				const tools = await this.#reconcileBrowserMcpFilter(enabled);
@@ -2268,45 +2085,14 @@ export class AgentSession implements SettingsScope {
 	/**
 	 * `disabledProviders`: reads filter at use time; the catalog rebuild re-seeds
 	 * re-enabled providers (implicit local servers, cached discoveries).
-	 * `prewalk.enabled` (top-level sessions): arms the default hand-off or drops a
-	 * pending one, effective from the next turn.
 	 */
 	#watchModelAvailabilitySettings(): void {
 		cfgDisabledProviders.listen(this, () => this.#modelRegistry.reapplyModelPolicies());
-		if (this.#agentKind !== "main") return;
-		cfgPrewalkEnabled.listen(this, enabled => {
-			if (!enabled) {
-				this.#prewalk.disarm();
-				return;
-			}
-			if (this.#prewalk.state) return;
-			const scoped = this.scopedModels.map(entry => entry.model);
-			const resolved = resolveCliModel({
-				cliModel: DEFAULT_PREWALK_TARGET,
-				modelRegistry: this.#modelRegistry,
-				availableModels: scoped.length > 0 ? scoped : undefined,
-				settings: this.settings,
-				preferences: getModelMatchPreferences(this.settings),
-			});
-			const target = resolved.model;
-			const problem = !target
-				? (resolved.error ?? `model "${DEFAULT_PREWALK_TARGET}" not found`)
-				: cfgDisabledProviders.get(this.settings).includes(target.provider)
-					? `provider "${target.provider}" is disabled`
-					: !this.#modelRegistry.hasConfiguredAuth(target)
-						? `no API key for ${target.provider}/${target.id}`
-						: undefined;
-			if (!target || problem) {
-				this.emitNotice("warning", t("tui.session.prewalkNotArmed", { problem: String(problem) }), "prewalk");
-				return;
-			}
-			this.#prewalk.arm(target, resolved.thinkingLevel);
-		});
 	}
 
 	/**
 	 * Applies session-level settings (queue modes, sampling, service tiers,
-	 * advisors, think tool, skillful) to the live session whenever they change.
+	 * think tool, skillful) to the live session whenever they change.
 	 * Setters that persist route back here idempotently. `defaultThinkingLevel`
 	 * is deliberately absent: it seeds new sessions, and a later write (config
 	 * reload, another process, a parent session) must not override a running
@@ -2328,12 +2114,6 @@ export class AgentSession implements SettingsScope {
 		cfgTierOpenai.listen(this, tier => this.setServiceTierFamily("openai", serviceTierSettingToTier(tier)));
 		cfgTierAnthropic.listen(this, tier => this.setServiceTierFamily("anthropic", serviceTierSettingToTier(tier)));
 		cfgTierGoogle.listen(this, tier => this.setServiceTierFamily("google", serviceTierSettingToTier(tier)));
-		cfgAdvisorRuntimeInputs.listen(this, (next, previous) => {
-			// A budget/tier edit rebuilds a running advisor (both are part of its
-			// runtime signature) without overriding a session-only `/advisor` toggle.
-			if (next.enabled !== previous.enabled) this.setAdvisorEnabled(next.enabled);
-			else if (this.isAdvisorEnabled()) this.setAdvisorEnabled(true);
-		});
 		cfgExternalThinking.listen(this, async () => {
 			try {
 				await this.#tools.reconcileThinkTool();
@@ -2345,10 +2125,9 @@ export class AgentSession implements SettingsScope {
 		cfgSkillful.listen(this, skillful => this.#applySkillful(skillful));
 	}
 
-	/** Keeps workspace roots, the auto-QA prompt note, and the held power assertion in step with live settings. */
+	/** Keeps workspace roots and the held power assertion in step with live settings. */
 	#watchWorkspaceAndPowerSettings(): void {
 		this.#settingsWorkspaceDirectories = cfgWorkspaceAdditionalDirectories.get(this.settings);
-		this.#autoQaEnabled = isAutoQaEnabled(this.settings);
 		cfgPowerSleepPrevention.listen(this, () => {
 			// Swap the held assertion for the new mode mid-prompt; idle sessions
 			// pick the mode up when the next prompt begins.
@@ -2358,10 +2137,7 @@ export class AgentSession implements SettingsScope {
 		});
 		cfgWorkspacePromptInputs.listen(this, async () => {
 			const rootsChanged = await this.#syncSettingsWorkspaceDirectories();
-			const autoQaEnabled = isAutoQaEnabled(this.settings);
-			const autoQaChanged = autoQaEnabled !== this.#autoQaEnabled;
-			this.#autoQaEnabled = autoQaEnabled;
-			if ((rootsChanged || autoQaChanged) && !this.#isDisposed) await this.refreshBaseSystemPrompt();
+			if (rootsChanged && !this.#isDisposed) await this.refreshBaseSystemPrompt();
 		});
 	}
 
@@ -2537,16 +2313,6 @@ export class AgentSession implements SettingsScope {
 	/** Hint forwarded to provider calls that support websocket transport; read live from `providers.openaiWebsockets`. */
 	get preferWebsockets(): boolean | undefined {
 		return resolveOpenAIWebsocketPreference(this.settings);
-	}
-
-	getHindsightSessionState(): HindsightSessionState | undefined {
-		return this.#hindsightSessionState;
-	}
-
-	setHindsightSessionState(state: HindsightSessionState | undefined): HindsightSessionState | undefined {
-		const previous = this.#hindsightSessionState;
-		this.#hindsightSessionState = state;
-		return previous;
 	}
 
 	getMnemopiSessionState(): MnemopiSessionState | undefined {
@@ -3066,16 +2832,12 @@ export class AgentSession implements SettingsScope {
 		if (event.type === "tool_execution_end" && this.#isTerminalYieldToolResult(event)) {
 			const alreadyTerminated = this.#synchronouslyTerminatedYieldToolCallIds.delete(event.toolCallId);
 			if (!alreadyTerminated) {
-				this.#advisors.prepareForTerminalYieldAdvisorDrain();
 				this.#markTerminalYieldToolCall(event.toolCallId);
 				this.agent.abort(TERMINAL_TOOL_RESULT_ABORT_REASON);
 			}
 		}
 		if (event.type !== "agent_end") {
 			const processing = this.#processAgentEvent(event);
-			if ((event.type === "message_start" || event.type === "message_end") && isAdvisorCard(event.message)) {
-				this.#advisors.trackCardEvent(processing);
-			}
 			return processing;
 		}
 		const { promise, resolve } = Promise.withResolvers<void>();
@@ -3295,9 +3057,9 @@ export class AgentSession implements SettingsScope {
 			return;
 		}
 		if (message.role === "hookMessage" || message.role === "custom") {
-			// One-run instructions must not return from persisted history: prewalk
-			// nudges are consumed once, and Vibe context is rebuilt only while active.
-			if (!isPrewalkPlanNudge(message) && message.customType !== VIBE_MODE_CONTEXT_MESSAGE_TYPE) {
+			// One-run instructions must not return from persisted history: Vibe
+			// context is rebuilt only while active.
+			if (message.customType !== VIBE_MODE_CONTEXT_MESSAGE_TYPE) {
 				this.sessionManager.appendCustomMessageEntry(
 					message.customType,
 					message.content,
@@ -3418,7 +3180,6 @@ export class AgentSession implements SettingsScope {
 		if (event.type === "agent_start") {
 			this.#activeAgentPromptGeneration = eventPromptGeneration;
 			this.#prunedTerminalFailure = undefined;
-			this.#advisors.onPrimaryAgentStart();
 			this.#emitRunState("running");
 			this.#maintenance.noteTurnStarted();
 		}
@@ -3556,7 +3317,6 @@ export class AgentSession implements SettingsScope {
 		}
 
 		if (event.type === "turn_start") {
-			this.#advisors.onPrimaryTurnStart();
 			const usage = this.getSessionStats().tokens;
 			this.#goalRuntime.onTurnStart(`turn-${++this.#goalTurnCounter}`, {
 				input: usage.input,
@@ -4505,7 +4265,6 @@ export class AgentSession implements SettingsScope {
 				result: ctx.result,
 			})
 		) {
-			this.#advisors.prepareForTerminalYieldAdvisorDrain();
 			this.#markTerminalYieldToolCall(ctx.toolCall.id);
 			this.#synchronouslyTerminatedYieldToolCallIds.add(ctx.toolCall.id);
 			this.agent.abort(TERMINAL_TOOL_RESULT_ABORT_REASON);
@@ -4531,20 +4290,14 @@ export class AgentSession implements SettingsScope {
 			return ttsrResult;
 		}
 		if (!runner?.hasHandlers("tool_call")) return undefined;
-		const metadata = ctx.toolCall.providerMetadata;
-		const computer = metadata?.type === "computer" ? metadata : undefined;
 		// Parity with the wrapper's pre-emit short-circuit: an already-denied
 		// call never reaches extensions. Deny is mode-independent (tool decision
 		// or user policy), so resolving under the most permissive mode is exact;
 		// the wrapper still enforces the mode-accurate gate before execution.
 		const userPolicies: Record<string, unknown> = cfgToolsApproval.get(this.settings);
-		const approvalArgs = computer ? { actions: computer.actions } : ctx.args;
-		if (resolveApproval(ctx.tool, approvalArgs, "yolo", userPolicies).policy === "deny") {
+		if (resolveApproval(ctx.tool, ctx.args, "yolo", userPolicies).policy === "deny") {
 			return undefined;
 		}
-		const eventArgs = computer
-			? { actions: computer.actions, pendingSafetyChecks: computer.pendingSafetyChecks }
-			: ctx.args;
 		runner.markToolCallEmitted(ctx.toolCall.id, ctx.tool.name);
 		let callResult: Awaited<ReturnType<ExtensionRunner["emitToolCall"]>>;
 		try {
@@ -4553,7 +4306,7 @@ export class AgentSession implements SettingsScope {
 					type: "tool_call",
 					toolName: ctx.tool.name,
 					toolCallId: ctx.toolCall.id,
-					input: normalizeToolEventInput(ctx.tool.name, resolveToolEventInput(ctx.tool, eventArgs)),
+					input: normalizeToolEventInput(ctx.tool.name, resolveToolEventInput(ctx.tool, ctx.args)),
 				},
 				signal,
 			);
@@ -4565,9 +4318,7 @@ export class AgentSession implements SettingsScope {
 			runner.clearLoopToolCall?.(ctx.toolCall.id, ctx.tool.name);
 			return { block: true, reason: callResult.reason || "Tool execution was blocked by an extension" };
 		}
-		// A computer call's event input is a synthetic {actions, pendingSafetyChecks}
-		// view, not the execution params — a revision cannot map back onto them.
-		const args = callResult?.input !== undefined && !computer ? callResult.input : undefined;
+		const args = callResult?.input;
 		const additionalContext = callResult?.additionalContext;
 		if (args === undefined && additionalContext === undefined) return undefined;
 		return { args, additionalContext };
@@ -5074,12 +4825,6 @@ export class AgentSession implements SettingsScope {
 		if (!this.#freshProviderSessionId) {
 			seedCredentialPins(this.#modelRegistry.authStorage, this.sessionManager, sid);
 		}
-		// Keep every live advisor's provider identity in lockstep with the primary's
-		// across every session-boundary transition — including branch paths that
-		// skip conversation restore — so advisors never emit the previous
-		// conversation's session id/metadata (issue #6625). Guarded because this
-		// runs once during construction before the advisor controller exists.
-		if (this.#advisors) this.#advisors.refreshProviderIdentity();
 	}
 
 	#notifySessionChangeCallbacks(): void {
@@ -5089,44 +4834,6 @@ export class AgentSession implements SettingsScope {
 			} catch (error) {
 				logger.warn("Session change callback failed", { error: String(error) });
 			}
-		}
-	}
-
-	/** Run one abortable auto-learn capture outside the primary agent loop. */
-	async runAutolearnCapture(capture: (signal: AbortSignal) => Promise<void>): Promise<void> {
-		if (this.#autolearnCaptureTask || this.#isDisposed) return;
-		const controller = new AbortController();
-		this.#autolearnCaptureAbortController = controller;
-		const task = (async () => {
-			try {
-				await capture(controller.signal);
-			} catch (error) {
-				if (!controller.signal.aborted) throw error;
-			} finally {
-				if (this.#autolearnCaptureAbortController === controller) {
-					this.#autolearnCaptureAbortController = undefined;
-				}
-			}
-		})();
-		this.#autolearnCaptureTask = task;
-		try {
-			await task;
-		} finally {
-			if (this.#autolearnCaptureTask === task) this.#autolearnCaptureTask = undefined;
-		}
-	}
-
-	#abortAutolearnCapture(): void {
-		this.#autolearnCaptureAbortController?.abort();
-	}
-
-	async #drainAutolearnCapture(): Promise<void> {
-		const task = this.#autolearnCaptureTask;
-		if (!task) return;
-		try {
-			await withTimeout(task, 3_000, "Timed out draining auto-learn capture during dispose");
-		} catch (error) {
-			logger.warn("Auto-learn capture did not settle during dispose", { error: String(error) });
 		}
 	}
 
@@ -5166,13 +4873,11 @@ export class AgentSession implements SettingsScope {
 		}
 		this.#memory.cancelLocalMemoryStartup();
 		this.#titleGenerationAbortController.abort();
-		this.#abortAutolearnCapture();
 		this.#irc.flushPending();
 		this.yieldQueue.clear();
 		this.agent.setAsideMessageProvider(undefined);
 		this.agent.hasIrcInterrupts = undefined;
 		this.agent.hasBackgroundCompletions = undefined;
-		this.#advisors.stopRuntime();
 		this.#eval.beginDispose();
 	}
 
@@ -5279,19 +4984,6 @@ export class AgentSession implements SettingsScope {
 		}
 	}
 
-	async #releaseOwnedComputerSessions(ownerId: string | undefined): Promise<void> {
-		if (!ownerId) return;
-		try {
-			await withTimeout(
-				releaseComputerSessionsForOwner(ownerId),
-				3_000,
-				"Timed out releasing native computer session during dispose",
-			);
-		} catch (error) {
-			logger.warn("Failed to release native computer session during dispose", { error: String(error) });
-		}
-	}
-
 	async #disconnectOwnedMcp(): Promise<void> {
 		if (!this.#disconnectOwnedMcpManager) return;
 		try {
@@ -5352,10 +5044,8 @@ export class AgentSession implements SettingsScope {
 		} catch (error) {
 			logger.warn("Post-prompt tasks still draining at dispose deadline", { error: String(error) });
 		}
-		await this.#drainAutolearnCapture();
 		await this.#memory.transition;
 
-		const hindsightState = this.getHindsightSessionState();
 		const mnemopiState = setMnemopiSessionState(this, undefined);
 		// Bound the wait for a just-fired sharpshooter extraction before dropping
 		// its subscriptions, so print-mode exits don't cut queued-delta writes.
@@ -5365,16 +5055,12 @@ export class AgentSession implements SettingsScope {
 		} catch (error) {
 			logger.warn("Session dispose: Sharpshooter release failed", { error: String(error) });
 		}
-		const advisorRecorderClosed = this.#advisors.recorderClosed();
 		const results = await Promise.allSettled([
 			this.#disposeOwnedAsyncJobs(),
 			this.#eval.disposeKernels(),
 			this.#releaseOwnedBrowserTabs(this.sessionManager.getSessionId()),
-			this.#releaseOwnedComputerSessions(this.#eval.getKernelOwnerId()),
 			shutdownTinyTitleClient(),
 			this.#disconnectOwnedMcp(),
-			advisorRecorderClosed,
-			hindsightState?.flushRetainQueue() ?? Promise.resolve(),
 			this.#disposeMnemopi(mnemopiState, options.mnemopiConsolidateTimeoutMs),
 			sharpshooterFlushed,
 		]);
@@ -5391,8 +5077,6 @@ export class AgentSession implements SettingsScope {
 		this.#movedFromEmptySessionFile = undefined;
 		this.#closeAllProviderSessions("dispose");
 		this.#maintenance.cancelSpeculation();
-		this.setHindsightSessionState(undefined);
-		hindsightState?.dispose();
 		this.#disconnectFromAgent();
 		// beginDispose() drained the rest; this catches registrations made during teardown.
 		for (const dispose of this.#disposers.splice(0)) dispose();
@@ -5602,7 +5286,6 @@ export class AgentSession implements SettingsScope {
 
 		// Re-prime the advisors across the conversation boundary and undo any
 		// memory promotion so the next turn rebuilds from the base system prompt.
-		this.#advisors.resetSessionState();
 		await this.#memory.resetContextForNewTranscript();
 
 		// Record a durable boundary on the persisted branch. The collapsed live
@@ -5791,7 +5474,6 @@ export class AgentSession implements SettingsScope {
 	async waitForIdle(): Promise<void> {
 		while (true) {
 			await this.agent.waitForIdle();
-			await this.#advisors.waitForPendingCardEvents();
 			// Core subscribers run asynchronously. Retry recovery can still be
 			// rewriting entries before it publishes auto_retry_end.
 			await this.#drainInFlightEventHandlers();
@@ -5799,24 +5481,6 @@ export class AgentSession implements SettingsScope {
 			if (!this.agent.state.isStreaming && this.#inFlightEventHandlers.size === 0) return;
 		}
 	}
-	/**
-	 * Prevent advisor notes from starting hidden primary turns while a headless
-	 * caller prints and drains the final primary response.
-	 */
-	prepareForHeadlessAdvisorDrain(): void {
-		this.#advisors.prepareForHeadlessAdvisorDrain();
-	}
-
-	/**
-	 * Wait for active advisor reviews and their emitted card events before a
-	 * headless caller disposes the session. Returns `false` and logs work disposal
-	 * will abandon when the shared deadline expires or an advisor fails;
-	 * `waitThroughRecovery` waits through a failing advisor's fallback recovery.
-	 */
-	waitForAdvisorCatchup(timeoutMs: number, options?: { waitThroughRecovery?: boolean }): Promise<boolean> {
-		return this.#advisors.waitForAdvisorCatchup(timeoutMs, options);
-	}
-
 	async drainAsyncJobDeliveriesForAcp(options?: { timeoutMs?: number }): Promise<boolean> {
 		const manager = this.#asyncJobManager;
 		if (!manager) return false;
@@ -6322,11 +5986,6 @@ export class AgentSession implements SettingsScope {
 		return this.#planModeState;
 	}
 
-	/** Prewalk state, if armed and active */
-	getPrewalkState(): Prewalk | undefined {
-		return this.#prewalk.state;
-	}
-
 	setPlanModeState(state: PlanModeState | undefined): void {
 		this.#planModeState = state;
 		if (state?.enabled) {
@@ -6375,7 +6034,6 @@ export class AgentSession implements SettingsScope {
 		this.#pendingNextTurnMessages = this.#pendingNextTurnMessages.filter(message => !isVibeContext(message));
 
 		if (!historyChanged) return;
-		this.#advisors.resetAllRuntimes("vibe-mode-exit");
 		this.#closeCodexProviderSessionsForHistoryRewrite();
 	}
 
@@ -6906,10 +6564,10 @@ export class AgentSession implements SettingsScope {
 		const keywordNotices = options?.synthetic ? [] : this.#createMagicKeywordNotices(expandedText);
 
 		// A user-initiated prompt (typed message or the `.`/`c` continue shortcut)
-		// re-enables advisor auto-resume that a prior user interrupt suppressed.
+		// re-enables auto-resume that a prior user interrupt suppressed.
 		// Agent-initiated synthetic prompts (auto-continue, plan, reminders) do not.
 		if (options?.userInitiated ?? !options?.synthetic) {
-			this.#advisors.autoResumeSuppressed = false;
+			this.#autoResumeSuppressed = false;
 			this.#planModeReminderCount = 0;
 			this.#planModeReminderAwaitingProgress = false;
 			// A user turn owns the next decision; drop a queued forced choice from
@@ -7396,7 +7054,7 @@ export class AgentSession implements SettingsScope {
 				await this.#maintenance.checkCompaction(lastAssistant, false, false, false);
 			}
 
-			await this.#prewalk.armPlanYoloIfNeeded();
+			await this.#planYolo.armIfNeeded();
 
 			// Build messages array (session context, eager todo prelude, then active prompt message)
 			const messages: AgentMessage[] = [];
@@ -7863,14 +7521,13 @@ export class AgentSession implements SettingsScope {
 		// description was in flight and drop a record that would otherwise land in a
 		// different session's queue.
 		const sessionGeneration = this.#sessionGeneration;
-		// A queued user message (RPC/SDK/collab steer or follow-up, or a typed message
-		// while streaming) is a deliberate resume; re-enable advisor auto-resume that
-		// a user interrupt suppressed. An aside is non-interrupting by design — it must
-		// not re-enable auto-resume a user interrupt deliberately suppressed, so it stays
-		// user-driven (folds into context via #resumeStrandedIrcAsides's post-interrupt
-		// branch) until the next deliberate steer/follow-up/prompt, matching the
-		// sendCustomMessage aside path (queueAside), which never touches this flag.
-		if (mode !== "aside") this.#advisors.autoResumeSuppressed = false;
+		// A queued user message (RPC/SDK steer or follow-up, or a typed message while
+		// streaming) is a deliberate resume; re-enable auto-resume that a user interrupt
+		// suppressed. An aside is non-interrupting by design — it must not re-enable
+		// auto-resume a user interrupt deliberately suppressed, so it stays user-driven
+		// (folds into context via #resumeStrandedIrcAsides's post-interrupt branch) until
+		// the next deliberate steer/follow-up/prompt.
+		if (mode !== "aside") this.#autoResumeSuppressed = false;
 		// The pre-dispatch re-check in prompt() arrives with normalization and the
 		// vision description already done — reuse them instead of paying a second
 		// vision-model request for the same attachment.
@@ -7981,11 +7638,9 @@ export class AgentSession implements SettingsScope {
 		// why a queued user steer stranded behind a preserved advisor card (or a flushed IRC aside
 		// / eval execution record) still resumes — no tail-role enumeration needed.
 		if (this.agent.peekSteeringQueue().length > 0) return true;
-		// Follow-up-only auto-resume stays suppressed while a deliberate user interrupt is in effect
-		// (#advisorAutoResumeSuppressed, cleared on the next user prompt): the user stopped, so their
-		// queued follow-up waits for an explicit resume — even if an interleaving IRC wake turn has
-		// since left a provider-valid tail.
-		if (this.#advisors.autoResumeSuppressed) return false;
+		// Follow-up-only auto-resume stays suppressed while a deliberate user interrupt is in
+		// effect: the user stopped, so their queued follow-up waits for an explicit resume.
+		if (this.#autoResumeSuppressed) return false;
 		// Follow-up-only resume has no steer to inject, so Agent.continue() continues from the
 		// existing context tail — which must itself be a valid provider tail. An injected
 		// non-conversational tail (advisor card → `developer`, bash/python execution) would make
@@ -8338,18 +7993,18 @@ export class AgentSession implements SettingsScope {
 				this.#foldStrandedIrcAsidesIntoContext([normalizedAppMessage]);
 				return false;
 			}
-			if (this.#advisors.autoResumeSuppressed) {
-				// A user interrupt (Esc) is still in effect. isStreaming was true when this method
-				// was entered but image normalization above outlasted the interrupt, landing here
-				// instead of the streaming branch's queueAside — starting a fresh autonomous turn
-				// would undo the user's deliberate stop. Fold into context (same event-emitting path
-				// as the plan-mode branch above) and stay user-driven, matching
-				// #resumeStrandedIrcAsides's post-interrupt fold branch.
-				this.#foldStrandedIrcAsidesIntoContext([normalizedAppMessage]);
-				return false;
-			}
 			if (this.#clientBridge?.deferAgentInitiatedTurns && !this.#allowAcpAgentInitiatedTurns) {
 				this.#queueHiddenNextTurnMessage(normalizedAppMessage, false);
+				return false;
+			}
+			if (this.#autoResumeSuppressed) {
+				// A user interrupt (Esc) is still in effect. isStreaming was true when this
+				// method was entered but image normalization above outlasted the interrupt,
+				// landing here instead of the streaming branch's queueAside — starting a fresh
+				// autonomous turn would undo the user's deliberate stop. Fold into context
+				// (same event-emitting path as the plan-mode branch above) and stay
+				// user-driven, matching #resumeStrandedIrcAsides's post-interrupt fold branch.
+				this.#foldStrandedIrcAsidesIntoContext([normalizedAppMessage]);
 				return false;
 			}
 			outcome.sessionClaimed = await this.#promptAgentInitiatedMessage(normalizedAppMessage, {
@@ -8949,11 +8604,7 @@ export class AgentSession implements SettingsScope {
 	}): Promise<void> {
 		const userInterrupt = options?.reason === USER_INTERRUPT_LABEL;
 		this.#pendingAbortErrorId = userInterrupt ? AIError.create(AIError.Flag.UserInterrupt) : undefined;
-		if (userInterrupt) this.#advisors.autoResumeSuppressed = true;
-		// Pull advisor concerns out of the steer/follow-up queues before any await so
-		// the post-abort stranded-message drain can't auto-resume the run on them.
-		// They are re-recorded as visible advice once the agent settles (below).
-		const strandedAdvisorCards = userInterrupt ? this.#extractQueuedAdvisorCards() : [];
+		if (userInterrupt) this.#autoResumeSuppressed = true;
 		// Session switch/compact paths disconnect first; explicit aborts should
 		// leave any queued steer/follow-up visible for the user rather than
 		// auto-starting a fresh turn during cleanup.
@@ -8961,7 +8612,6 @@ export class AgentSession implements SettingsScope {
 		try {
 			this.#titleGenerationAbortController.abort();
 			if (!this.#isDisposed) this.#titleGenerationAbortController = new AbortController();
-			this.#abortAutolearnCapture();
 			for (const controller of this.#usagePreflightAbortControllers) controller.abort();
 			this.abortRetry();
 			this.#promptGeneration++;
@@ -8994,7 +8644,6 @@ export class AgentSession implements SettingsScope {
 			// Do not let abort-and-replace callers start a new prompt before that cleanup
 			// finishes, or the replacement turn's events are neither forwarded nor persisted.
 			await manualCompactionCleanup;
-			await this.#drainAutolearnCapture();
 			await this.#goalRuntime.onTaskAborted({ reason: options?.goalReason ?? "interrupted" });
 			// Clear prompt-in-flight state: waitForIdle resolves when the agent loop's finally
 			// block runs, but nested prompt setup/finalizers may still be unwinding. Without this,
@@ -9008,19 +8657,6 @@ export class AgentSession implements SettingsScope {
 			// so any requeue callback still fires and the queue stays consistent.
 			if (this.#toolChoiceQueue.hasInFlight) {
 				this.#toolChoiceQueue.reject("aborted");
-			}
-			// Re-record advisor concerns the interrupt would otherwise strand, as
-			// visible/persisted advice without triggering a turn (the agent is idle
-			// now): cards steered into the queue before the user stopped, plus any
-			// that arrived via AdviseTool routing mid-abort and were parked hidden in
-			// #pendingNextTurnMessages while the turn was still tearing down. Other
-			// deferred next-turn context (non-advisor) stays queued, in order.
-			const parkedAdvisorCards = this.#pendingNextTurnMessages.filter(isAdvisorCard);
-			if (parkedAdvisorCards.length > 0) {
-				this.#pendingNextTurnMessages = this.#pendingNextTurnMessages.filter(m => !isAdvisorCard(m));
-			}
-			for (const card of [...strandedAdvisorCards, ...parkedAdvisorCards]) {
-				this.#preserveAdvisorCard(card);
 			}
 		} finally {
 			this.#abortInProgress = false;
@@ -9053,16 +8689,13 @@ export class AgentSession implements SettingsScope {
 		}
 
 		this.#disconnectFromAgent();
-		let advisorRecordersDetached = false;
 		await this.abort();
 		this.#cancelOwnAsyncJobs();
 		this.#closeAllProviderSessions("new session");
 		await this.#bash.flushPending();
 		const bashTransition = this.#bash.beginSessionTransition({ persistDetached: options?.drop !== true });
 		let sessionTransitioned = false;
-		try {
-			advisorRecordersDetached = true;
-			await this.#advisors.drainAndDetachRecorders();
+		{
 			try {
 				this.#releaseQueuedTtsrReservations();
 				this.agent.reset();
@@ -9081,10 +8714,6 @@ export class AgentSession implements SettingsScope {
 					additionalDirectories: cfgWorkspaceAdditionalDirectories.get(this.settings),
 				});
 				this.#bash.markSessionTransition(bashTransition);
-				// The new session owns the transcript from here, so the previous
-				// conversation's advisor spend is retired with it. Clearing at the commit
-				// point keeps the status line honest even if a later step below throws.
-				this.#advisors.clearCost();
 				sessionTransitioned = true;
 			} finally {
 				this.#bash.finishSessionTransition(bashTransition, sessionTransitioned);
@@ -9126,8 +8755,6 @@ export class AgentSession implements SettingsScope {
 			this.#todo.resetCycle();
 			this.#planReferenceSent = false;
 			this.#planReferencePath = "local://PLAN.md";
-			this.#advisors.resetSessionState();
-			advisorRecordersDetached = false;
 			this.#reconnectToAgent();
 			// Drop the process-lifetime context-file cache so the rebuild re-reads
 			// AGENTS.md and friends from disk: the user may have edited them since
@@ -9149,11 +8776,6 @@ export class AgentSession implements SettingsScope {
 			}
 
 			return true;
-		} finally {
-			if (advisorRecordersDetached) {
-				if (sessionTransitioned) this.#advisors.resetSessionState();
-				else this.#advisors.reattachRecorderFeeds();
-			}
 		}
 	}
 
@@ -9192,12 +8814,7 @@ export class AgentSession implements SettingsScope {
 		await this.#bash.flushPending();
 		// Flush current session to ensure all entries are written
 		await this.sessionManager.flush();
-		let advisorRecordersDetached = false;
-		try {
-			advisorRecordersDetached = true;
-			// Fork keeps the conversation, but still needs a quiet artifact boundary:
-			// stop and settle in-flight advisors before muting their feeds.
-			await this.#advisors.drainAndDetachRecorders();
+		{
 			const bashTransition = this.#bash.beginSessionTransition();
 
 			// Fork the session (creates new session file with same entries)
@@ -9228,8 +8845,6 @@ export class AgentSession implements SettingsScope {
 			this.#adoptInheritedProviderPromptCacheKey();
 			this.#syncAgentSessionId();
 			this.#memory.rekeyForCurrentSessionId();
-			this.#advisors.reattachRecorderFeeds();
-			advisorRecordersDetached = false;
 			await this.#memory.resetContextForNewTranscript();
 
 			// Emit session_switch event with reason "fork" to hooks
@@ -9242,8 +8857,6 @@ export class AgentSession implements SettingsScope {
 			}
 
 			return true;
-		} finally {
-			if (advisorRecordersDetached) this.#advisors.reattachRecorderFeeds();
 		}
 	}
 
@@ -9743,7 +9356,6 @@ export class AgentSession implements SettingsScope {
 			activeMessages.splice(0, activeMessages.length, ...sessionContext.messages);
 		}
 		this.agent.replaceMessages(activeMessages ?? sessionContext.messages);
-		this.#advisors.resetSessionState({ preserveCost: true });
 		this.#todo.syncFromBranch();
 		this.#modelMentions.syncFromBranch();
 		this.#closeCodexProviderSessionsForHistoryRewrite();
@@ -9850,8 +9462,8 @@ export class AgentSession implements SettingsScope {
 			}
 		}
 		this.agent.setModel(model);
-		// Model mutations driven through ModelControls (explicit /model, prewalk
-		// hand-offs, retry-fallback, model cycling) funnel through this method,
+		// Model mutations driven through ModelControls (explicit /model,
+		// retry-fallback, model cycling) funnel through this method,
 		// so this is the single point that notifies subscribers (ACP config
 		// sync, RPC, TUI status line) — callers that bypass ModelControls never
 		// need to remember to notify separately. `switchSession`'s rollback
@@ -10430,8 +10042,6 @@ export class AgentSession implements SettingsScope {
 		sessionPath: string,
 		options?: {
 			onCwdChange?: (newCwd: string, previousCwd: string) => Promise<boolean>;
-			/** Collab snapshot adoption keeps the guest's process cwd and marks the replica runtime-only. */
-			preserveLocalCwd?: boolean;
 		},
 	): Promise<boolean> {
 		using _transition = this.#beginSessionTransition();
@@ -10522,30 +10132,21 @@ export class AgentSession implements SettingsScope {
 
 		let cwdChangeTarget: string | undefined;
 		try {
-			if (switchingToDifferentSession) {
-				// Stop and settle in-flight advisors while the old-session feeds can
-				// still observe message_end, then mute before swapping files.
-				await this.#advisors.drainAndDetachRecorders();
-			}
 			await this.sessionManager.setSessionFile(sessionPath);
 			this.#bash.markSessionTransition(bashTransition);
 			const newCwd = this.sessionManager.getCwd();
 			const recordedCwd = this.sessionManager.getRecordedCwd() ?? previousSessionState.cwd;
-			if (options?.preserveLocalCwd) {
-				this.sessionManager.setCwdWithoutRelocation(previousSessionState.cwd);
-			} else {
-				if (!options?.onCwdChange && path.resolve(recordedCwd) !== path.resolve(previousSessionState.cwd)) {
-					throw SESSION_CWD_CHANGE_REJECTED;
-				}
-				if (options?.onCwdChange) {
-					if (path.resolve(newCwd) !== path.resolve(previousSessionState.cwd)) {
-						cwdChangeTarget = newCwd;
-						if (!(await options.onCwdChange(newCwd, previousSessionState.cwd))) {
-							throw SESSION_CWD_CHANGE_REJECTED;
-						}
-					} else if (path.resolve(recordedCwd) !== path.resolve(previousSessionState.cwd)) {
+			if (!options?.onCwdChange && path.resolve(recordedCwd) !== path.resolve(previousSessionState.cwd)) {
+				throw SESSION_CWD_CHANGE_REJECTED;
+			}
+			if (options?.onCwdChange) {
+				if (path.resolve(newCwd) !== path.resolve(previousSessionState.cwd)) {
+					cwdChangeTarget = newCwd;
+					if (!(await options.onCwdChange(newCwd, previousSessionState.cwd))) {
 						throw SESSION_CWD_CHANGE_REJECTED;
 					}
+				} else if (path.resolve(recordedCwd) !== path.resolve(previousSessionState.cwd)) {
+					throw SESSION_CWD_CHANGE_REJECTED;
 				}
 			}
 			if (switchingToDifferentSession) {
@@ -10573,7 +10174,6 @@ export class AgentSession implements SettingsScope {
 
 			this.agent.replaceMessages(sessionContext.messages);
 			this.#reseedTokenRate();
-			this.#advisors.resetSessionState({ preserveCost: true });
 			this.#todo.syncFromBranch();
 			this.#modelMentions.syncFromBranch();
 			if (switchingToDifferentSession) {
@@ -10683,16 +10283,6 @@ export class AgentSession implements SettingsScope {
 					error: String(refreshErr),
 				});
 			}
-			// Hand the ledger over to the session that just took over, and only once the
-			// switch has committed: an earlier swap would be lost work if any step above
-			// rolled it back. The target's own advisor transcripts are the record of what
-			// it already spent, so a session with history resumes with its total instead
-			// of restarting at zero.
-			if (switchingToDifferentSession) {
-				const providersBySlug = new Map<string, Set<string>>();
-				const costs = await loadAdvisorTranscriptCosts(this.sessionFile, { providersBySlug });
-				this.#advisors.restoreCost(costs, providersBySlug);
-			}
 			this.#bash.finishSessionTransition(bashTransition, true);
 			// Keep the old reservations during rollback; the target is committed now,
 			// so the snapshotted old queues can no longer be restored.
@@ -10754,8 +10344,6 @@ export class AgentSession implements SettingsScope {
 			}
 			this.#todo.syncFromBranch();
 			this.#modelMentions.syncFromBranch();
-			this.#advisors.resetAllRuntimes();
-			this.#advisors.reattachRecorderFeeds();
 			this.#reconnectToAgent();
 			try {
 				await this.#sessionSwitchReconciler?.();
@@ -10840,14 +10428,9 @@ export class AgentSession implements SettingsScope {
 		await this.sessionManager.flush();
 		const bashTransition = this.#bash.beginSessionTransition();
 		this.#cancelOwnAsyncJobs();
-		this.#abortAutolearnCapture();
-		await this.#drainAutolearnCapture();
 
 		let sessionTransitioned = false;
-		let advisorRecordersDetached = false;
-		try {
-			advisorRecordersDetached = true;
-			await this.#advisors.drainAndDetachRecorders();
+		{
 			try {
 				// Pending prompt setup belongs to the history being replaced.
 				this.#promptGeneration++;
@@ -10860,7 +10443,6 @@ export class AgentSession implements SettingsScope {
 					this.sessionManager.createBranchedSession(selectedEntry.parentId);
 				}
 				this.#bash.markSessionTransition(bashTransition);
-				this.#advisors.clearCost();
 				sessionTransitioned = true;
 			} finally {
 				this.#bash.finishSessionTransition(bashTransition, sessionTransitioned);
@@ -10888,19 +10470,11 @@ export class AgentSession implements SettingsScope {
 
 			if (!skipConversationRestore) {
 				this.agent.replaceMessages(sessionContext.messages);
-				this.#advisors.resetSessionState();
 				this.#closeCodexProviderSessionsForHistoryRewrite();
 			}
 
-			this.#advisors.reattachRecorderFeeds();
-			advisorRecordersDetached = false;
 			await this.#reconcileModeAfterBranch();
 			return { selectedText, selectedImages, cancelled: false };
-		} finally {
-			if (advisorRecordersDetached) {
-				if (sessionTransitioned) this.#advisors.resetSessionState();
-				else this.#advisors.reattachRecorderFeeds();
-			}
 		}
 	}
 
@@ -10973,14 +10547,9 @@ export class AgentSession implements SettingsScope {
 		await this.sessionManager.flush();
 		const bashTransition = this.#bash.beginSessionTransition();
 		this.#cancelOwnAsyncJobs();
-		this.#abortAutolearnCapture();
-		await this.#drainAutolearnCapture();
 
 		let sessionTransitioned = false;
-		let advisorRecordersDetached = false;
-		try {
-			advisorRecordersDetached = true;
-			await this.#advisors.drainAndDetachRecorders();
+		{
 			try {
 				if (this.sessionManager.getSessionId() !== sessionId || this.sessionManager.getLeafId() !== leafId) {
 					throw new Error(t("tui.session.btwSessionChanged"));
@@ -10990,7 +10559,6 @@ export class AgentSession implements SettingsScope {
 				this.#promptGeneration++;
 				this.sessionManager.createBranchedSession(leafId);
 				this.#bash.markSessionTransition(bashTransition);
-				this.#advisors.clearCost();
 				sessionTransitioned = true;
 			} finally {
 				this.#bash.finishSessionTransition(bashTransition, sessionTransitioned);
@@ -11023,17 +10591,10 @@ export class AgentSession implements SettingsScope {
 			}
 
 			this.agent.replaceMessages(sessionContext.messages);
-			this.#advisors.resetSessionState();
 			this.#closeCodexProviderSessionsForHistoryRewrite();
-			advisorRecordersDetached = false;
 			await this.#reconcileModeAfterBranch();
 
 			return { cancelled: false, sessionFile: this.sessionFile };
-		} finally {
-			if (advisorRecordersDetached) {
-				if (sessionTransitioned) this.#advisors.resetSessionState();
-				else this.#advisors.reattachRecorderFeeds();
-			}
 		}
 	}
 
@@ -11348,7 +10909,6 @@ export class AgentSession implements SettingsScope {
 		const displayContext = this.#withEvalStateContext(deobfuscateSessionContext(stateContext, this.#obfuscator));
 		this.agent.replaceMessages(displayContext.messages);
 		this.#rehydrateCheckpointRewindState();
-		this.#advisors.resetSessionState({ preserveCost: true });
 		this.#todo.syncFromBranch();
 		this.#modelMentions.syncFromBranch();
 		this.#closeCodexProviderSessionsForHistoryRewrite();
@@ -12302,29 +11862,6 @@ export class AgentSession implements SettingsScope {
 	}
 
 	/**
-	 * Enable or disable the advisor for this session. The setting is overridden for the session,
-	 * and the runtime is started or stopped to match.
-	 *
-	 * @returns true when the advisor is actively running after the call.
-	 */
-	setAdvisorEnabled(enabled: boolean): boolean {
-		return this.#advisors.setAdvisorEnabled(enabled);
-	}
-
-	/**
-	 * Reactivate an advisor that resolved to `no_model` at construction because a
-	 * discovery-backed provider had not populated the model registry yet. Awaits
-	 * the initial background refresh, then rebuilds the advisor and emits
-	 * `model_changed` so the status line reflects the now-active advisor. See #9010.
-	 */
-	async #retryInactiveAdvisorAfterModelDiscovery(): Promise<void> {
-		if (this.#isDisposed || !this.#advisors.hasInactiveNoModelAdvisor()) return;
-		await this.#modelRegistry.awaitBackgroundRefresh();
-		if (this.#isDisposed) return;
-		if (this.#advisors.retryAfterModelDiscovery()) this.#emit({ type: "model_changed" });
-	}
-
-	/**
 	 * Run the retry.fallbackChains validation a `deferRetryFallbackValidation`
 	 * session skipped at construction. Validation composes the catalog slice of
 	 * every provider a chain names, so interactive startup runs it after the
@@ -12392,184 +11929,6 @@ export class AgentSession implements SettingsScope {
 		await this.#reconcileModelDependentState(current, refreshed);
 		if (this.#isDisposed) return;
 		this.#emit({ type: "model_changed" });
-	}
-
-	/**
-	 * Toggle the advisor setting and start/stop the runtime accordingly.
-	 *
-	 * @returns true when the advisor is actively running after the call.
-	 */
-	toggleAdvisorEnabled(): boolean {
-		return this.#advisors.toggleAdvisorEnabled();
-	}
-
-	/**
-	 * Replace the live advisor roster from an edited `WATCHDOG.yml` (the `/advisor
-	 * configure` save path). Swaps the configs + shared baseline, then rebuilds the
-	 * runtimes in place so the change applies without a restart. When the advisor is
-	 * disabled the new configs are simply stored for the next enable.
-	 *
-	 * @returns the number of advisors active after the rebuild.
-	 */
-	applyAdvisorConfigs(
-		advisors: AdvisorConfig[],
-		sharedInstructions: string | undefined,
-		sharedMaxNotesPerUpdate?: number,
-	): number {
-		return this.#advisors.applyAdvisorConfigs(advisors, sharedInstructions, sharedMaxNotesPerUpdate);
-	}
-
-	/**
-	 * Refresh the project context prompt advisor sessions run against after
-	 * context files change on `/reload-plugins`. Rebuilds live advisor runtimes so
-	 * they stop evaluating turns against stale `AGENTS.md` instructions.
-	 */
-	setAdvisorContextPrompt(contextPrompt: string | undefined): void {
-		this.#advisors.setContextPrompt(contextPrompt);
-	}
-
-	/**
-	 * Refresh the memory backend instructions advisor sessions run against.
-	 * Store-only: live advisors pick the new value up at their next runtime
-	 * build (compaction, reset, toggle) — see `SessionAdvisors#setMemoryPrompt`.
-	 */
-	setAdvisorMemoryPrompt(memoryPrompt: string | undefined): void {
-		this.#advisors.setMemoryPrompt(memoryPrompt);
-	}
-
-	/**
-	 * Whether the advisor setting is enabled for this session.
-	 */
-	isAdvisorEnabled(): boolean {
-		return this.#advisors.isAdvisorEnabled();
-	}
-
-	/**
-	 * Whether a live advisor agent is attached to this session. True only when
-	 * `advisor.enabled` is set for this session (subagents opt in per agent via
-	 * frontmatter `advisor` / `task.agentAdvisor`) AND a model resolved for the
-	 * `advisor` role — i.e. the actual runtime exists, not merely the setting.
-	 * Drives the status-line badge and `/dump advisor`.
-	 */
-	isAdvisorActive(): boolean {
-		return this.#advisors.isAdvisorActive();
-	}
-
-	/**
-	 * The names of the tools available to advisors this session (the pool a
-	 * `/advisor configure` editor lists). The advisor is a full agent, so this is the
-	 * full built tool set; a tool whose optional factory returns null (e.g. lsp with
-	 * no servers) is absent.
-	 */
-	getAdvisorAvailableToolNames(): string[] {
-		return this.#advisors.getAdvisorAvailableToolNames();
-	}
-
-	/**
-	 * The live advisor `Agent`, or `undefined` when no advisor runtime is
-	 * attached. Surfaced for diagnostics (`/dump advisor` already serializes
-	 * its transcript via {@link formatAdvisorHistoryAsText}) and so callers can
-	 * verify the advisor inherits the session's provider-shaping options
-	 * (`streamFn`, `promptCacheKey`, `providerSessionState`, ...).
-	 */
-	getAdvisorAgent(): Agent | undefined {
-		return this.#advisors.getAdvisorAgent();
-	}
-
-	/** WATCHDOG.yml problems from startup discovery; shown by the UI once it is ready. */
-	getAdvisorConfigWarnings(): readonly string[] {
-		return this.#advisors.configWarnings;
-	}
-
-	/**
-	 * Lightweight advisor status for the status line: returns just the configured
-	 * flag and per-advisor name/status without computing token/cost breakdowns.
-	 * Avoids re-tokenizing the advisor transcript on every render frame.
-	 */
-	getAdvisorStatusOverview(): { configured: boolean; advisors: AdvisorStatusOverviewEntry[] } {
-		return this.#advisors.getAdvisorStatusOverview();
-	}
-
-	/** Return cumulative cost recorded for the current session's advisor activity. */
-	getAdvisorCost(): number {
-		return this.#advisors.getAdvisorCost();
-	}
-
-	/**
-	 * Begin backfilling advisor spend recorded before this resume, off the
-	 * critical path. A large transcript would otherwise block startup while
-	 * the file is streamed; the status-line total hydrates once the scan
-	 * settles.
-	 */
-	beginInitialAdvisorCostRestore(): void {
-		let stale = false;
-		const unregisterSessionChange = this.registerSessionChangeCallback(() => {
-			stale = true;
-		});
-		const snapshot = this.#advisors.beginCostRestoreSnapshot();
-		const providersBySlug = new Map<string, Set<string>>();
-		this.#advisorCostRestore = loadAdvisorTranscriptCosts(this.sessionFile, {
-			beforeSnapshot: snapshot.ready,
-			onSnapshot: snapshot.release,
-			shouldContinue: () => !stale && !this.isDisposed,
-			providersBySlug,
-		})
-			.then(costs => {
-				if (stale || this.isDisposed) return;
-				this.restoreInitialAdvisorCosts(costs, snapshot.costsAtSnapshot, providersBySlug);
-				this.#emit({ type: "advisor_cost_changed" });
-			})
-			.catch(err => logger.debug("advisor cost restore failed", { err: String(err) }))
-			.finally(() => {
-				snapshot.release();
-				unregisterSessionChange();
-			});
-	}
-
-	/** Resolves once {@link beginInitialAdvisorCostRestore}'s scan has settled. */
-	get advisorCostRestore(): Promise<void> {
-		return this.#advisorCostRestore;
-	}
-
-	/**
-	 * Restore persisted advisor spend plus the process-local delta billed after
-	 * `costsAtSnapshot`. The recorder barrier fixes every transcript's byte length
-	 * after capturing that baseline, so a turn completed while the scan runs is added
-	 * exactly once.
-	 */
-	restoreInitialAdvisorCosts(
-		costs: ReadonlyMap<string, number>,
-		costsAtSnapshot: ReadonlyMap<string, number> = new Map(),
-		providersBySlug?: ReadonlyMap<string, ReadonlySet<string>>,
-	): void {
-		this.#advisors.restoreInitialCost(costs, costsAtSnapshot, providersBySlug);
-	}
-	/** Return whether any active or configured advisor is running on an OAuth/subscription model. */
-	isAdvisorUsingSubscription(): boolean {
-		return this.#advisors.isUsingSubscription();
-	}
-	/**
-	 * Return structured advisor stats for the status command and TUI panel.
-	 */
-	getAdvisorStats(): AdvisorStats {
-		return this.#advisors.getAdvisorStats();
-	}
-
-	/**
-	 * Format a concise advisor status line for ACP/text output.
-	 */
-	formatAdvisorStatus(): string {
-		return this.#advisors.formatAdvisorStatus();
-	}
-
-	/**
-	 * Format the advisor agent's own transcript (its system prompt, config,
-	 * tools, and the markdown deltas it received plus its thinking/advise/read
-	 * calls) as plain text — the advisor-side equivalent of
-	 * {@link formatSessionAsText}. Returns null when no advisor is active.
-	 */
-	formatAdvisorHistoryAsText(options?: { compact?: boolean }): string | null {
-		return this.#advisors.formatAdvisorHistoryAsText(options);
 	}
 
 	// =========================================================================

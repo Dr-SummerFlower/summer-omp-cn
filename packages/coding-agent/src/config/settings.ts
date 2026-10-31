@@ -369,10 +369,9 @@ function stringArrayFromUnknown(value: unknown): string[] {
 
 /**
  * Migrate a v17 leaf rename that used to nest under a boolean parent path
- * (`dev.autoqa.consent` → `dev.autoqaConsent`, `todo.reminders.max` →
- * `todo.remindersMax`). Pre-rename configs left the leaf beneath the parent,
- * so the parent path resolved to an object and truthy checks like
- * `isAutoQaEnabled` treated a consent-only container as "enabled".
+ * (`todo.reminders.max` → `todo.remindersMax`). Pre-rename configs left the
+ * leaf beneath the parent, so the parent path resolved to an object and truthy
+ * checks like `isAutoQaEnabled` treated a consent-only container as "enabled".
  *
  * Handles nested (`{ parent: { leaf } }`) and quoted-dotted (`"parent.leaf"`)
  * legacy sources. An explicit new key always wins; a separately configured
@@ -2824,39 +2823,6 @@ export class Settings {
 			delete raw.mnemosyne;
 		}
 
-		// hindsight: dynamicBankId/agentName -> scoping enum + bankId
-		// - dynamicBankId=true  → scoping="per-project" (closest semantic match;
-		//   the legacy `agent::project::channel::user` tuple was per-project in
-		//   practice — the channel/user env vars were rarely set).
-		// - hindsight.agentName was only used as the agent slot in the legacy
-		//   dynamic tuple; if the user customised it we surface it as the new
-		//   bankId base when no explicit bankId is set.
-		const hindsightObj = raw.hindsight as Record<string, unknown> | undefined;
-		if (hindsightObj) {
-			if ("dynamicBankId" in hindsightObj) {
-				if (!("scoping" in hindsightObj) && hindsightObj.dynamicBankId === true) {
-					hindsightObj.scoping = "per-project";
-				}
-				delete hindsightObj.dynamicBankId;
-			}
-			if ("agentName" in hindsightObj) {
-				const agentName = hindsightObj.agentName;
-				if (
-					!("bankId" in hindsightObj) &&
-					typeof agentName === "string" &&
-					agentName.trim().length > 0 &&
-					agentName !== "omp"
-				) {
-					hindsightObj.bankId = agentName;
-				}
-				delete hindsightObj.agentName;
-			}
-			// mentalModelRefreshIntervalMs removed: the mental-model block is now
-			// frozen for the session lifetime rather than re-listed on a timer that
-			// rewrote the cached prompt prefix mid-session (#11961).
-			delete hindsightObj.mentalModelRefreshIntervalMs;
-		}
-
 		// power.preventIdleSleep / power.preventSystemSleep / power.declareUserActive
 		// / power.preventDisplaySleep (four booleans) → power.sleepPrevention enum.
 		// The enum is cumulative: each level adds the flags of all lower levels.
@@ -3036,7 +3002,7 @@ export class Settings {
 		{
 			const taskObj = isRecord(raw.task) ? raw.task : undefined;
 			if (taskObj) {
-				for (const key of ["agentPrewalk", "agentAdvisor"]) {
+				for (const key of ["agentAdvisor"]) {
 					const overrides = isRecord(taskObj[key]) ? taskObj[key] : undefined;
 					if (!overrides) continue;
 					for (const agentName in overrides) {
@@ -3048,16 +3014,7 @@ export class Settings {
 		}
 
 		// v17 renames that used to nest under a boolean parent path:
-		//   dev.autoqa.consent -> dev.autoqaConsent
 		//   todo.reminders.max -> todo.remindersMax
-		migrateNestedLeafRename(
-			raw,
-			"dev",
-			"autoqa",
-			"consent",
-			"autoqaConsent",
-			value => value === "unset" || value === "granted" || value === "denied",
-		);
 		migrateNestedLeafRename(
 			raw,
 			"todo",
@@ -3347,19 +3304,6 @@ export class Settings {
 			delete raw["exa.enableResearcher"];
 			delete raw["exa.enableWebsets"];
 		}
-
-		// computer.backend and model-specific controller routing were removed
-		// when the computer tool moved to one native desktop implementation.
-		const computerObj = isRecord(raw.computer) ? raw.computer : undefined;
-		if (computerObj && "backend" in computerObj) {
-			delete computerObj.backend;
-			if (Object.keys(computerObj).length === 0) {
-				delete raw.computer;
-			}
-		}
-		delete raw["computer.backend"];
-
-		delete raw["hindsight.mentalModelRefreshIntervalMs"];
 
 		return raw;
 	}

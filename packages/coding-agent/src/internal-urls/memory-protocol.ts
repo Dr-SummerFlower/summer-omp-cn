@@ -31,16 +31,6 @@ const DEFAULT_MEMORY_FILE = "memory_summary.md";
 const MEMORY_NAMESPACE = "root";
 
 /**
- * Hindsight keeps memories server-side and exposes no `memory://<id>`
- * addressing, yet the shared `recall` tool description still steers a
- * follow-up `read memory://<id>`. This corrective pointer lets that stray read
- * self-correct in one turn instead of derailing on the generic namespace
- * error (issue #7587).
- */
-const HINDSIGHT_UNADDRESSABLE =
-	"Hindsight memories are not addressable via memory://. Recall results are final — use `recall` to search or `reflect` to synthesize. `read memory://<id>` is only available with memory.backend=mnemopi.";
-
-/**
  * Snapshot of memory roots for every registered session, deduped.
  * Each session has its own cwd (possibly a worktree), so subagents and main
  * may see different roots.
@@ -247,8 +237,8 @@ function unknownNamespaceError(namespace: string): Error {
 
 /**
  * Error for the file-backed `memory://root` namespace when it is unavailable.
- * Only `memory.backend=local` owns this namespace; hindsight keeps memory
- * server-side and mnemopi in SQLite banks. Non-local callers must not see
+ * Only `memory.backend=local` owns this namespace; mnemopi keeps memory in
+ * SQLite banks. Non-local callers must not see
  * potentially stale files left by an earlier local session. The backend-aware
  * message points at the tools that can actually answer instead of prescribing
  * "enable memories" to a caller whose backend is already healthy.
@@ -262,9 +252,7 @@ function fileBackedRootUnavailableError(backend: string | undefined): Error {
 	const searchHint =
 		backend === "mnemopi"
 			? " Use `recall`/`reflect` to search Mnemopi memories, or `read memory://<memory-id>` for a full row."
-			: backend === "hindsight"
-				? " Use `recall`/`reflect` to search Hindsight memories."
-				: "";
+			: "";
 	return new Error(
 		`File-backed memory artifacts only exist with memory.backend=local (active backend: ${backend}).${searchHint}`,
 	);
@@ -399,7 +387,6 @@ export class MemoryProtocolHandler implements ProtocolHandler {
 		// clipped recall preview before overwriting it (issue #4443).
 		if (namespace !== MEMORY_NAMESPACE) {
 			if (!caller.legacy) {
-				if (backend === "hindsight") throw new Error(HINDSIGHT_UNADDRESSABLE);
 				if (backend === "mnemopi") {
 					const hit = caller.session ? callerMnemopiState(caller.session)?.getScopedMemory(namespace) : undefined;
 					if (hit) return renderMnemopiMemory(url, hit);
@@ -411,15 +398,6 @@ export class MemoryProtocolHandler implements ProtocolHandler {
 			}
 
 			const mnemopiStates = mnemopiSessionStatesFromRegistry();
-			const hindsightActive =
-				backend === "hindsight" ||
-				(mnemopiStates.length === 0 &&
-					AgentRegistry.global()
-						.list()
-						.some(ref => ref.session?.getHindsightSessionState?.()));
-			if (hindsightActive) {
-				throw new Error(HINDSIGHT_UNADDRESSABLE);
-			}
 			if (mnemopiStates.length === 0) {
 				throw unknownNamespaceError(namespace);
 			}

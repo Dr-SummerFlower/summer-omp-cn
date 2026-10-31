@@ -3,12 +3,10 @@ import type { AgentTool, AgentToolResult } from "@oh-my-pi/pi-agent-core";
 import { prompt } from "@oh-my-pi/pi-utils";
 import { sanitizeSkillName, writeManagedSkill } from "../autolearn/managed-skills";
 import { isNameClaimedByAuthoredSkill } from "../extensibility/skills";
-import { isHindsightConfigured, loadHindsightConfig } from "../hindsight/config";
 import { localBackend } from "../memory-backend/local-backend";
 import learnDescription from "../prompts/tools/learn.md" with { type: "text" };
 import type { ToolSession } from ".";
 
-import { cfgAutolearnEnabled } from "../autolearn/settings";
 import { cfgMemoryBackend } from "../memory-backend/settings";
 import { isGlobalMemoryScopeAvailable } from "../mnemopi/settings";
 import { t } from "@oh-my-pi/pi-i18n";
@@ -43,9 +41,9 @@ export type LearnParams = typeof learnSchemaWithScope.infer;
 /**
  * Orchestrating "learn" tool: persists a lesson to long-term memory and,
  * given a `skill` payload, mints/enhances a managed skill via the shared
- * `writeManagedSkill` primitive. Gated behind `autolearn.enabled` plus a live
- * memory backend — `hindsight`/`mnemopi` (remote/SQLite) or `local` (the
- * file-based rollout backend, where lessons append to `learned.md`).
+ * `writeManagedSkill` primitive. Gated on a live memory backend — `mnemopi`
+ * (local SQLite) or `local` (the file-based rollout backend, where lessons
+ * append to `learned.md`).
  */
 export class LearnTool implements AgentTool<LearnSchema> {
 	readonly name = "learn";
@@ -70,10 +68,8 @@ export class LearnTool implements AgentTool<LearnSchema> {
 	constructor(private readonly session: ToolSession) {}
 
 	static createIf(session: ToolSession): LearnTool | null {
-		if (!cfgAutolearnEnabled.get(session.settings)) return null;
 		const backend = cfgMemoryBackend.get(session.settings);
-		if (backend !== "hindsight" && backend !== "mnemopi" && backend !== "local") return null;
-		if (backend === "hindsight" && !isHindsightConfigured(loadHindsightConfig(session.settings))) return null;
+		if (backend !== "mnemopi" && backend !== "local") return null;
 		return new LearnTool(session);
 	}
 
@@ -83,7 +79,7 @@ export class LearnTool implements AgentTool<LearnSchema> {
 		if (params.scope === "global" && backend !== "mnemopi") {
 			throw new Error(t("tui.ca.tools.learn.globalMemoryScopeIsOnlyAvailable"));
 		}
-		let memoryMessage = t("tui.ca.tools.learn.lessonStored");
+		const memoryMessage = t("tui.ca.tools.learn.lessonStored");
 		if (backend === "mnemopi") {
 			const state = this.session.getMnemopiSessionState?.();
 			if (!state) {
@@ -126,13 +122,6 @@ export class LearnTool implements AgentTool<LearnSchema> {
 			if (!result || result.stored === 0) {
 				throw new Error(t("tui.ca.tools.learn.lessonWasEmptyAfterSanitizationNothing"));
 			}
-		} else {
-			const state = this.session.getHindsightSessionState?.();
-			if (!state) {
-				throw new Error(t("tui.ca.tools.learn.hindsightBackendIsNotInitialisedFor"));
-			}
-			state.enqueueRetain(params.memory, params.context);
-			memoryMessage = t("tui.ca.tools.learn.lessonQueuedForRetention");
 		}
 
 		// 2) Optionally mint/enhance a managed skill. A failure here is surfaced

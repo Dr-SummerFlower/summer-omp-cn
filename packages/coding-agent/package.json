@@ -15,7 +15,10 @@
 		"url": "https://github.com/can1357/oh-my-pi/issues"
 	},
 	"license": "MIT",
-	"author": { "name": "Stencil Labs, Inc.", "url": "https://stencil.so" },
+	"author": {
+		"name": "Stencil Labs, Inc.",
+		"url": "https://stencil.so"
+	},
 	"contributors": [
 		"Mario Zechner"
 	],
@@ -63,18 +66,6 @@
 		"./async/*": {
 			"types": "./src/async/*.ts",
 			"import": "./src/async/*.ts"
-		},
-		"./autoresearch": {
-			"types": "./src/autoresearch/index.ts",
-			"import": "./src/autoresearch/index.ts"
-		},
-		"./autoresearch/*": {
-			"types": "./src/autoresearch/*.ts",
-			"import": "./src/autoresearch/*.ts"
-		},
-		"./autoresearch/tools/*": {
-			"types": "./src/autoresearch/tools/*.ts",
-			"import": "./src/autoresearch/tools/*.ts"
 		},
 		"./capability": {
 			"types": "./src/capability/index.ts",
@@ -304,14 +295,6 @@
 			"types": "./src/eval/index.ts",
 			"import": "./src/eval/index.ts"
 		},
-		"./if-bench": {
-			"types": "./src/if-bench/index.ts",
-			"import": "./src/if-bench/index.ts"
-		},
-		"./if-bench/*": {
-			"types": "./src/if-bench/*.ts",
-			"import": "./src/if-bench/*.ts"
-		},
 		"./eval/js/*": {
 			"types": "./src/eval/js/*.ts",
 			"import": "./src/eval/js/*.ts"
@@ -379,14 +362,6 @@
 		"./memory-backend/*": {
 			"types": "./src/memory-backend/*.ts",
 			"import": "./src/memory-backend/*.ts"
-		},
-		"./hindsight": {
-			"types": "./src/hindsight/index.ts",
-			"import": "./src/hindsight/index.ts"
-		},
-		"./hindsight/*": {
-			"types": "./src/hindsight/*.ts",
-			"import": "./src/hindsight/*.ts"
 		},
 		"./modes": {
 			"types": "./src/modes/index.ts",
@@ -456,14 +431,6 @@
 			"types": "./src/ssh/*.ts",
 			"import": "./src/ssh/*.ts"
 		},
-		"./stt": {
-			"types": "./src/stt/index.ts",
-			"import": "./src/stt/index.ts"
-		},
-		"./stt/*": {
-			"types": "./src/stt/*.ts",
-			"import": "./src/stt/*.ts"
-		},
 		"./task": {
 			"types": "./src/task/index.ts",
 			"import": "./src/task/index.ts"
@@ -528,11 +495,10 @@
 		"fix": "oxlint --fix --fix-suggestions . && bun run fmt",
 		"fmt": "oxfmt --no-error-on-unmatched-pattern 'src/**/*.{ts,tsx}' '{test,bench,examples,scripts}/**/*.ts' '*.ts' && bun run format-prompts",
 		"format-prompts": "bun scripts/format-prompts.ts",
-		"gen:tool-views": "bun --cwd=../collab-web run gen:tool-views",
 		"gen:bundle": "bun scripts/bundle-dist.ts",
 		"gen:native": "bun --cwd=../natives run gen:native",
 		"gen:native:reset": "bun --cwd=../natives run gen:native:reset",
-		"prepack": "bun run gen:tool-views && bun run gen:bundle",
+		"prepack": "bun run gen:bundle",
 		"bench:guard": "bun scripts/bench-guard.ts"
 	},
 	"dependencies": {

@@ -24,7 +24,7 @@ Behavior notes:
 - `@file` CLI arguments are rejected in RPC mode.
 - `--no-ui` (only with `--mode rpc`) runs extensions headless: `ctx.hasUI` is `false`, dialogs resolve to their defaults, and no `extension_ui_request` frames are emitted except for a host-issued `login`. Use it when the host has no interactive surface and must not be left owing dialog answers.
 - RPC mode disables automatic session title generation by default to avoid an extra model call.
-- RPC/ACP host defaults cover task isolation/execution, memory, advisor, tier, async-job, and bash auto-background settings. They are applied only when a path is not explicitly configured; project/global config, `--config`, and isolated settings remain authoritative. Todo settings are not host-defaulted.
+- RPC/ACP host defaults cover task isolation/execution, memory, tier, async-job, and bash auto-background settings. They are applied only when a path is not explicitly configured; project/global config, `--config`, and isolated settings remain authoritative. Todo settings are not host-defaulted.
 - The process claims stdin before extension discovery, then parses it one non-empty JSONL line at a time. Malformed JSON emits a recoverable `command: "parse"` failure and does not terminate the loop.
 - At startup it writes a `ready` frame before processing commands. The frame advertises supported protocol versions and transport limits.
 - When stdin closes, pending extension UI, host-tool, and host-URI requests are rejected; accepted commands are drained, the session is disposed, pending stdout is delivered, and the process exits with code `0`.
@@ -536,7 +536,7 @@ Schemes are case-insensitive on the wire and normalized to lowercase before
 the response is sent. Re-sending `set_host_uri_schemes` replaces the entire
 previous set — schemes missing from the new list are unregistered.
 
-Every built-in scheme (`local://`, `skill://`, `artifact://`, `security://`,
+Every built-in scheme (`local://`, `skill://`, `artifact://`,
 `mcp://`, …) is reserved: RPC hosts cannot register or shadow one, and the
 request fails with `Host URI scheme is reserved by OMP: <scheme>://`.
 

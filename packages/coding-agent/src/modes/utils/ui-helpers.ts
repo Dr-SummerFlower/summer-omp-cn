@@ -6,16 +6,12 @@ import { t } from "@oh-my-pi/pi-i18n";
 import { StatusNotice } from "@oh-my-pi/pi-tui/chrome/status-notice";
 import { QueuedMessagesBand } from "@oh-my-pi/pi-tui/prompt/queued-messages";
 import { logger } from "@oh-my-pi/pi-utils";
-import type { AdvisorMessageDetails } from "../../advisor";
-import { COLLAB_PROMPT_MESSAGE_TYPE, type CollabPromptDetails } from "../../collab/protocol";
 import { settings } from "../../config/settings";
-import { createAdvisorMessageCard } from "@oh-my-pi/pi-tui/chat/advisor-message";
 import { AssistantMessageComponent } from "@oh-my-pi/pi-tui/chat/assistant-message";
 import { createBackgroundTanDispatchBlock } from "@oh-my-pi/pi-tui/chat/background-tan-message";
 import { BashExecutionComponent } from "@oh-my-pi/pi-tui/chat/bash-execution";
 import { detectCacheInvalidation } from "@oh-my-pi/pi-tui/chat/cache-invalidation-marker";
 import { ServedModelTracker } from "@oh-my-pi/pi-tui/chat/served-model-marker";
-import { CollabPromptMessageComponent } from "@oh-my-pi/pi-tui/chat/collab-prompt-message";
 import {
 	BranchSummaryMessageComponent,
 	CompactionSummaryMessageComponent,
@@ -210,11 +206,6 @@ export class UiHelpers {
 						this.ctx.chatContainer.addChild(buildLaunchCompletionBlock(message));
 						break;
 					}
-					if (message.customType === COLLAB_PROMPT_MESSAGE_TYPE) {
-						const component = new CollabPromptMessageComponent(message as CustomMessage<CollabPromptDetails>);
-						this.ctx.chatContainer.addChild(component);
-						break;
-					}
 					if (message.customType === SKILL_PROMPT_MESSAGE_TYPE) {
 						const component = new SkillMessageComponent(message as CustomMessage<SkillPromptDetails>);
 						component.setExpanded(this.ctx.toolOutputExpanded);
@@ -230,13 +221,6 @@ export class UiHelpers {
 						const card = buildIrcMessageCard(message, () => this.ctx.toolOutputExpanded);
 						this.ctx.chatContainer.addChild(card);
 						return [card];
-					}
-					if (message.customType === "advisor") {
-						const details = (message as CustomMessage<AdvisorMessageDetails>).details;
-						this.ctx.chatContainer.addChild(
-							createAdvisorMessageCard(details, () => this.ctx.toolOutputExpanded, theme),
-						);
-						break;
 					}
 					if (message.customType === BACKGROUND_TAN_DISPATCH_MESSAGE_TYPE) {
 						this.ctx.chatContainer.addChild(createBackgroundTanDispatchBlock(message as CustomMessage<unknown>));

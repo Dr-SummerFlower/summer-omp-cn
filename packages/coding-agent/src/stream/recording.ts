@@ -1,7 +1,7 @@
 /**
  * Session recordings (`/record`, `omp play`).
  *
- * A recording is the single-pane `omp stream` feed persisted to disk: the same
+ * A recording is the single-pane live stream feed persisted to disk: the same
  * normalized, redacted screen frames {@link StreamPaintEncoder} produces for
  * live viewers, stamped with their offset from the start of the recording.
  *
@@ -37,9 +37,9 @@ export interface RecordingHeader {
 	rows: number;
 	title: string;
 	createdAt: string;
-	/** Clip description, set by `omp clip --description`. */
+	/** Optional recording description. */
 	description?: string;
-	/** Uploading Stencil username, stamped by the clip server. */
+	/** Uploading username recorded by a publisher. */
 	owner?: string;
 }
 

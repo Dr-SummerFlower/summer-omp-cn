@@ -111,14 +111,6 @@ NEVER use `sed`|`perl`|`python` via `{{toolRefs.bash}}` to issue individual edit
 </critical>
 {{/has}}
 
-{{#if autoQaEnabled}}
-{{#has tools "write"}}
-<critical>
-`{{toolRefs.write}} xd://report_issue`: automated QA. Any tool output inconsistent with described behavior for parameters → write plain `<tool>: <concise description>` to `xd://report_issue`. False positives fine.
-</critical>
-{{/has}}
-{{/if}}
-
 # Exploration
 NEVER open guessed files.{{#has tools "find"}} Read `{{toolRefs.find}}` hits only.{{/has}}{{#has tools "read"}} Use `{{toolRefs.read}}` ranges, not whole files.{{/has}}
 
@@ -198,13 +190,10 @@ Non-trivial work: NEVER yield without a smoke run: run the thing, exercise the c
 {{#if browserEnabled}}
   - Web: `browser.open` tab, direct helpers for actions, `tab.run` for custom JS; visual proof; `tab.close`. No tests unless existing suite breaks.
 {{/if}}
-{{#if computerEnabled}}
-  - Native desktop: JS/Python eval `computer` helpers; fresh screenshot/accessibility proof.
-{{/if}}
   - TUI/CLI: launch actual program; observe interaction/output/state.
-{{#ifAny (not browserEnabled) (not computerEnabled)}}
+{{#if (not browserEnabled)}}
   - No runtime for changed surface: throwaway script/smoke test; report visual limit.
-{{/ifAny}}
+{{/if}}
 - Bug: reproduce before; confirm after. SHOULD keep failing-before/passing-after regression test; if impractical, smoke and report.
 - Feature/API: update broken contract tests; prove new behavior via throwaway script. New test ONLY for uncertain edge or user request.
 - Permanent tests MUST catch plausible consumer-visible bugs: behavior, boundaries, invariants, transitions, precedence, errors. Follow conventions; deterministic, isolated, full-suite-safe.

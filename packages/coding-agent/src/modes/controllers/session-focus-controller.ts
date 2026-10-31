@@ -66,7 +66,6 @@ export class SessionFocusController {
 	}
 	/** Focus the main view on an agent's live session. Throws an Error with a user-displayable message. */
 	async focusAgent(id: string): Promise<void> {
-		if (this.ctx.collabGuest) throw new Error(t("tui.sessionFocus.collabUnavailable"));
 		if (id === MAIN_AGENT_ID) return this.unfocus();
 		const request = ++this.#focusRequestSeq;
 		let session: AgentSession;

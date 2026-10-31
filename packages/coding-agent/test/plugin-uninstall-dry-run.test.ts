@@ -14,7 +14,7 @@ import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from "bun:
 import { runPluginCommand } from "@oh-my-pi/pi-coding-agent/cli/plugin-cli";
 import { PluginManager } from "@oh-my-pi/pi-coding-agent/extensibility/plugins/manager";
 import type { InstalledPluginSummary } from "@oh-my-pi/pi-coding-agent/extensibility/plugins/marketplace";
-import { MarketplaceManager } from "@oh-my-pi/pi-coding-agent/extensibility/plugins/marketplace";
+import { InstalledPluginManager } from "@oh-my-pi/pi-coding-agent/extensibility/plugins/marketplace";
 import { initTheme } from "@oh-my-pi/pi-tui/theme";
 
 describe("runPluginCommand({ action: 'uninstall', flags: { dryRun } })", () => {
@@ -29,9 +29,9 @@ describe("runPluginCommand({ action: 'uninstall', flags: { dryRun } })", () => {
 
 	test("npm route: --dry-run never calls PluginManager.uninstall", async () => {
 		// No marketplace-installed plugins → the name routes down the npm path.
-		spyOn(MarketplaceManager.prototype, "listInstalledPlugins").mockResolvedValue([]);
+		spyOn(InstalledPluginManager.prototype, "listInstalledPlugins").mockResolvedValue([]);
 		const npmUninstall = spyOn(PluginManager.prototype, "uninstall").mockResolvedValue(undefined);
-		const mktUninstall = spyOn(MarketplaceManager.prototype, "uninstallPlugin").mockResolvedValue(undefined);
+		const mktUninstall = spyOn(InstalledPluginManager.prototype, "uninstallPlugin").mockResolvedValue(undefined);
 		try {
 			await runPluginCommand({ action: "uninstall", args: ["zmarketplace"], flags: { dryRun: true, json: true } });
 			expect(npmUninstall).not.toHaveBeenCalled();
@@ -42,7 +42,7 @@ describe("runPluginCommand({ action: 'uninstall', flags: { dryRun } })", () => {
 		}
 	});
 
-	test("marketplace route: --dry-run delegates scope validation without npm removal", async () => {
+	test("marketplace route: --dry-run reports without removing anything", async () => {
 		const installed: InstalledPluginSummary = {
 			id: "hello@local",
 			scope: "user",
@@ -56,13 +56,12 @@ describe("runPluginCommand({ action: 'uninstall', flags: { dryRun } })", () => {
 				},
 			],
 		};
-		spyOn(MarketplaceManager.prototype, "listInstalledPlugins").mockResolvedValue([installed]);
+		spyOn(InstalledPluginManager.prototype, "listInstalledPlugins").mockResolvedValue([installed]);
 		const npmUninstall = spyOn(PluginManager.prototype, "uninstall").mockResolvedValue(undefined);
-		const mktUninstall = spyOn(MarketplaceManager.prototype, "uninstallPlugin").mockResolvedValue(undefined);
+		const mktUninstall = spyOn(InstalledPluginManager.prototype, "uninstallPlugin").mockResolvedValue(undefined);
 		try {
 			await runPluginCommand({ action: "uninstall", args: ["hello@local"], flags: { dryRun: true, json: true } });
-			expect(mktUninstall).toHaveBeenCalledTimes(1);
-			expect(mktUninstall.mock.calls[0]).toEqual(["hello@local", undefined, { dryRun: true }]);
+			expect(mktUninstall).not.toHaveBeenCalled();
 			expect(npmUninstall).not.toHaveBeenCalled();
 		} finally {
 			npmUninstall.mockRestore();
@@ -71,7 +70,7 @@ describe("runPluginCommand({ action: 'uninstall', flags: { dryRun } })", () => {
 	});
 
 	test("without --dry-run the npm route still uninstalls", async () => {
-		spyOn(MarketplaceManager.prototype, "listInstalledPlugins").mockResolvedValue([]);
+		spyOn(InstalledPluginManager.prototype, "listInstalledPlugins").mockResolvedValue([]);
 		spyOn(PluginManager.prototype, "list").mockResolvedValue([{ name: "zmarketplace" }] as never);
 		const npmUninstall = spyOn(PluginManager.prototype, "uninstall").mockResolvedValue(undefined);
 		try {
@@ -83,11 +82,11 @@ describe("runPluginCommand({ action: 'uninstall', flags: { dryRun } })", () => {
 		}
 	});
 	test("a unique bare marketplace name uninstalls its qualified plugin", async () => {
-		spyOn(MarketplaceManager.prototype, "listInstalledPlugins").mockResolvedValue([
+		spyOn(InstalledPluginManager.prototype, "listInstalledPlugins").mockResolvedValue([
 			{ id: "hello@local", scope: "user", entries: [] },
 		]);
 		const npmUninstall = spyOn(PluginManager.prototype, "uninstall").mockResolvedValue(undefined);
-		const mktUninstall = spyOn(MarketplaceManager.prototype, "uninstallPlugin").mockResolvedValue(undefined);
+		const mktUninstall = spyOn(InstalledPluginManager.prototype, "uninstallPlugin").mockResolvedValue(undefined);
 
 		await runPluginCommand({ action: "uninstall", args: ["hello"], flags: { json: true } });
 
@@ -96,7 +95,7 @@ describe("runPluginCommand({ action: 'uninstall', flags: { dryRun } })", () => {
 	});
 
 	test("an unknown npm name errors without reporting a false uninstall", async () => {
-		spyOn(MarketplaceManager.prototype, "listInstalledPlugins").mockResolvedValue([]);
+		spyOn(InstalledPluginManager.prototype, "listInstalledPlugins").mockResolvedValue([]);
 		spyOn(PluginManager.prototype, "list").mockResolvedValue([]);
 		const npmUninstall = spyOn(PluginManager.prototype, "uninstall").mockResolvedValue(undefined);
 		const exit = spyOn(process, "exit").mockImplementation(() => {
@@ -112,12 +111,12 @@ describe("runPluginCommand({ action: 'uninstall', flags: { dryRun } })", () => {
 		expect(npmUninstall).not.toHaveBeenCalled();
 	});
 	test("an ambiguous bare marketplace name lists qualified candidates without uninstalling", async () => {
-		spyOn(MarketplaceManager.prototype, "listInstalledPlugins").mockResolvedValue([
+		spyOn(InstalledPluginManager.prototype, "listInstalledPlugins").mockResolvedValue([
 			{ id: "hello@one", scope: "user", entries: [] },
 			{ id: "hello@two", scope: "user", entries: [] },
 		]);
 		const npmUninstall = spyOn(PluginManager.prototype, "uninstall").mockResolvedValue(undefined);
-		const mktUninstall = spyOn(MarketplaceManager.prototype, "uninstallPlugin").mockResolvedValue(undefined);
+		const mktUninstall = spyOn(InstalledPluginManager.prototype, "uninstallPlugin").mockResolvedValue(undefined);
 		const exit = spyOn(process, "exit").mockImplementation(() => {
 			throw new Error("process.exit");
 		});

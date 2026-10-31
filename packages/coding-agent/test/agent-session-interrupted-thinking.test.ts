@@ -160,7 +160,6 @@ describe("AgentSession interrupted thinking persistence", () => {
 			convertToLlm,
 		});
 		const settings = Settings.isolated({
-			"advisor.enabled": false,
 			"compaction.enabled": false,
 			"retry.enabled": false,
 			"todo.enabled": false,

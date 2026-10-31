@@ -1,10 +1,5 @@
 // UI Components barrel export
 
-export {
-	AdvisorConfigOverlayComponent,
-	type AdvisorConfigCallbacks,
-	type AdvisorConfigDeps,
-} from "@oh-my-pi/pi-tui/overlays/advisor-config";
 export * from "@oh-my-pi/pi-tui/chat/assistant-message";
 export * from "@oh-my-pi/pi-tui/chat/bash-execution";
 export * from "@oh-my-pi/pi-tui/overlays/bordered-loader";

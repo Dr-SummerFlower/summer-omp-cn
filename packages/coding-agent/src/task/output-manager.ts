@@ -11,7 +11,6 @@
  * collisions across repeated or nested task invocations.
  */
 import * as fs from "node:fs/promises";
-import { ADVISOR_TRANSCRIPT_STEM } from "../advisor/transcript-recorder";
 import { PINNED_HUD_TOGGLE_ID } from "@oh-my-pi/pi-tui/prompt/composer";
 
 /**
@@ -35,7 +34,7 @@ export class AgentOutputManager {
 		// Reserve the advisor transcript stem: a subagent allocated this id would
 		// write `<id>.jsonl`, clobbering the advisor's `__advisor.jsonl` in the same
 		// artifacts dir. Reserving bumps such a request to `__advisor-2`.
-		this.#taken.add(ADVISOR_TRANSCRIPT_STEM);
+		this.#taken.add("__advisor");
 		// Reserve the pinned-HUD toggle sentinel the same way: a colliding agent
 		// id would be indistinguishable from the expander row in click routing.
 		this.#taken.add(PINNED_HUD_TOGGLE_ID);

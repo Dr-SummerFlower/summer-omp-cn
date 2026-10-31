@@ -11,8 +11,6 @@ import { isNameClaimedByAuthoredSkill } from "../extensibility/skills";
 import manageSkillDescription from "../prompts/tools/manage-skill.md" with { type: "text" };
 import type { ToolSession } from ".";
 
-import { cfgAutolearnEnabled } from "../autolearn/settings";
-
 const manageSkillSchema = type({
 	action: "'create' | 'update' | 'delete'",
 	name: type("string").describe("kebab-case skill name"),
@@ -35,7 +33,7 @@ export type ManageSkillParams = typeof manageSkillSchema.infer;
 
 /**
  * Direct create/update/delete of isolated managed skills. Gated behind
- * `autolearn.enabled`; backend-independent (the skill side is standalone).
+ * backend-independent (the skill side is standalone).
  */
 export class ManageSkillTool implements AgentTool<typeof manageSkillSchema> {
 	readonly name = "manage_skill";
@@ -50,7 +48,6 @@ export class ManageSkillTool implements AgentTool<typeof manageSkillSchema> {
 	constructor(private readonly refreshSkills?: () => Promise<void>) {}
 
 	static createIf(session: ToolSession): ManageSkillTool | null {
-		if (!cfgAutolearnEnabled.get(session.settings)) return null;
 		return new ManageSkillTool(session.refreshSkills);
 	}
 

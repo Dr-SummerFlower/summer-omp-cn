@@ -18,7 +18,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { runPluginCommand } from "@oh-my-pi/pi-coding-agent/cli/plugin-cli";
 import { PluginManager } from "@oh-my-pi/pi-coding-agent/extensibility/plugins/manager";
-import { MarketplaceManager } from "@oh-my-pi/pi-coding-agent/extensibility/plugins/marketplace";
+import { InstalledPluginManager } from "@oh-my-pi/pi-coding-agent/extensibility/plugins/marketplace";
 import type { InstalledPlugin } from "@oh-my-pi/pi-coding-agent/extensibility/plugins/types";
 import * as piUtils from "@oh-my-pi/pi-utils";
 import { removeWithRetries } from "@oh-my-pi/pi-utils";
@@ -60,11 +60,6 @@ describe("runPluginCommand({ action: 'install', args: [<local>] })", () => {
 		spyOn(piUtils, "getPluginsLockfile").mockReturnValue(path.join(tmpRoot, "omp-plugins.lock.json"));
 		spyOn(piUtils, "getProjectDir").mockReturnValue(tmpRoot);
 		spyOn(piUtils, "getProjectPluginOverridesPath").mockReturnValue(path.join(tmpRoot, "plugin-overrides.json"));
-		// runPluginCommand always builds a MarketplaceManager to enumerate
-		// registered marketplaces. Stub the registry list so classification has
-		// no marketplace candidates to confuse local paths with.
-		spyOn(MarketplaceManager.prototype, "listMarketplaces").mockResolvedValue([]);
-
 		// Swallow CLI output so test logs stay clean.
 		spyOn(console, "log").mockImplementation(() => undefined);
 		spyOn(console, "error").mockImplementation(() => undefined);
@@ -201,7 +196,7 @@ describe("runPluginCommand({ action: 'install', args: [<local>] })", () => {
 		spyOn(console, "log").mockImplementation(message => {
 			output.push(String(message));
 		});
-		spyOn(MarketplaceManager.prototype, "listInstalledPlugins").mockResolvedValue([]);
+		spyOn(InstalledPluginManager.prototype, "listInstalledPlugins").mockResolvedValue([]);
 
 		await runPluginCommand({ action: "link", args: [localPlugin], flags: { json: true } });
 		output.length = 0;

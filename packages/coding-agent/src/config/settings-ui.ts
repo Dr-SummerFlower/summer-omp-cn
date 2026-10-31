@@ -17,10 +17,8 @@ import {
 	normalizeProviderMaxInFlightRequests,
 	validateProviderMaxInFlightRequests,
 } from "../session/settings";
-import { cfgAutolearnEnabled } from "../autolearn/settings";
 import { cfgMemoryBackend } from "../memory-backend/settings";
 import { cfgTuiVimMode } from "../modes/settings";
-import { cfgAdvisorEnabled } from "../advisor/settings";
 
 /** Condition over the global settings; hidden (false) until they are initialized. */
 function whenSettings(test: (settings: Settings) => boolean): () => boolean {
@@ -30,11 +28,8 @@ function whenSettings(test: (settings: Settings) => boolean): () => boolean {
 const CONDITIONS: Record<string, () => boolean> = {
 	macOS: () => process.platform === "darwin",
 	hasImageProtocol: () => !!TERMINAL.imageProtocol,
-	advisorEnabled: whenSettings(s => cfgAdvisorEnabled.get(s) === true),
 	vimModeEnabled: whenSettings(s => cfgTuiVimMode.get(s) === true),
-	hindsightActive: whenSettings(s => cfgMemoryBackend.get(s) === "hindsight"),
 	mnemopiActive: whenSettings(s => cfgMemoryBackend.get(s) === "mnemopi"),
-	autolearnActive: whenSettings(s => cfgAutolearnEnabled.get(s) === true),
 	autoThinkingActive: whenSettings(s => cfgDefaultThinkingLevel.get(s) === "auto"),
 	usageAwareFallbackEnabled: whenSettings(s => cfgRetryUsageAwareFallback.get(s) === true),
 	planModeEnabled: whenSettings(s => cfgPlanEnabled.get(s)),

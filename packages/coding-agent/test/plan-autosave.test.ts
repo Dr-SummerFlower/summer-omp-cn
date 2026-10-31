@@ -9,7 +9,7 @@ import { createSettingsHost } from "@oh-my-pi/pi-coding-agent/config/settings-ui
 import { autosaveApprovedPlan, resolvePlanAutosaveDir } from "@oh-my-pi/pi-coding-agent/plan-mode/plan-autosave";
 import type { PlanModeState } from "@oh-my-pi/pi-coding-agent/plan-mode/state";
 import type { PlanYolo } from "@oh-my-pi/pi-coding-agent/session/agent-session-types";
-import { PrewalkCoordinator, type PrewalkCoordinatorHost } from "@oh-my-pi/pi-coding-agent/session/prewalk";
+import { PlanYoloCoordinator, type PlanYoloCoordinatorHost } from "@oh-my-pi/pi-coding-agent/session/plan-yolo";
 import type { SessionManager } from "@oh-my-pi/pi-coding-agent/session/session-manager";
 import { TempDir } from "@oh-my-pi/pi-utils";
 
@@ -150,12 +150,10 @@ describe("plan-yolo approval autosave", () => {
 		let capturedHandler: ((title: string) => Promise<unknown>) | undefined;
 		let planModeState: PlanModeState | undefined;
 		const localOptions = { getArtifactsDir: () => artifactsDir, getSessionId: () => "test-session" };
-		const host: PrewalkCoordinatorHost = {
-			agent: { steer: () => {} } as unknown as PrewalkCoordinatorHost["agent"],
+		const host: PlanYoloCoordinatorHost = {
+			agent: { steer: () => {} } as unknown as PlanYoloCoordinatorHost["agent"],
 			sessionManager: { getCwd: () => cwd } as unknown as SessionManager,
 			settings,
-			model: () => undefined,
-			configuredThinkingLevel: () => undefined,
 			emitNotice: (level, message, source) => {
 				notices.push({ level, message, source });
 			},
@@ -164,7 +162,6 @@ describe("plan-yolo approval autosave", () => {
 			},
 			setActiveToolsByName: async () => {},
 			restoreNonMCPToolPresentation: async () => {},
-			getActiveToolNames: () => [],
 			getEnabledToolNames: () => [],
 			getMountedXdevToolNames: () => [],
 			hasBuiltInTool: () => false,
@@ -176,7 +173,6 @@ describe("plan-yolo approval autosave", () => {
 			setPlanProposalHandler: handler => {
 				capturedHandler = handler ?? undefined;
 			},
-			waitForSessionMessagePersistence: async () => {},
 			localProtocolOptions: () => localOptions,
 		};
 		return { host, notices, modelTemporaryCalls, localOptions, getHandler: () => capturedHandler };
@@ -187,8 +183,8 @@ describe("plan-yolo approval autosave", () => {
 		const artifactsDir = path.join(cwd, "artifacts");
 		const settings = Settings.isolated({ "plan.autosave": true });
 		const t = setupPlanYolo(cwd, artifactsDir, settings);
-		const coordinator = new PrewalkCoordinator(t.host, { planYolo: { target } satisfies PlanYolo });
-		await coordinator.armPlanYoloIfNeeded();
+		const coordinator = new PlanYoloCoordinator(t.host, { target } satisfies PlanYolo);
+		await coordinator.armIfNeeded();
 		const planPath = resolveLocalUrlToPath("local://auth-plan.md", t.localOptions);
 		await Bun.write(planPath, "# Plan\n\nYolo.\n");
 		const handler = t.getHandler();
@@ -216,8 +212,8 @@ describe("plan-yolo approval autosave", () => {
 		await Bun.write(blocker, "x");
 		const settings = Settings.isolated({ "plan.autosave": true, "plan.autosaveDir": path.join(blocker, "sub") });
 		const t = setupPlanYolo(cwd, artifactsDir, settings);
-		const coordinator = new PrewalkCoordinator(t.host, { planYolo: { target } satisfies PlanYolo });
-		await coordinator.armPlanYoloIfNeeded();
+		const coordinator = new PlanYoloCoordinator(t.host, { target } satisfies PlanYolo);
+		await coordinator.armIfNeeded();
 		const planPath = resolveLocalUrlToPath("local://auth-plan.md", t.localOptions);
 		await Bun.write(planPath, "# Plan\n\nYolo.\n");
 		const handler = t.getHandler();

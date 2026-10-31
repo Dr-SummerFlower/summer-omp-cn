@@ -101,7 +101,7 @@ built-in defaults  <-  global config  <-  project config  <-  CLI overlays  <-  
 From highest to lowest:
 
 1. **Setting env var** — an environment variable declared on the setting's definition (for example `PI_PY` for `eval.py`, `OMP_AUTH_BROKER_URL` for `auth.broker.url`). Parsed by the setting's type; unparseable text (such as `PI_EDIT_VARIANT=auto`) counts as unset. Booleans follow the `parseFlag` convention: empty counts as unset, `1`/`y`/`true`/`yes`/`on` (all-lowercase or all-uppercase) mean true, and any other value means false. A few are declared as fallbacks instead (`SEARXNG_*`, `MNEMOPI_EMBEDDING_MODEL`): they only replace the built-in default, so any configured layer wins over them — except a configured `null`, which counts as unset. `SEARXNG_ENDPOINT`, `SEARXNG_TOKEN`, and `MNEMOPI_EMBEDDING_MODEL` also apply when the setting is a blank string.
-2. **Runtime overrides** — dedicated CLI flags and feature env vars applied in memory for the current process: `--model`, `--smol`, `--slow`, `--plan`, `--approval-mode`, `--auto-approve`/`--yolo`, `--hide-thinking`, `--advisor`, `--no-pty`, `--api-key`, and protocol-mode defaults. Never persisted. Protocol-mode defaults (RPC/ACP) hold only while nothing else configures the setting: a settings write or reset of it, a `config.yml` or project edit picked up by a reload, or an ACP session's own project config replaces them.
+2. **Runtime overrides** — dedicated CLI flags and feature env vars applied in memory for the current process: `--model`, `--smol`, `--slow`, `--plan`, `--approval-mode`, `--auto-approve`/`--yolo`, `--hide-thinking`, `--no-pty`, `--api-key`, and protocol-mode defaults. Never persisted. Protocol-mode defaults (RPC/ACP) hold only while nothing else configures the setting: a settings write or reset of it, a `config.yml` or project edit picked up by a reload, or an ACP session's own project config replaces them.
 3. **CLI config overlays** — each `--config <file>`; later overlay files override earlier ones.
 4. **Project settings** — `<cwd>/.omp/settings.json` then `<cwd>/.omp/config.yml` (and contributions from other discovery providers at project level).
 5. **Global settings** — `~/.omp/agent/config.yml`.
@@ -153,7 +153,7 @@ tools:
 
 ### Bash command approval patterns
 
-`tools.approval` is a record keyed by tool name; dotted forms such as `tools.approval.eval` and `tools.approval.computer` identify entries in that record, not separate setting ids. Each entry sets that tool's default policy. For bash, you can add ordered command rules with `bash.patterns`; the first matching rule wins. Patterns support literal text plus `*` as a wildcard. Whitespace is the exception: before matching, every run of spaces, tabs, or newlines in both the pattern and the command collapses to a single space, and leading/trailing whitespace is trimmed. A newline in a pattern therefore matches any whitespace: `match: "*\n*"` behaves like `"* *"` and matches every command containing a space. A newline-specific rule is unnecessary to catch dangerous commands in a newline-separated list: `deny` and `prompt` rules check each segment (see below). `allow` rules reject unquoted newline command separators, but can approve commands containing quoted or escaped literal newlines when the full command matches.
+`tools.approval` is a record keyed by tool name; dotted forms such as `tools.approval.eval` and `tools.approval.bash` identify entries in that record, not separate setting ids. Each entry sets that tool's default policy. For bash, you can add ordered command rules with `bash.patterns`; the first matching rule wins. Patterns support literal text plus `*` as a wildcard. Whitespace is the exception: before matching, every run of spaces, tabs, or newlines in both the pattern and the command collapses to a single space, and leading/trailing whitespace is trimmed. A newline in a pattern therefore matches any whitespace: `match: "*\n*"` behaves like `"* *"` and matches every command containing a space. A newline-specific rule is unnecessary to catch dangerous commands in a newline-separated list: `deny` and `prompt` rules check each segment (see below). `allow` rules reject unquoted newline command separators, but can approve commands containing quoted or escaped literal newlines when the full command matches.
 
 By default, an `allow` rule must match the entire command and cannot approve a compound line. Set `bash.allowCompoundCommands: true` to also evaluate conservative chains of two or more literal commands joined only by `&&`:
 
@@ -403,9 +403,7 @@ For a role, `modelRoles.<role>` is the primary and `retry.fallbackChains.<role>`
 
 For one-shot searches, `omp search`, `omp q`, and `omp web-search` accept a catalog selector through `--model`, for example `omp web-search --model web/duckduckgo "current Bun release"`. The in-session `web_search` tool has no per-call model override: it follows `modelRoles.web` and `retry.fallbackChains.web`.
 
-Image selection likewise uses full catalog model selectors, not provider names: set `modelRoles.image`, its fallback chain, or the `generate_image` request's optional `model`. OpenRouter image models run through OpenRouter's native images API.
-
-Existing configs are migrated automatically when loaded. Retired backend selectors under `providers` (`webSearch`, `webSearchOrder`, `webSearchExclude`, `webSearchGeminiModel`, `image`, `imageOrder`, `tts`, `judgmentProvider`, `autoThinkingModel`, `unexpectedStopModel`, `tinyModel`, and `memoryModel`) are translated where applicable into `modelRoles` and `retry.fallbackChains`, then removed. The retired `tts.localModel` key is removed (Kokoro is the canonical local TTS model), and `stt.modelName` values are migrated to a canonical `modelRoles.dictation` selector before removal. Other service controls—devices, dtypes, voices, timeouts, and `live.*` behavior—remain ordinary settings.
+Existing configs are migrated automatically when loaded. Retired backend selectors under `providers` (`webSearch`, `webSearchOrder`, `webSearchExclude`, `webSearchGeminiModel`, `image`, `imageOrder`, `tts`, `judgmentProvider`, `autoThinkingModel`, `unexpectedStopModel`, `tinyModel`, and `memoryModel`) are translated where applicable into `modelRoles` and `retry.fallbackChains`, then removed. The retired `tts.localModel` key is removed (Kokoro is the canonical local TTS model), and `stt.modelName` values are migrated to a canonical `modelRoles.dictation` selector before removal. Other service controls—devices, dtypes, voices, and timeouts—remain ordinary settings.
 
 | Key                    | Type    | Default                     | Notes                                                                                                                                                                                                                                                                                                                                                                                                            |
 | ---------------------- | ------- | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -421,20 +419,11 @@ Existing configs are migrated automatically when loaded. Retired backend selecto
 
 See [Models](./models.md) for the `models.yml` schema and custom-provider definitions.
 
-### Advisor
+### Subagent advisor
 
-The advisor is a second model that reviews each completed turn and can inject advice into the primary session. Assign a model with `modelRoles.advisor`, then enable it with `advisor.enabled`, `/advisor on`, or by launching with the `--advisor` flag.
-
-See [Advisor and WATCHDOG.md](./advisor-watchdog.md) for runtime behavior, `WATCHDOG.md` discovery, and bounded catch-up semantics.
-
-| Key                   | Type    | Default | Notes                                                                                                                                                |
-| --------------------- | ------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `advisor.enabled`     | boolean | `false` | Enable the advisor runtime when `modelRoles.advisor` resolves to an available model.                                                                 |
-| `task.agentAdvisor`   | record  | `{}`    | Per-agent subagent advisor: agent name → `"on"` / `"off"` / advisor model pattern. Overrides agent frontmatter `advisor`; configured from the `/agents` hub. |
-| `advisor.syncBacklog` | enum    | `off`   | Bounded advisor catch-up delay: `off`, `1`, `3`, or `5`. The primary waits up to 30 seconds only while advisor backlog is at or above the threshold. |
-| `advisor.immuneTurns` | number  | `3`     | After a `concern`/`blocker` interrupts, route further concerns/blockers as non-interrupting asides for this many completed primary turns.            |
-| `advisor.maxNotesPerUpdate` | number | `4` | Non-blocker notes accepted per advisor review, from 1–32. Higher-severity notes can replace only pending notes from the same review. `WATCHDOG.yml` top-level or per-advisor values override this default. |
-| `advisor.evictStaleResults` | boolean | `true` | Before each review, replace the advisor's `read`/`grep`/`glob` output from older reviews with a short placeholder. The latest review is kept. |
+| Key                 | Type   | Default | Notes                                                                                                                                                    |
+| ------------------- | ------ | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `task.agentAdvisor` | record | `{}`    | Per-agent subagent advisor: agent name → `"on"` / `"off"` / advisor model pattern. Overrides agent frontmatter `advisor`; configured from the `/agents` hub. |
 
 ### Thinking
 
@@ -569,28 +558,7 @@ tools:
 | `tools.artifactTailBytes`      | number  | `20`    | KB of tail kept inline on spill.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | `tools.artifactTailLines`      | number  | `500`   | Max tail lines kept inline on spill.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 
-Individual built-in tools and Eval preludes are toggled by their own keys, e.g. `bash.enabled`, `launch.enabled`, `eval.py`, `eval.js`, `glob.enabled`, `grep.enabled`, `fetch.enabled`, `browser.enabled`, `computer.enabled`, `astEdit.enabled`, `astGrep.enabled`, `find.enabled` (`auto`/`on`/`off`; `auto` enables `find` only when the `judge` role resolves to a native TypeSafe jev model), and `web_search.enabled`. Image questions use `read <image>?q=<question>` and honor `images.questionTimeoutMs`.
-
-### Window-scoped computer use
-
-The disabled-by-default `computer` Eval prelude captures and controls real host windows through native OS APIs. Window handles isolate an application without focusing it or moving the real pointer; the `desktop` object preserves selected-display composite and global input behavior. It remains separate from the `browser` Eval prelude, which manages Chromium/CDP tabs and structured page automation.
-
-```yaml
-computer:
-  enabled: true
-  display: all
-  maxWidth: 3840
-  maxHeight: 2400
-```
-
-| Key                  | Type    | Default | Notes                                                                                                                                                                                                                                                        |
-| -------------------- | ------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `computer.enabled`   | boolean | `false` | Enable the window-aware `computer` Eval prelude; the `/computer` slash command toggles it for the current session only.                                                                        |
-| `computer.display`   | string  | `all`   | Controls the `desktop` target only: composite all active displays, or use one numeric display ID.                                                                                                                                                            |
-| `computer.maxWidth`  | number  | `3840`  | Maximum composite screenshot width in pixels. Image transports that cannot preserve original detail, including GitHub Copilot Responses and xAI OAuth, cap the effective width at `1280`; Claude-family models use the same cap as a compatibility fallback. |
-| `computer.maxHeight` | number  | `2400`  | Maximum composite screenshot height in pixels. Those coordinate-safe transports cap the effective height at `896`; other models retain the configured limit.                                                                                                 |
-
-Computer settings and the active model's coordinate-safe image limits are read for every call; edits to settings files require a new session, while runtime setting changes apply to the next call. Direct `computer` helpers and code passed to `computer.run(fnOrCode, options)` select a target through the desktop root or `window(...)`. Switching targets invalidates the prior coordinate frame, so capture the new target before pointer input. Before enabling input, configure `tools.approvalMode` or `tools.approval.computer` and grant platform permissions. See [Window-scoped computer use](computer-use.md).
+Individual built-in tools and Eval preludes are toggled by their own keys, e.g. `bash.enabled`, `launch.enabled`, `eval.py`, `eval.js`, `glob.enabled`, `grep.enabled`, `fetch.enabled`, `browser.enabled`, `astEdit.enabled`, `astGrep.enabled`, `find.enabled` (`auto`/`on`/`off`; `auto` enables `find` only when the `judge` role resolves to a native TypeSafe jev model), and `web_search.enabled`. Image questions use `read <image>?q=<question>` and honor `images.questionTimeoutMs`.
 
 ### Shell, eval, and LSP
 
@@ -699,7 +667,7 @@ compaction:
   thresholdPercent: -1 # -1 = default reserve-based behavior
   thresholdTokens: -1 # fixed token limit when > 0
 memory:
-  backend: off # off, local, hindsight, mnemopi
+  backend: off # off, local, mnemopi
 ```
 
 | Key                           | Type    | Default                                  | Notes                                                                                                                                                                                                                                     |
@@ -716,10 +684,7 @@ memory:
 | `compaction.reserveTokens`    | number  | _(unset)_                                | Absolute reserve floor. When unset, the effective reserve is the larger of `16384` and 15% of the context window; if that default would leave no practical small-window budget, it falls back to the 15% reserve.                         |
 | `compaction.keepRecentTokens` | number  | `20000`                                  | Recent tokens always preserved.                                                                                                                                                                                                           |
 | `compaction.autoContinue`     | boolean | `true`                                   | Continue automatically after compaction.                                                                                                                                                                                                  |
-| `memory.backend`              | enum    | `off`                                    | `off`, `local`, `hindsight`, `mnemopi`. Each backend has its own `hindsight.*` / `mnemopi.*` / `memories.*` tuning keys.                                                                                                                  |
-| `autolearn.enabled`           | boolean | `false`       | Experimental: after the agent stops, nudge it to capture lessons to memory and create/enhance isolated managed skills under `~/.omp/agent/managed-skills`. Enables the `manage_skill` tool (and `learn` when a memory backend is active). |
-| `autolearn.autoContinue`      | boolean | `false`       | When `autolearn.enabled`, auto-run one capture turn at stop (uses extra tokens). Off = a passive reminder rides your next turn.                                                                                                           |
-| `autolearn.minToolCalls`      | number  | `5`           | Only nudge after a turn that used at least this many tools.                                                                                                                                                                               |
+| `memory.backend`              | enum    | `off`                                    | `off`, `local`, `mnemopi`. Each backend has its own `mnemopi.*` / `memories.*` tuning keys.                                                                                                                                          |
 
 `compaction` has additional tuning keys (idle compaction, supersede/drop heuristics) visible in `omp config list`. See [Compaction](./compaction.md) for the full strategy reference.
 
@@ -826,18 +791,6 @@ providers:
 provider:
   appendOnlyContext: auto # auto, on, off
 
-tts:
-  localVoice: af_heart
-
-speech:
-  enabled: false
-  voice: af_heart
-
-stt:
-  enabled: false
-  language: en
-  submitTrigger: never
-
 exa:
   enabled: true
   searchDelayMs: 1000
@@ -854,11 +807,6 @@ searxng:
 | `providers.tinyModelDevice`         | enum    | `default` | ONNX execution provider, or `mlx` (Apple silicon, via mlx-lm), for local tiny models. Overridden by `PI_TINY_DEVICE`.                                                                                                                                                                                                                                                                                                                                                         |
 | `providers.maxInFlightRequests`     | record  | `{}`      | Positive per-provider concurrency limits for LLM HTTP requests, shared across local `omp` processes using the same config root. Omitted providers are unlimited. `omp config set` rejects non-positive or non-numeric values.                                                                                                                                                                                                          |
 | `providers.tinyModelDtype`          | enum    | `default` | ONNX precision for local tiny models. Overridden by `PI_TINY_DTYPE`.                                                                                                                                                                                                                                                                                                                                                                   |
-| `tts.localVoice`                    | enum    | `af_heart` | Voice used by the local Kokoro TTS runner. Available local voices remain configurable independently of `modelRoles.speech`.                                                                                                                                                                                                                                                                                                           |
-| `speech.voice`                      | enum    | `af_heart` | Kokoro voice used when assistant-output vocalization is enabled.                                                                                                                                                                                                                                                                                                                                                                     |
-| `stt.enabled`                       | boolean | `false`   | Enable microphone speech-to-text; choose the recognition model with `modelRoles.dictation`.                                                                                                                                                                                                                                                                                                                                           |
-| `stt.language`                      | string  | `en`      | Source language hint for speech-to-text.                                                                                                                                                                                                                                                                                                                                                                                               |
-| `stt.submitTrigger`                 | enum    | `never`   | When completed dictation auto-submits: `never`, `release`, `release-complete`, or `say-submit`.                                                                                                                                                                                                                                                                                                                                        |
 | `providers.openaiWebsockets`        | enum    | `auto`    | `auto`, `off`, `on`.                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | `providers.openaiLiveSteering`      | boolean | `true`    | Deliver messages typed while a GPT-6 response streams into that response (`response.steer` over the Codex WebSocket) instead of waiting for the next tool boundary.                                                                                                                                                                                                                                                                    |
 | `providers.openrouterVariant`       | enum    | `default` | `default`, `nitro`, `floor`, `online`, `exacto`.                                                                                                                                                                                                                                                                                                                                                                                       |
@@ -880,9 +828,9 @@ Provider credentials and custom model definitions are configured separately — 
 
 Every schema path not individually tabulated in this catalog is explicitly deferred to `omp config list`. Additional groups include:
 
-- Agent behavior and safety: `ask.*`, `eval.*`, `features.*`, `goal.*`, `loop.*`, `model.loopGuard.*`, `model.toolCallLoopGuard.*`, `prewalk.*`, `recap.*`, `tools.*`, and `vault.*`.
-- Execution and content: `commit.*`, `completion.*`, `edit.*`, `error.*`, `extensionHandlers.*`, `generate_image.*`, `git.*`, `images.*`, `live.*`, `paste.*`, `power.*`, `read.*`, `shellMinimizer.*`, `speech.*`, `terminal.*`, and `title.*`.
-- Interface and startup: `display.*`, `statusLine.*`, `startup.*`, `stt.*`, `tui.*`, and `ttsr.*`.
+- Agent behavior and safety: `ask.*`, `eval.*`, `features.*`, `goal.*`, `loop.*`, `model.loopGuard.*`, `model.toolCallLoopGuard.*`, `recap.*`, `tools.*`, and `vault.*`.
+- Execution and content: `commit.*`, `completion.*`, `edit.*`, `error.*`, `extensionHandlers.*`, `git.*`, `paste.*`, `power.*`, `read.*`, `shellMinimizer.*`, `terminal.*`, and `title.*`.
+- Interface and startup: `display.*`, `statusLine.*`, `startup.*`, `tui.*`, and `ttsr.*`.
 - Ungrouped keys: `setupVersion`, `proseOnlyThinking`, `omitThinking`, `externalThinking`, `includeWorkspaceTree`, `autocompleteMaxVisible`, `emojiAutocomplete`, `disabledExtensions`, `inlineToolDescriptors`, and `treeFilterMode`.
 
 These settings follow the same schema-defined type and default rules shown above.

@@ -1,6 +1,6 @@
 # Plugin manager and installer plumbing
 
-This document describes how `omp plugin` npm/git/link and marketplace operations mutate plugin state on disk and become runtime capabilities. Marketplace installs keep their own registries and cache, then register the cached plugin through the same `node_modules` and `omp-plugins.lock.json` runtime surfaces used by npm/git/link installs; see `docs/marketplace.md`.
+This document describes how `omp plugin` npm/git/link operations mutate plugin state on disk and become runtime capabilities.
 
 ## Scope and architecture
 
@@ -9,7 +9,7 @@ There are two plugin-management implementations in the codebase:
 1. **Active path used by CLI commands**: `PluginManager` (`src/extensibility/plugins/manager.ts`)
 2. **Legacy helper module**: installer functions (`src/extensibility/plugins/installer.ts`)
 
-`omp plugin` npm/git/link actions go through `PluginManager`; marketplace actions go through `MarketplaceManager`. `install` classifies each target (`classifyInstallTarget` in `cli/classify-install-target.ts`): `name@marketplace` routes to the marketplace manager, local paths route to `PluginManager.link()`, git and npm specs to `PluginManager.install()`.
+`omp plugin` npm/git/link actions go through `PluginManager`. `install` classifies each target (`classifyInstallTarget` in `cli/classify-install-target.ts`): local paths route to `PluginManager.link()`, git and npm specs to `PluginManager.install()`.
 
 `installer.ts` still documents important safety checks and filesystem behavior, but it is not the path used by `src/commands/plugin.ts` + `src/cli/plugin-cli.ts`.
 
@@ -24,12 +24,6 @@ omp plugin <npm/link action> ...
   -> enabled-plugin enumeration discovers user and nearest project plugin roots
   -> direct loaders resolve manifest-declared tool/extension entries
   -> `omp-plugins` capability discovery scans conventional skills/hooks/tools/commands/rules/prompts/MCP content; task discovery scans `agents/`
-
-omp plugin install name@marketplace / omp install name@marketplace
-  -> MarketplaceManager
-  -> mutate scope registry and shared cache
-  -> symlink the cached package into the scope's node_modules and update omp-plugins.lock.json
-  -> `claude-plugins` discovery loads marketplace skills/commands/hooks/tools/MCP; task discovery loads `agents/`; extension loader imports `package.json#omp.extensions`
 ```
 
 ### Command entrypoints
@@ -37,7 +31,6 @@ omp plugin install name@marketplace / omp install name@marketplace
 - `src/commands/plugin.ts` defines command/flags and forwards to `runPluginCommand`.
 - `src/cli/plugin-cli.ts` maps npm/link subcommands to `PluginManager` methods:
   - `install`, `uninstall`, `list`, `link`, `doctor`, `features`, `config`, `enable`, `disable`
-- `discover`, `upgrade`, and `marketplace ...` subcommands use `MarketplaceManager`.
 - No explicit npm-plugin `update` action exists; update is done by re-running `install` with a new package/version spec.
 
 ## On-disk model
@@ -51,11 +44,11 @@ User plugin state lives under the plugins data root (`~/.omp/plugins` by default
   - selected feature set per plugin
   - persisted plugin settings
 
-When a project anchor (`.omp/` or `.git/`) exists at or above cwd, project runtime plugins live in `<anchor>/.omp/plugins/{node_modules,omp-plugins.lock.json}`. Marketplace project installs populate this root; enabled project packages shadow user packages with the same package name.
+When a project anchor (`.omp/` or `.git/`) exists at or above cwd, project runtime plugins live in `<anchor>/.omp/plugins/{node_modules,omp-plugins.lock.json}`. Enabled project packages shadow user packages with the same package name.
 
 Project-local overrides are searched through project config directories as `plugin-overrides.json` (normally `<project>/.omp/plugin-overrides.json`). Overrides are read-only from manager/loader perspective and can disable plugins or override features/settings.
 
-Marketplace installs add registry and cache state alongside those runtime entries:
+Marketplace plugins add registry and cache state alongside those runtime entries:
 
 - user data root `marketplaces.json` (`~/.omp/marketplaces.json` by default) — configured marketplace catalogs
 - user plugins data root `installed_plugins.json` (`~/.omp/plugins/installed_plugins.json` by default) — user-scoped marketplace installs

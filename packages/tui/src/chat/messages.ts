@@ -16,7 +16,6 @@ declare module "@oh-my-pi/pi-agent-core" {
 		fileMention: FileMentionMessage;
 	}
 }
-export { COLLAB_PROMPT_MESSAGE_TYPE, type CollabPromptDetails } from "@oh-my-pi/pi-wire";
 export type { BranchSummaryMessage, CompactionSummaryMessage } from "@oh-my-pi/pi-agent-core/compaction/messages";
 
 export const SKILL_PROMPT_MESSAGE_TYPE = "skill-prompt";
@@ -24,8 +23,6 @@ export const SKILL_PROMPT_MESSAGE_TYPE = "skill-prompt";
 export const LSP_LATE_DIAGNOSTIC_MESSAGE_TYPE = "lsp-late-diagnostic";
 
 export const BACKGROUND_TAN_DISPATCH_MESSAGE_TYPE = "background-tan-dispatch";
-
-export const PREWALK_PLAN_MESSAGE_TYPE = "prewalk-plan";
 
 /** Custom message type for the transient Vibe mode directive. */
 export const VIBE_MODE_CONTEXT_MESSAGE_TYPE = "vibe-mode-context";

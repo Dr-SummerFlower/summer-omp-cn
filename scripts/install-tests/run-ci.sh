@@ -134,9 +134,8 @@ cp "$natives_pkg_backup" "$ROOT_DIR/packages/natives/package.json"
 [ "$core_rc" -eq 0 ] || exit "$core_rc"
 
 # 3. Pack the remaining workspace packages (natives core and coding-agent
-#    handled separately). `collab-web` is private but still packed here so its
-#    prepack build and tarball file list stay release-safe.
-for pkg in utils wire omptype catalog ai mnemopi snapcompact agent tui stats collab-web; do
+#    handled separately).
+for pkg in utils wire omptype catalog ai mnemopi snapcompact agent tui stats; do
    (
       cd "$ROOT_DIR/packages/$pkg"
       bun pm pack --destination "$TARBALL_DIR" --quiet >/dev/null
@@ -172,7 +171,6 @@ agent_tgz="$(find_tarball "$TARBALL_DIR"/oh-my-pi-pi-agent-core-*.tgz)"
 tui_tgz="$(find_tarball "$TARBALL_DIR"/oh-my-pi-pi-tui-*.tgz)"
 stats_tgz="$(find_tarball "$TARBALL_DIR"/oh-my-pi-omp-stats-*.tgz)"
 coding_agent_tgz="$(find_tarball "$TARBALL_DIR"/oh-my-pi-pi-coding-agent-*.tgz)"
-collab_web_tgz="$(find_tarball "$TARBALL_DIR"/oh-my-pi-collab-web-*.tgz)"
 
 TARBALL_APP_DIR="$WORK_DIR/tarball-install"
 mkdir -p "$TARBALL_APP_DIR"
@@ -197,8 +195,7 @@ mkdir -p "$TARBALL_APP_DIR"
 			'@oh-my-pi/pi-agent-core': '$agent_tgz',
 			'@oh-my-pi/pi-tui': '$tui_tgz',
 			'@oh-my-pi/omp-stats': '$stats_tgz',
-			'@oh-my-pi/pi-coding-agent': '$coding_agent_tgz',
-			'@oh-my-pi/collab-web': '$collab_web_tgz'
+			'@oh-my-pi/pi-coding-agent': '$coding_agent_tgz'
 		};
 		require('fs').writeFileSync('package.json', JSON.stringify(pkg, null, 2));
 	"

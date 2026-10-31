@@ -14,7 +14,6 @@ import {
 	createCustomMessage,
 	INTERRUPTED_THINKING_MESSAGE_TYPE,
 	isEmptyErrorTurn,
-	PREWALK_PLAN_MESSAGE_TYPE,
 	VIBE_MODE_CONTEXT_MESSAGE_TYPE,
 } from "./messages";
 import { CONTEXT_NOTES_ENTRY_TYPE, getContextNotes, renderContextNotes } from "./context-notes";
@@ -389,10 +388,7 @@ export function buildSessionContext(
 			}
 			pushMessage(entry.message);
 		} else if (entry.type === "custom_message") {
-			if (
-				!options?.transcript &&
-				(entry.customType === PREWALK_PLAN_MESSAGE_TYPE || entry.customType === VIBE_MODE_CONTEXT_MESSAGE_TYPE)
-			) {
+			if (!options?.transcript && entry.customType === VIBE_MODE_CONTEXT_MESSAGE_TYPE) {
 				return;
 			}
 			const message = customMessageEntryMessage(entry);

@@ -52,7 +52,6 @@ import { isTinyLocalModelKey } from "../../tiny/models";
 import { tinyTitleClient } from "../../tiny/title-client";
 import { resolveReadPath } from "../../tools/path-utils";
 import { shortenPath, TRUNCATE_LENGTHS, truncateToWidth } from "@oh-my-pi/pi-tui/render/render-utils";
-import { vocalizer } from "../../tts/vocalizer";
 import {
 	copyToClipboard,
 	readImageFromClipboard,
@@ -487,9 +486,6 @@ export class InputController {
 			if (this.ctx.hasActiveOmfg() && this.ctx.handleOmfgEscape()) {
 				return;
 			}
-			if (this.ctx.hasActiveCleanse() && this.ctx.handleCleanseEscape()) {
-				return;
-			}
 
 			if (!this.ctx.focusedAgentId) {
 				const viewSession = this.ctx.viewSession;
@@ -507,14 +503,6 @@ export class InputController {
 					aborted = true;
 				}
 				if (aborted) return;
-			}
-
-			if (vocalizer.isSpeaking()) {
-				// Playback from the completed response can overlap the next agent
-				// turn. Silence it before interrupting any ongoing main-turn work.
-				vocalizer.clear();
-				this.ctx.lastEscapeTime = 0;
-				return;
 			}
 
 			if (this.ctx.loopModeEnabled) {
@@ -540,15 +528,6 @@ export class InputController {
 					void this.ctx.unfocusSession();
 				}
 				return; // double-escape backtrack (/tree, /branch) stays main-only
-			}
-			if (this.ctx.collabGuest) {
-				// Guest Esc: ask the host to interrupt its agent; the local replica
-				// session is never streaming, so the native abort path below would
-				// no-op.
-				if (this.ctx.collabGuest.state?.isStreaming || this.ctx.loadingAnimation) {
-					this.ctx.collabGuest.sendAbort();
-				}
-				return;
 			}
 			if (this.ctx.loadingAnimation) {
 				if (this.ctx.cancelPendingSubmission()) {
@@ -677,15 +656,6 @@ export class InputController {
 		for (const key of this.ctx.keybindings.getKeys("app.message.followUp")) {
 			this.ctx.editor.setCustomKeyHandler(key, () => void this.handleFollowUp());
 		}
-		for (const key of this.ctx.keybindings.getKeys("app.stt.toggle")) {
-			this.ctx.editor.setCustomKeyHandler(key, () => void this.ctx.handleSTTToggle());
-		}
-		for (const key of this.ctx.keybindings.getKeys("app.live.toggle")) {
-			this.ctx.editor.setCustomKeyHandler(key, () => void this.ctx.handleLiveCommand());
-		}
-		// Hold the space bar to push-to-talk: the editor recognizes the auto-repeat burst, tracks
-		// the spam back out, and starts STT on hold start / stops it on release.
-		this.ctx.editor.spaceHold.handler = this.ctx.dictationSpaceHold(this.ctx.editor);
 		for (const key of this.ctx.keybindings.getKeys("app.clipboard.copyLine")) {
 			this.ctx.editor.setCustomKeyHandler(key, () => this.handleCopyCurrentLine());
 		}
@@ -1074,33 +1044,6 @@ export class InputController {
 					if (!shouldSkipHistory(text)) this.ctx.editor.addToHistory(text);
 					text = slashResult;
 				}
-			}
-
-			// Collab guest: prompts execute on the host; local slash/skill/bash/
-			// python execution is host-only (builtins are gated inside
-			// executeBuiltinSlashCommand, which already consumed allowed ones).
-			if (this.ctx.collabGuest) {
-				if (text.startsWith("/")) {
-					this.ctx.showStatus(t("tui.input.collabSlashHostOnly", { command: text.split(/\s+/, 1)[0] }));
-					this.ctx.editor.setText("");
-					return;
-				}
-				if (text.startsWith("!") || parsePythonCommandInput(text)) {
-					this.ctx.showStatus(t("tui.input.collabLocalHostOnly"));
-					this.ctx.editor.setText("");
-					return;
-				}
-				if (this.ctx.collabGuest.readOnly) {
-					// Keep the typed text: the prompt was not consumed.
-					this.ctx.showStatus(t("tui.input.collabReadOnly"));
-					return;
-				}
-				const images = inputImages && inputImages.length > 0 ? [...inputImages] : undefined;
-				this.ctx.editor.clearDraft(text);
-				// No local render: the prompt comes back from the host as a
-				// collab-prompt event/entry and renders with the author badge.
-				this.ctx.collabGuest.sendPrompt(text, images);
-				return;
 			}
 
 			// Handle skill commands (/skill:name [args]). Enter ⇒ steer (matches the
@@ -1697,10 +1640,6 @@ export class InputController {
 	}
 
 	async handleRetry(): Promise<void> {
-		if (this.ctx.collabGuest) {
-			this.ctx.showStatus(t("tui.input.retryHostOnly"));
-			return;
-		}
 		const didRetry = await this.ctx.viewSession.retry();
 		if (didRetry) {
 			this.ctx.editor.clearDraft();
