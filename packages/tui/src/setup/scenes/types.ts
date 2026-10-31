@@ -1,3 +1,4 @@
+import type { Language } from "@oh-my-pi/pi-i18n";
 import type { AuthStorage, Model } from "@oh-my-pi/pi-ai";
 import type { OAuthBrowserSessionRequest } from "@oh-my-pi/pi-ai/oauth/types";
 import type { SgrMouseEvent } from "../../mouse";
@@ -26,6 +27,10 @@ export interface SetupHost extends SetupUiHost {
 	readonly composerShape: ComposerShape;
 	readonly symbolPreset: SymbolPreset;
 	readonly colorBlindMode: boolean;
+	/** Interface language in effect (`"en"` / `"zh-CN"`). */
+	readonly language: Language;
+	/** Whether the user (or a config file) ever set the language explicitly. */
+	readonly languageConfigured: boolean;
 	readonly disabledProviders: readonly string[];
 	readonly authStorage: AuthStorage;
 	readonly modelSource: ModelBrowserSource;
@@ -37,6 +42,8 @@ export interface SetupHost extends SetupUiHost {
 	saveSymbolPreset(preset: SymbolPreset): void;
 	saveColorBlindMode(enabled: boolean): void;
 	saveTheme(mode: "dark" | "light", name: string): void;
+	/** Persist the interface language; takes effect for the current session too. */
+	saveLanguage(language: Language): void | Promise<void>;
 	captureBrowserSession(request: OAuthBrowserSessionRequest, signal?: AbortSignal): Promise<string>;
 	copyToClipboard(text: string): Promise<void>;
 	openInBrowser(url: string): void;

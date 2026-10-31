@@ -10,9 +10,13 @@ import { loadCapability } from "../discovery";
 // Embed command markdown files at build time
 import initMd from "../prompts/agents/init.md" with { type: "text" };
 
-const EMBEDDED_COMMANDS: { name: string; content: string }[] = [{ name: "init.md", content: prompt.render(initMd) }];
+/** Embedded bundled commands; `descriptionKey` localizes the display description when present. */
+const EMBEDDED_COMMANDS: { name: string; content: string; descriptionKey?: string }[] = [
+	{ name: "init.md", content: prompt.render(initMd), descriptionKey: "slash.init.description" },
+];
 
-export const EMBEDDED_COMMAND_TEMPLATES: ReadonlyArray<{ name: string; content: string }> = EMBEDDED_COMMANDS;
+export const EMBEDDED_COMMAND_TEMPLATES: ReadonlyArray<{ name: string; content: string; descriptionKey?: string }> =
+	EMBEDDED_COMMANDS;
 
 /** Workflow command definition */
 export interface WorkflowCommand {

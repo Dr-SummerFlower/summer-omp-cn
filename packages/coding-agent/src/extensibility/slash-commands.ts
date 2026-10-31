@@ -1,3 +1,4 @@
+import { t } from "@oh-my-pi/pi-i18n";
 import { parseFrontmatter, prompt } from "@oh-my-pi/pi-utils";
 import { slashCommandCapability } from "../capability/slash-command";
 import { slashCommandFrontmatterDisplay } from "@oh-my-pi/pi-tui/overlays/extensions/inspector-model";
@@ -106,7 +107,7 @@ export async function loadSlashCommands(options: LoadSlashCommandsOptions = {}):
 		});
 		fileCommands.push({
 			name,
-			description,
+			description: cmd.descriptionKey ? t(cmd.descriptionKey) : description,
 			argumentHint,
 			content: body,
 			source: "bundled",

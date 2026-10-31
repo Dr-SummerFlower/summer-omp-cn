@@ -1,4 +1,5 @@
 import * as vcs from "@oh-my-pi/pi-natives/vcs";
+import { t } from "@oh-my-pi/pi-i18n";
 import { prompt } from "@oh-my-pi/pi-utils";
 import type { CustomCommand, CustomCommandAPI } from "../../../../extensibility/custom-commands/types";
 import type { HookCommandContext } from "../../../../extensibility/hooks/types";
@@ -45,7 +46,9 @@ async function getHeadTagContext(api: CustomCommandAPI): Promise<{ branch: strin
 
 export class GreenCommand implements CustomCommand {
 	name = "green";
-	description = "Generate a prompt to iterate on CI failures until the branch is green";
+	get description(): string {
+		return t("tui.ca.extensibility.customCommands.bundled.ciGreen.index.description");
+	}
 
 	constructor(private api: CustomCommandAPI) {}
 

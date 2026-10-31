@@ -17,6 +17,7 @@ import type { InteractiveModeContext } from "./types";
 import {
 	cfgColorBlindMode,
 	cfgComposerShape,
+	cfgLanguage,
 	cfgSetupVersion,
 	cfgSymbolPreset,
 	cfgThemeDark,
@@ -44,6 +45,12 @@ export function createSetupHost(ctx: InteractiveModeContext): SetupHost {
 		},
 		get colorBlindMode() {
 			return cfgColorBlindMode.get(ctx.settings);
+		},
+		get language() {
+			return ctx.settings ? cfgLanguage.get(ctx.settings) : "en";
+		},
+		get languageConfigured() {
+			return ctx.settings ? cfgLanguage.isConfigured(ctx.settings) : false;
 		},
 		get disabledProviders() {
 			return cfgDisabledProviders.get(ctx.settings);
@@ -77,6 +84,12 @@ export function createSetupHost(ctx: InteractiveModeContext): SetupHost {
 		},
 		saveTheme: (mode, name) => {
 			(mode === "dark" ? cfgThemeDark : cfgThemeLight).set(ctx.settings, name);
+		},
+		saveLanguage: async language => {
+			// The `cfgLanguage` effect calls `setLanguage` synchronously, so the
+			// current session re-renders in the choice before the disk flush.
+			cfgLanguage.set(ctx.settings, language);
+			await ctx.settings.flush();
 		},
 		captureBrowserSession,
 		copyToClipboard,

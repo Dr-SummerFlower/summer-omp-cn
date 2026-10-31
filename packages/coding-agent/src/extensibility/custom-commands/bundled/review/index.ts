@@ -237,7 +237,9 @@ function buildCustomReviewPrompt(instructions: string): string {
 
 export class ReviewCommand implements CustomCommand {
 	name = "review";
-	description = "Launch interactive code review";
+	get description(): string {
+		return t("tui.ca.extensibility.customCommands.bundled.review.index.description");
+	}
 
 	constructor(private readonly api: CustomCommandAPI) {}
 

@@ -316,7 +316,9 @@ export async function runAnnotateCommand(
 
 export class AnnotateCommand implements CustomCommand {
 	name = "annotate";
-	description = "Annotate a diff or text from a file, prompt, latest reply, or session";
+	get description(): string {
+		return t("tui.ca.extensibility.customCommands.bundled.annotate.index.description");
+	}
 	#fileCompletionProvider: CombinedAutocompleteProvider | undefined;
 	#fileCompletionCwd: string | undefined;
 
